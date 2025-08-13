@@ -1,0 +1,15 @@
+{
+  "name": "theo-ollama-test",
+  "version": "1.0.0",
+  "description": "Test script for Ollama integration",
+  "type": "module",
+  "main": "ollama-test.js",
+  "scripts": {
+    "test": "node ollama-test.js",
+    "interactive": "node ollama-interactive.js",
+    "interface": "node ollama-interface.js"
+  },
+  "dependencies": {
+    "@theo-code/theo-code-core": "file:../packages/core"
+  }
+}

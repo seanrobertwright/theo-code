@@ -242,6 +242,8 @@ export OLLAMA_HOST="http://localhost:11434"  # Optional, defaults to http://loca
 - ✅ **Interactive model selection** - easily switch between models
 - ⚠️ **Performance depends on your hardware** - may be slower than cloud models
 
+For more detailed information about using Ollama with Theo Code, see [OLLAMA_USAGE.md](OLLAMA_USAGE.md).
+
 ## Usage Examples
 
 ### 🔍 Explore Codebases

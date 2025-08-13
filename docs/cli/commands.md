@@ -114,13 +114,137 @@ Slash commands provide meta-level control over the CLI itself.
 - **`/vim`**
   - **Description:** Toggle vim mode on or off. When vim mode is enabled, the input area supports vim-style navigation and editing commands in both NORMAL and INSERT modes.
   - **Features:**
-    - **NORMAL mode:** Navigate with `h`, `j`, `k`, `l`; jump by words with `w`, `b`, `e`; go to line start/end with `0`, `$`, `^`; go to specific lines with `G` (or `gg` for first line)
+    - **NORMAL mode:** Navigate with `h`, `j`, `k`, `l`; jump by words with `w`, `b`, `e`; go to line start/end with `0`, `# CLI Commands
+
+Theo Code supports several built-in commands to help you manage your session, customize the interface, and control its behavior. These commands are prefixed with a forward slash (`/`), an at symbol (`@`), or an exclamation mark (`!`).
+
+## Slash commands (`/`)
+
+Slash commands provide meta-level control over the CLI itself.
+
+### Built-in Commands
+
+- **`/bug`**
+  - **Description:** File an issue about Theo Code. By default, the issue is filed within the GitHub repository for Theo Code. The string you enter after `/bug` will become the headline for the bug being filed. The default `/bug` behavior can be modified using the `bugCommand` setting in your `.theo/settings.json` files.
+
+- **`/chat`**
+  - **Description:** Save and resume conversation history for branching conversation state interactively, or resuming a previous state from a later session.
+  - **Sub-commands:**
+    - **`save`**
+      - **Description:** Saves the current conversation history. You must add a `<tag>` for identifying the conversation state.
+      - **Usage:** `/chat save <tag>`
+      - **Details on Checkpoint Location:** The default locations for saved chat checkpoints are:
+        - Linux/macOS: `~/.config/google-generative-ai/checkpoints/`
+        - Windows: `C:\Users\<YourUsername>\AppData\Roaming\google-generative-ai\checkpoints\`
+        - When you run `/chat list`, the CLI only scans these specific directories to find available checkpoints.
+        - **Note:** These checkpoints are for manually saving and resuming conversation states. For automatic checkpoints created before file modifications, see the [Checkpointing documentation](../checkpointing.md).
+    - **`resume`**
+      - **Description:** Resumes a conversation from a previous save.
+      - **Usage:** `/chat resume <tag>`
+    - **`list`**
+      - **Description:** Lists available tags for chat state resumption.
+
+- **`/clear`**
+  - **Description:** Clear the terminal screen, including the visible session history and scrollback within the CLI. The underlying session data (for history recall) might be preserved depending on the exact implementation, but the visual display is cleared.
+  - **Keyboard shortcut:** Press **Ctrl+L** at any time to perform a clear action.
+
+- **`/compress`**
+  - **Description:** Replace the entire chat context with a summary. This saves on tokens used for future tasks while retaining a high level summary of what has happened.
+
+- **`/copy`**
+  - **Description:** Copies the last output produced by Theo Code to your clipboard, for easy sharing or reuse.
+
+- **`/directory`** (or **`/dir`**)
+  - **Description:** Manage workspace directories for multi-directory support.
+  - **Sub-commands:**
+    - **`add`**:
+      - **Description:** Add a directory to the workspace. The path can be absolute or relative to the current working directory. Moreover, the reference from home directory is supported as well.
+      - **Usage:** `/directory add <path1>,<path2>`
+      - **Note:** Disabled in restrictive sandbox profiles. If you're using that, use `--include-directories` when starting the session instead.
+    - **`show`**:
+      - **Description:** Display all directories added by `/directory add` and `--include-directories`.
+      - **Usage:** `/directory show`
+
+- **`/editor`**
+  - **Description:** Open a dialog for selecting supported editors.
+
+- **`/extensions`**
+  - **Description:** Lists all active extensions in the current Theo Code session. See [Theo Code Extensions](../extension.md).
+
+- **`/help`** (or **`/?`**)
+  - **Description:** Display help information about the Theo Code, including available commands and their usage.
+
+- **`/mcp`**
+  - **Description:** List configured Model Context Protocol (MCP) servers, their connection status, server details, and available tools.
+  - **Sub-commands:**
+    - **`desc`** or **`descriptions`**:
+      - **Description:** Show detailed descriptions for MCP servers and tools.
+    - **`nodesc`** or **`nodescriptions`**:
+      - **Description:** Hide tool descriptions, showing only the tool names.
+    - **`schema`**:
+      - **Description:** Show the full JSON schema for the tool's configured parameters.
+  - **Keyboard Shortcut:** Press **Ctrl+T** at any time to toggle between showing and hiding tool descriptions.
+
+- **`/memory`**
+  - **Description:** Manage the AI's instructional context (hierarchical memory loaded from `QWEN.md` files by default; configurable via `contextFileName`).
+  - **Sub-commands:**
+    - **`add`**:
+      - **Description:** Adds the following text to the AI's memory. Usage: `/memory add <text to remember>`
+    - **`show`**:
+      - **Description:** Display the full, concatenated content of the current hierarchical memory that has been loaded from all context files (e.g., `QWEN.md`). This lets you inspect the instructional context being provided to the model.
+    - **`refresh`**:
+      - **Description:** Reload the hierarchical instructional memory from all context files (default: `QWEN.md`) found in the configured locations (global, project/ancestors, and sub-directories). This updates the model with the latest context content.
+    - **Note:** For more details on how context files contribute to hierarchical memory, see the [CLI Configuration documentation](./configuration.md#context-files-hierarchical-instructional-context).
+
+- **`/restore`**
+  - **Description:** Restores the project files to the state they were in just before a tool was executed. This is particularly useful for undoing file edits made by a tool. If run without a tool call ID, it will list available checkpoints to restore from.
+  - **Usage:** `/restore [tool_call_id]`
+  - **Note:** Only available if the CLI is invoked with the `--checkpointing` option or configured via [settings](./configuration.md). See [Checkpointing documentation](../checkpointing.md) for more details.
+
+- **`/stats`**
+  - **Description:** Display detailed statistics for the current Theo Code session, including token usage, cached token savings (when available), and session duration. Note: Cached token information is only displayed when cached tokens are being used, which occurs with API key authentication but not with OAuth authentication at this time.
+
+- [**`/theme`**](./themes.md)
+  - **Description:** Open a dialog that lets you change the visual theme of Theo Code.
+
+- **`/auth`**
+  - **Description:** Open a dialog that lets you change the authentication method.
+
+- **`/about`**
+  - **Description:** Show version info. Please share this information when filing issues.
+
+- [**`/tools`**](../tools/index.md)
+  - **Description:** Display a list of tools that are currently available within Theo Code.
+  - **Sub-commands:**
+    - **`desc`** or **`descriptions`**:
+      - **Description:** Show detailed descriptions of each tool, including each tool's name with its full description as provided to the model.
+    - **`nodesc`** or **`nodescriptions`**:
+      - **Description:** Hide tool descriptions, showing only the tool names.
+
+- **`/privacy`**
+  - **Description:** Display the Privacy Notice and allow users to select whether they consent to the collection of their data for service improvement purposes.
+
+- **`/quit`** (or **`/exit`**)
+  - **Description:** Exit Theo Code.
+
+, `^`; go to specific lines with `G` (or `gg` for first line)
     - **INSERT mode:** Standard text input with escape to return to NORMAL mode
     - **Editing commands:** Delete with `x`, change with `c`, insert with `i`, `a`, `o`, `O`; complex operations like `dd`, `cc`, `dw`, `cw`
     - **Count support:** Prefix commands with numbers (e.g., `3h`, `5w`, `10G`)
     - **Repeat last command:** Use `.` to repeat the last editing operation
     - **Persistent setting:** Vim mode preference is saved to `~/.gemini/settings.json` and restored between sessions
   - **Status indicator:** When enabled, shows `[NORMAL]` or `[INSERT]` in the footer
+
+- **`/ollama`**
+  - **Description:** Manage Ollama models.
+  - **Sub-commands:**
+    - **`list`**
+      - **Description:** List available Ollama models.
+    - **`model <model_name>`**
+      - **Description:** Switch to a specific Ollama model.
+  - **Requirements:** Ollama must be installed and running, and you must be using Ollama authentication.
+  - **Note:** The status bar model name may not update until you restart the session.
+  - **See also:** [Ollama command documentation](./commands/ollama.md)
 
 - **`/init`**
   - **Description:** Analyzes the current directory and creates a `QWEN.md` context file by default (or the filename specified by `contextFileName`). If a non-empty file already exists, no changes are made. The command seeds an empty file and prompts the model to populate it with project-specific instructions.
