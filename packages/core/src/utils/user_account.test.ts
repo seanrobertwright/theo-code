@@ -26,10 +26,10 @@ vi.mock('os', async (importOriginal) => {
 describe('user_account', () => {
   let tempHomeDir: string;
   const accountsFile = () =>
-    path.join(tempHomeDir, '.qwen', 'google_accounts.json');
+    path.join(tempHomeDir, '.theo', 'google_accounts.json');
   beforeEach(() => {
     tempHomeDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'qwen-code-test-home-'),
+      path.join(os.tmpdir(), 'theo-code-test-home-'),
     );
     (os.homedir as Mock).mockReturnValue(tempHomeDir);
   });

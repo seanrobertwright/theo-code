@@ -15,8 +15,8 @@ import { DefaultLight } from './default-light.js';
 import { DefaultDark } from './default.js';
 import { ShadesOfPurple } from './shades-of-purple.js';
 import { XCode } from './xcode.js';
-import { QwenLight } from './qwen-light.js';
-import { QwenDark } from './qwen-dark.js';
+import { TheoLight } from './theo-light.js';
+import { TheoDark } from './theo-dark.js';
 import {
   Theme,
   ThemeType,
@@ -35,7 +35,7 @@ export interface ThemeDisplay {
   isCustom?: boolean;
 }
 
-export const DEFAULT_THEME: Theme = QwenDark;
+export const DEFAULT_THEME: Theme = TheoDark;
 
 class ThemeManager {
   private readonly availableThemes: Theme[];
@@ -53,8 +53,8 @@ class ThemeManager {
       GitHubDark,
       GitHubLight,
       GoogleCode,
-      QwenLight,
-      QwenDark,
+      TheoLight,
+      TheoDark,
       ShadesOfPurple,
       XCode,
       ANSI,
@@ -173,12 +173,12 @@ class ThemeManager {
       }),
     );
 
-    // Separate Qwen themes
-    const qwenThemes = builtInThemes.filter(
-      (theme) => theme.name === QwenLight.name || theme.name === QwenDark.name,
+    // Separate Theo themes
+    const theoThemes = builtInThemes.filter(
+      (theme) => theme.name === TheoLight.name || theme.name === TheoDark.name,
     );
     const otherBuiltInThemes = builtInThemes.filter(
-      (theme) => theme.name !== QwenLight.name && theme.name !== QwenDark.name,
+      (theme) => theme.name !== TheoLight.name && theme.name !== TheoDark.name,
     );
 
     // Sort other themes by type and then name
@@ -207,8 +207,8 @@ class ThemeManager {
       },
     );
 
-    // Combine Qwen themes first, then sorted others
-    return [...qwenThemes, ...sortedOtherThemes];
+    // Combine Theo themes first, then sorted others
+    return [...theoThemes, ...sortedOtherThemes];
   }
 
   /**

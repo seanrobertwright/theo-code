@@ -12,7 +12,7 @@ import {
   Config,
   ConfigParameters,
   ContentGeneratorConfig,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 
 const TEST_CONTENT_GENERATOR_CONFIG: ContentGeneratorConfig = {
   apiKey: 'test-key',
@@ -21,8 +21,8 @@ const TEST_CONTENT_GENERATOR_CONFIG: ContentGeneratorConfig = {
 };
 
 // Mock file discovery service and tool registry
-vi.mock('@qwen-code/qwen-code-core', async () => {
-  const actual = await vi.importActual('@qwen-code/qwen-code-core');
+vi.mock('@theo-code/theo-code-core', async () => {
+  const actual = await vi.importActual('@theo-code/theo-code-core');
   return {
     ...actual,
     FileDiscoveryService: vi.fn().mockImplementation(() => ({
@@ -37,7 +37,7 @@ describe('Configuration Integration Tests', () => {
   let originalEnv: NodeJS.ProcessEnv;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(tmpdir(), 'qwen-code-test-'));
+    tempDir = fs.mkdtempSync(path.join(tmpdir(), 'theo-code-test-'));
     originalEnv = { ...process.env };
     process.env.GEMINI_API_KEY = 'test-api-key';
     vi.clearAllMocks();

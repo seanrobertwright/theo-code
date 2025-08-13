@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AuthType } from '@qwen-code/qwen-code-core';
+import { AuthType } from '@theo-code/theo-code-core';
 import { loadEnvironment } from './settings.js';
 
 export const validateAuthMethod = (authMethod: string): string | null => {
@@ -46,8 +46,13 @@ export const validateAuthMethod = (authMethod: string): string | null => {
   }
 
   if (authMethod === AuthType.QWEN_OAUTH) {
-    // Qwen OAuth doesn't require any environment variables for basic setup
+    // Theo OAuth doesn't require any environment variables for basic setup
     // The OAuth flow will handle authentication
+    return null;
+  }
+
+  if (authMethod === AuthType.USE_OLLAMA) {
+    // Ollama doesn't require any environment variables
     return null;
   }
 

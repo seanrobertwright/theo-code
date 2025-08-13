@@ -17,7 +17,7 @@ import {
   uiTelemetryService,
   SessionMetrics,
   ModelMetrics,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 
 // --- Interface Definitions ---
 

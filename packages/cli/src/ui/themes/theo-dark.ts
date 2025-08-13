@@ -24,8 +24,8 @@ const qwenDarkColors: ColorsTheme = {
   GradientColors: ['#FFD700', '#da7959'],
 };
 
-export const QwenDark: Theme = new Theme(
-  'Qwen Dark',
+export const TheoDark: Theme = new Theme(
+  'Theo Dark',
   'dark',
   {
     hljs: {

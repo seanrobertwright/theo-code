@@ -21,7 +21,7 @@ import {
   ToolCall,
   Status as CoreStatus,
   EditorType,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 import { useCallback, useState, useMemo } from 'react';
 import {
   HistoryItemToolGroup,

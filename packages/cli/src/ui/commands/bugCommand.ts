@@ -27,7 +27,7 @@ export const bugCommand: SlashCommand = {
     const osVersion = `${process.platform} ${process.version}`;
     let sandboxEnv = 'no sandbox';
     if (process.env.SANDBOX && process.env.SANDBOX !== 'sandbox-exec') {
-      sandboxEnv = process.env.SANDBOX.replace(/^qwen-(?:code-)?/, '');
+      sandboxEnv = process.env.SANDBOX.replace(/^theo-(?:code-)?/, '');
     } else if (process.env.SANDBOX === 'sandbox-exec') {
       sandboxEnv = `sandbox-exec (${
         process.env.SEATBELT_PROFILE || 'unknown'
@@ -47,7 +47,7 @@ export const bugCommand: SlashCommand = {
 `;
 
     let bugReportUrl =
-      'https://github.com/QwenLM/qwen-code/issues/new?template=bug_report.yml&title={title}&info={info}';
+      'https://github.com/seanrobertwright/theo-code/issues/new?template=bug_report.yml&title={title}&info={info}';
 
     const bugCommandSettings = config?.getBugCommand();
     if (bugCommandSettings?.urlTemplate) {

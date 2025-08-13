@@ -9,7 +9,7 @@ import {
   Config,
   CodeAssistServer,
   UserTierId,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 
 export interface PrivacyState {
   isLoading: boolean;

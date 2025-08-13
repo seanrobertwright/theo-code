@@ -38,7 +38,7 @@ import {
   logUserPrompt,
   AuthType,
   getOauthClient,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 import { validateAuthMethod } from './config/auth.js';
 import { setMaxSizedBoxDebugging } from './ui/components/shared/MaxSizedBox.js';
 import { validateNonInteractiveAuth } from './validateNonInterActiveAuth.js';
@@ -322,7 +322,7 @@ export async function main() {
 
 function setWindowTitle(title: string, settings: LoadedSettings) {
   if (!settings.merged.hideWindowTitle) {
-    const windowTitle = (process.env.CLI_TITLE || `Qwen - ${title}`).replace(
+    const windowTitle = (process.env.CLI_TITLE || `Theo - ${title}`).replace(
       // eslint-disable-next-line no-control-regex
       /[\x00-\x1F\x7F]/g,
       '',

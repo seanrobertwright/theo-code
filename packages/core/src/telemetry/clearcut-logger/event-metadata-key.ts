@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Defines valid event metadata keys for Qwen logging.
+// Defines valid event metadata keys for Theo logging.
 export enum EventMetadataKey {
   GEMINI_CLI_KEY_UNKNOWN = 0,
 

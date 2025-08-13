@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 Qwen
+ * Copyright 2025 Theo
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -115,7 +115,7 @@ export class OpenAIContentGenerator implements ContentGenerator {
     }
 
     const version = config.getCliVersion() || 'unknown';
-    const userAgent = `QwenCode/${version} (${process.platform}; ${process.arch})`;
+    const userAgent = `TheoCode/${version} (${process.platform}; ${process.arch})`;
 
     // Check if using OpenRouter and add required headers
     const isOpenRouter = baseURL.includes('openrouter.ai');
@@ -123,8 +123,8 @@ export class OpenAIContentGenerator implements ContentGenerator {
       'User-Agent': userAgent,
       ...(isOpenRouter
         ? {
-            'HTTP-Referer': 'https://github.com/QwenLM/qwen-code.git',
-            'X-Title': 'Qwen Code',
+            'HTTP-Referer': 'https://github.com/seanrobertwright/theo-code.git',
+            'X-Title': 'Theo Code',
           }
         : {}),
     };

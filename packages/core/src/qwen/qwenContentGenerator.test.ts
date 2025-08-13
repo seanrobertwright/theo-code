@@ -1,13 +1,13 @@
 /**
  * @license
- * Copyright 2025 Qwen
+ * Copyright 2025 Theo
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  IQwenOAuth2Client,
-  type QwenCredentials,
+  ITheoOAuth2Client,
+  type TheoCredentials,
   type ErrorData,
 } from './qwenOAuth2.js';
 import {
@@ -19,7 +19,7 @@ import {
   EmbedContentResponse,
   FinishReason,
 } from '@google/genai';
-import { QwenContentGenerator } from './qwenContentGenerator.js';
+import { TheoContentGenerator } from './qwenContentGenerator.js';
 import { Config } from '../config/config.js';
 
 // Mock the OpenAIContentGenerator parent class
@@ -91,12 +91,12 @@ const createMockResponse = (text: string): GenerateContentResponse =>
     codeExecutionResult: '',
   }) as GenerateContentResponse;
 
-describe('QwenContentGenerator', () => {
-  let mockQwenClient: IQwenOAuth2Client;
-  let qwenContentGenerator: QwenContentGenerator;
+describe('TheoContentGenerator', () => {
+  let mockTheoClient: ITheoOAuth2Client;
+  let qwenContentGenerator: TheoContentGenerator;
   let mockConfig: Config;
 
-  const mockCredentials: QwenCredentials = {
+  const mockCredentials: TheoCredentials = {
     access_token: 'test-access-token',
     refresh_token: 'test-refresh-token',
     resource_url: 'https://test-endpoint.com/v1',
@@ -120,8 +120,8 @@ describe('QwenContentGenerator', () => {
       }),
     } as unknown as Config;
 
-    // Mock QwenOAuth2Client
-    mockQwenClient = {
+    // Mock TheoOAuth2Client
+    mockTheoClient = {
       getAccessToken: vi.fn(),
       getCredentials: vi.fn(),
       setCredentials: vi.fn(),
@@ -130,9 +130,9 @@ describe('QwenContentGenerator', () => {
       pollDeviceToken: vi.fn(),
     };
 
-    // Create QwenContentGenerator instance
-    qwenContentGenerator = new QwenContentGenerator(
-      mockQwenClient,
+    // Create TheoContentGenerator instance
+    qwenContentGenerator = new TheoContentGenerator(
+      mockTheoClient,
       'qwen-turbo',
       mockConfig,
     );
@@ -144,10 +144,10 @@ describe('QwenContentGenerator', () => {
 
   describe('Core Content Generation Methods', () => {
     it('should generate content with valid token', async () => {
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'valid-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue(mockCredentials);
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue(mockCredentials);
 
       const request: GenerateContentParameters = {
         model: 'qwen-turbo',
@@ -160,14 +160,14 @@ describe('QwenContentGenerator', () => {
       );
 
       expect(result.text).toBe('Generated content');
-      expect(mockQwenClient.getAccessToken).toHaveBeenCalled();
+      expect(mockTheoClient.getAccessToken).toHaveBeenCalled();
     });
 
     it('should generate content stream with valid token', async () => {
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'valid-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue(mockCredentials);
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue(mockCredentials);
 
       const request: GenerateContentParameters = {
         model: 'qwen-turbo',
@@ -185,14 +185,14 @@ describe('QwenContentGenerator', () => {
       }
 
       expect(chunks).toEqual(['Stream chunk 1', 'Stream chunk 2']);
-      expect(mockQwenClient.getAccessToken).toHaveBeenCalled();
+      expect(mockTheoClient.getAccessToken).toHaveBeenCalled();
     });
 
     it('should count tokens with valid token', async () => {
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'valid-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue(mockCredentials);
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue(mockCredentials);
 
       const request: CountTokensParameters = {
         model: 'qwen-turbo',
@@ -202,14 +202,14 @@ describe('QwenContentGenerator', () => {
       const result = await qwenContentGenerator.countTokens(request);
 
       expect(result.totalTokens).toBe(10);
-      expect(mockQwenClient.getAccessToken).toHaveBeenCalled();
+      expect(mockTheoClient.getAccessToken).toHaveBeenCalled();
     });
 
     it('should embed content with valid token', async () => {
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'valid-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue(mockCredentials);
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue(mockCredentials);
 
       const request: EmbedContentParameters = {
         model: 'qwen-turbo',
@@ -220,7 +220,7 @@ describe('QwenContentGenerator', () => {
 
       expect(result.embeddings).toHaveLength(1);
       expect(result.embeddings?.[0]?.values).toEqual([0.1, 0.2, 0.3]);
-      expect(mockQwenClient.getAccessToken).toHaveBeenCalled();
+      expect(mockTheoClient.getAccessToken).toHaveBeenCalled();
     });
   });
 
@@ -229,10 +229,10 @@ describe('QwenContentGenerator', () => {
       const authError = { status: 401, message: 'Unauthorized' };
 
       // First call fails with auth error
-      vi.mocked(mockQwenClient.getAccessToken).mockRejectedValueOnce(authError);
+      vi.mocked(mockTheoClient.getAccessToken).mockRejectedValueOnce(authError);
 
       // Refresh succeeds
-      vi.mocked(mockQwenClient.refreshAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.refreshAccessToken).mockResolvedValue({
         access_token: 'refreshed-token',
         token_type: 'Bearer',
         expires_in: 3600,
@@ -250,14 +250,14 @@ describe('QwenContentGenerator', () => {
       );
 
       expect(result.text).toBe('Generated content');
-      expect(mockQwenClient.refreshAccessToken).toHaveBeenCalled();
+      expect(mockTheoClient.refreshAccessToken).toHaveBeenCalled();
     });
 
     it('should handle token refresh failure', async () => {
-      vi.mocked(mockQwenClient.getAccessToken).mockRejectedValue(
+      vi.mocked(mockTheoClient.getAccessToken).mockRejectedValue(
         new Error('Token expired'),
       );
-      vi.mocked(mockQwenClient.refreshAccessToken).mockRejectedValue(
+      vi.mocked(mockTheoClient.refreshAccessToken).mockRejectedValue(
         new Error('Refresh failed'),
       );
 
@@ -269,15 +269,15 @@ describe('QwenContentGenerator', () => {
       await expect(
         qwenContentGenerator.generateContent(request, 'test-prompt-id'),
       ).rejects.toThrow(
-        'Failed to obtain valid Qwen access token. Please re-authenticate.',
+        'Failed to obtain valid Theo access token. Please re-authenticate.',
       );
     });
 
     it('should update endpoint when token is refreshed', async () => {
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'valid-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue({
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue({
         ...mockCredentials,
         resource_url: 'https://new-endpoint.com',
       });
@@ -289,7 +289,7 @@ describe('QwenContentGenerator', () => {
 
       await qwenContentGenerator.generateContent(request, 'test-prompt-id');
 
-      expect(mockQwenClient.getCredentials).toHaveBeenCalled();
+      expect(mockTheoClient.getCredentials).toHaveBeenCalled();
     });
   });
 
@@ -297,10 +297,10 @@ describe('QwenContentGenerator', () => {
     it('should use default endpoint when no custom endpoint provided', async () => {
       let capturedBaseURL = '';
 
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'valid-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue({
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue({
         access_token: 'test-token',
         refresh_token: 'test-refresh',
         // No resource_url provided
@@ -312,7 +312,7 @@ describe('QwenContentGenerator', () => {
       );
       const originalGenerateContent = parentPrototype.generateContent;
       parentPrototype.generateContent = vi.fn().mockImplementation(function (
-        this: QwenContentGenerator,
+        this: TheoContentGenerator,
       ) {
         capturedBaseURL = (this as unknown as { client: { baseURL: string } })
           .client.baseURL;
@@ -338,10 +338,10 @@ describe('QwenContentGenerator', () => {
     it('should normalize hostname-only endpoints by adding https protocol', async () => {
       let capturedBaseURL = '';
 
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'valid-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue({
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue({
         ...mockCredentials,
         resource_url: 'custom-endpoint.com',
       });
@@ -352,7 +352,7 @@ describe('QwenContentGenerator', () => {
       );
       const originalGenerateContent = parentPrototype.generateContent;
       parentPrototype.generateContent = vi.fn().mockImplementation(function (
-        this: QwenContentGenerator,
+        this: TheoContentGenerator,
       ) {
         capturedBaseURL = (this as unknown as { client: { baseURL: string } })
           .client.baseURL;
@@ -376,10 +376,10 @@ describe('QwenContentGenerator', () => {
     it('should preserve existing protocol in endpoint URLs', async () => {
       let capturedBaseURL = '';
 
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'valid-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue({
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue({
         ...mockCredentials,
         resource_url: 'https://custom-endpoint.com',
       });
@@ -390,7 +390,7 @@ describe('QwenContentGenerator', () => {
       );
       const originalGenerateContent = parentPrototype.generateContent;
       parentPrototype.generateContent = vi.fn().mockImplementation(function (
-        this: QwenContentGenerator,
+        this: TheoContentGenerator,
       ) {
         capturedBaseURL = (this as unknown as { client: { baseURL: string } })
           .client.baseURL;
@@ -414,10 +414,10 @@ describe('QwenContentGenerator', () => {
     it('should not duplicate /v1 suffix if already present', async () => {
       let capturedBaseURL = '';
 
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'valid-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue({
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue({
         ...mockCredentials,
         resource_url: 'https://custom-endpoint.com/v1',
       });
@@ -428,7 +428,7 @@ describe('QwenContentGenerator', () => {
       );
       const originalGenerateContent = parentPrototype.generateContent;
       parentPrototype.generateContent = vi.fn().mockImplementation(function (
-        this: QwenContentGenerator,
+        this: TheoContentGenerator,
       ) {
         capturedBaseURL = (this as unknown as { client: { baseURL: string } })
           .client.baseURL;
@@ -460,10 +460,10 @@ describe('QwenContentGenerator', () => {
       const originalApiKey = client.apiKey;
       const originalBaseURL = client.baseURL;
 
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'temp-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue({
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue({
         ...mockCredentials,
         resource_url: 'https://temp-endpoint.com',
       });
@@ -489,10 +489,10 @@ describe('QwenContentGenerator', () => {
       const originalApiKey = client.apiKey;
       const originalBaseURL = client.baseURL;
 
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'temp-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue(mockCredentials);
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue(mockCredentials);
 
       // Mock the parent method to throw an error
       const mockError = new Error('Network error');
@@ -539,11 +539,11 @@ describe('QwenContentGenerator', () => {
       const originalGenerateContent = parentPrototype.generateContent;
       parentPrototype.generateContent = mockGenerateContent;
 
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'initial-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue(mockCredentials);
-      vi.mocked(mockQwenClient.refreshAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue(mockCredentials);
+      vi.mocked(mockTheoClient.refreshAccessToken).mockResolvedValue({
         access_token: 'refreshed-token',
         token_type: 'Bearer',
         expires_in: 3600,
@@ -561,7 +561,7 @@ describe('QwenContentGenerator', () => {
 
       expect(result.text).toBe('Success after retry');
       expect(mockGenerateContent).toHaveBeenCalledTimes(2);
-      expect(mockQwenClient.refreshAccessToken).toHaveBeenCalled();
+      expect(mockTheoClient.refreshAccessToken).toHaveBeenCalled();
 
       // Restore original method
       parentPrototype.generateContent = originalGenerateContent;
@@ -577,10 +577,10 @@ describe('QwenContentGenerator', () => {
       const originalGenerateContent = parentPrototype.generateContent;
       parentPrototype.generateContent = mockGenerateContent;
 
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'valid-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue(mockCredentials);
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue(mockCredentials);
 
       const request: GenerateContentParameters = {
         model: 'qwen-turbo',
@@ -591,17 +591,17 @@ describe('QwenContentGenerator', () => {
         qwenContentGenerator.generateContent(request, 'test-prompt-id'),
       ).rejects.toThrow('Network timeout');
       expect(mockGenerateContent).toHaveBeenCalledTimes(1);
-      expect(mockQwenClient.refreshAccessToken).not.toHaveBeenCalled();
+      expect(mockTheoClient.refreshAccessToken).not.toHaveBeenCalled();
 
       // Restore original method
       parentPrototype.generateContent = originalGenerateContent;
     });
 
     it('should handle error response from token refresh', async () => {
-      vi.mocked(mockQwenClient.getAccessToken).mockRejectedValue(
+      vi.mocked(mockTheoClient.getAccessToken).mockRejectedValue(
         new Error('Token expired'),
       );
-      vi.mocked(mockQwenClient.refreshAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.refreshAccessToken).mockResolvedValue({
         error: 'invalid_grant',
         error_description: 'Refresh token expired',
       } as ErrorData);
@@ -613,7 +613,7 @@ describe('QwenContentGenerator', () => {
 
       await expect(
         qwenContentGenerator.generateContent(request, 'test-prompt-id'),
-      ).rejects.toThrow('Failed to obtain valid Qwen access token');
+      ).rejects.toThrow('Failed to obtain valid Theo access token');
     });
   });
 
@@ -666,12 +666,12 @@ describe('QwenContentGenerator', () => {
       const authError = { status: 401, message: 'Unauthorized' };
       let parentCallCount = 0;
 
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'initial-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue(mockCredentials);
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue(mockCredentials);
 
-      vi.mocked(mockQwenClient.refreshAccessToken).mockImplementation(
+      vi.mocked(mockTheoClient.refreshAccessToken).mockImplementation(
         async () => {
           refreshCallCount++;
           await new Promise((resolve) => setTimeout(resolve, 50)); // Longer delay to ensure concurrency
@@ -788,14 +788,14 @@ describe('QwenContentGenerator', () => {
       );
       parentPrototype.generateContent = mockGenerateContent;
 
-      vi.mocked(mockQwenClient.getAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.getAccessToken).mockResolvedValue({
         token: 'initial-token',
       });
-      vi.mocked(mockQwenClient.getCredentials).mockReturnValue({
+      vi.mocked(mockTheoClient.getCredentials).mockReturnValue({
         ...mockCredentials,
         resource_url: 'custom-endpoint.com',
       });
-      vi.mocked(mockQwenClient.refreshAccessToken).mockResolvedValue({
+      vi.mocked(mockTheoClient.refreshAccessToken).mockResolvedValue({
         access_token: 'new-token',
         token_type: 'Bearer',
         expires_in: 7200,
@@ -813,8 +813,8 @@ describe('QwenContentGenerator', () => {
       );
 
       expect(result.text).toBe('Success after refresh');
-      expect(mockQwenClient.getAccessToken).toHaveBeenCalled();
-      expect(mockQwenClient.refreshAccessToken).toHaveBeenCalled();
+      expect(mockTheoClient.getAccessToken).toHaveBeenCalled();
+      expect(mockTheoClient.refreshAccessToken).toHaveBeenCalled();
       expect(callCount).toBe(2); // Initial call + retry
     });
   });

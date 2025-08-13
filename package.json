@@ -1,5 +1,5 @@
 {
-  "name": "@qwen-code/qwen-code",
+  "name": "@theo-code/theo-code",
   "version": "0.0.5",
   "engines": {
     "node": ">=20.0.0"
@@ -10,7 +10,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/QwenLM/qwen-code.git"
+    "url": "git+https://github.com/seanrobertwright/theo-code.git"
   },
   "config": {
     "sandboxImageUri": "ghcr.io/qwenlm/qwen-code:0.0.5"
@@ -49,7 +49,7 @@
     "clean": "node scripts/clean.js"
   },
   "bin": {
-    "qwen": "bundle/gemini.js"
+    "theo": "bundle/gemini.js"
   },
   "files": [
     "bundle/",

@@ -1,12 +1,12 @@
 /**
  * @license
- * Copyright 2025 Qwen
+ * Copyright 2025 Theo
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { OpenAIContentGenerator } from '../core/openaiContentGenerator.js';
 import {
-  IQwenOAuth2Client,
+  ITheoOAuth2Client,
   type TokenRefreshData,
   type ErrorData,
   isErrorResponse,
@@ -26,17 +26,17 @@ const DEFAULT_QWEN_BASE_URL =
   'https://dashscope.aliyuncs.com/compatible-mode/v1';
 
 /**
- * Qwen Content Generator that uses Qwen OAuth tokens with automatic refresh
+ * Theo Content Generator that uses Theo OAuth tokens with automatic refresh
  */
-export class QwenContentGenerator extends OpenAIContentGenerator {
-  private qwenClient: IQwenOAuth2Client;
+export class TheoContentGenerator extends OpenAIContentGenerator {
+  private qwenClient: ITheoOAuth2Client;
 
-  // Token management (integrated from QwenTokenManager)
+  // Token management (integrated from TheoTokenManager)
   private currentToken: string | null = null;
   private currentEndpoint: string | null = null;
   private refreshPromise: Promise<string> | null = null;
 
-  constructor(qwenClient: IQwenOAuth2Client, model: string, config: Config) {
+  constructor(qwenClient: ITheoOAuth2Client, model: string, config: Config) {
     // Initialize with empty API key, we'll override it dynamically
     super('', model, config);
     this.qwenClient = qwenClient;
@@ -219,12 +219,12 @@ export class QwenContentGenerator extends OpenAIContentGenerator {
     } catch (error) {
       console.error('Failed to get valid token:', error);
       throw new Error(
-        'Failed to obtain valid Qwen access token. Please re-authenticate.',
+        'Failed to obtain valid Theo access token. Please re-authenticate.',
       );
     }
   }
 
-  // Token management methods (integrated from QwenTokenManager)
+  // Token management methods (integrated from TheoTokenManager)
 
   /**
    * Get a valid access token, refreshing if necessary

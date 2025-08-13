@@ -8,7 +8,7 @@ import { render } from 'ink-testing-library';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AuthDialog } from './AuthDialog.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { AuthType } from '@qwen-code/qwen-code-core';
+import { AuthType } from '@theo-code/theo-code-core';
 
 describe('AuthDialog', () => {
   const wait = (ms = 50) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -217,8 +217,8 @@ describe('AuthDialog', () => {
         <AuthDialog onSelect={() => {}} settings={settings} />,
       );
 
-      // Default is Qwen OAuth (first option)
-      expect(lastFrame()).toContain('● 1. Qwen OAuth');
+      // Default is Theo OAuth (first option)
+      expect(lastFrame()).toContain('● 1. Theo OAuth');
     });
 
     it('should show an error and fall back to default if GEMINI_DEFAULT_AUTH_TYPE is invalid', () => {
@@ -249,8 +249,8 @@ describe('AuthDialog', () => {
       );
 
       // Since the auth dialog doesn't show GEMINI_DEFAULT_AUTH_TYPE errors anymore,
-      // it will just show the default Qwen OAuth option
-      expect(lastFrame()).toContain('● 1. Qwen OAuth');
+      // it will just show the default Theo OAuth option
+      expect(lastFrame()).toContain('● 1. Theo OAuth');
     });
   });
 

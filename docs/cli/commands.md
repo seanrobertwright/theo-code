@@ -1,6 +1,6 @@
 # CLI Commands
 
-Qwen Code supports several built-in commands to help you manage your session, customize the interface, and control its behavior. These commands are prefixed with a forward slash (`/`), an at symbol (`@`), or an exclamation mark (`!`).
+Theo Code supports several built-in commands to help you manage your session, customize the interface, and control its behavior. These commands are prefixed with a forward slash (`/`), an at symbol (`@`), or an exclamation mark (`!`).
 
 ## Slash commands (`/`)
 
@@ -9,7 +9,7 @@ Slash commands provide meta-level control over the CLI itself.
 ### Built-in Commands
 
 - **`/bug`**
-  - **Description:** File an issue about Qwen Code. By default, the issue is filed within the GitHub repository for Qwen Code. The string you enter after `/bug` will become the headline for the bug being filed. The default `/bug` behavior can be modified using the `bugCommand` setting in your `.qwen/settings.json` files.
+  - **Description:** File an issue about Theo Code. By default, the issue is filed within the GitHub repository for Theo Code. The string you enter after `/bug` will become the headline for the bug being filed. The default `/bug` behavior can be modified using the `bugCommand` setting in your `.theo/settings.json` files.
 
 - **`/chat`**
   - **Description:** Save and resume conversation history for branching conversation state interactively, or resuming a previous state from a later session.
@@ -36,7 +36,7 @@ Slash commands provide meta-level control over the CLI itself.
   - **Description:** Replace the entire chat context with a summary. This saves on tokens used for future tasks while retaining a high level summary of what has happened.
 
 - **`/copy`**
-  - **Description:** Copies the last output produced by Qwen Code to your clipboard, for easy sharing or reuse.
+  - **Description:** Copies the last output produced by Theo Code to your clipboard, for easy sharing or reuse.
 
 - **`/directory`** (or **`/dir`**)
   - **Description:** Manage workspace directories for multi-directory support.
@@ -53,10 +53,10 @@ Slash commands provide meta-level control over the CLI itself.
   - **Description:** Open a dialog for selecting supported editors.
 
 - **`/extensions`**
-  - **Description:** Lists all active extensions in the current Qwen Code session. See [Qwen Code Extensions](../extension.md).
+  - **Description:** Lists all active extensions in the current Theo Code session. See [Theo Code Extensions](../extension.md).
 
 - **`/help`** (or **`/?`**)
-  - **Description:** Display help information about the Qwen Code, including available commands and their usage.
+  - **Description:** Display help information about the Theo Code, including available commands and their usage.
 
 - **`/mcp`**
   - **Description:** List configured Model Context Protocol (MCP) servers, their connection status, server details, and available tools.
@@ -86,10 +86,10 @@ Slash commands provide meta-level control over the CLI itself.
   - **Note:** Only available if the CLI is invoked with the `--checkpointing` option or configured via [settings](./configuration.md). See [Checkpointing documentation](../checkpointing.md) for more details.
 
 - **`/stats`**
-  - **Description:** Display detailed statistics for the current Qwen Code session, including token usage, cached token savings (when available), and session duration. Note: Cached token information is only displayed when cached tokens are being used, which occurs with API key authentication but not with OAuth authentication at this time.
+  - **Description:** Display detailed statistics for the current Theo Code session, including token usage, cached token savings (when available), and session duration. Note: Cached token information is only displayed when cached tokens are being used, which occurs with API key authentication but not with OAuth authentication at this time.
 
 - [**`/theme`**](./themes.md)
-  - **Description:** Open a dialog that lets you change the visual theme of Qwen Code.
+  - **Description:** Open a dialog that lets you change the visual theme of Theo Code.
 
 - **`/auth`**
   - **Description:** Open a dialog that lets you change the authentication method.
@@ -98,7 +98,7 @@ Slash commands provide meta-level control over the CLI itself.
   - **Description:** Show version info. Please share this information when filing issues.
 
 - [**`/tools`**](../tools/index.md)
-  - **Description:** Display a list of tools that are currently available within Qwen Code.
+  - **Description:** Display a list of tools that are currently available within Theo Code.
   - **Sub-commands:**
     - **`desc`** or **`descriptions`**:
       - **Description:** Show detailed descriptions of each tool, including each tool's name with its full description as provided to the model.
@@ -109,7 +109,7 @@ Slash commands provide meta-level control over the CLI itself.
   - **Description:** Display the Privacy Notice and allow users to select whether they consent to the collection of their data for service improvement purposes.
 
 - **`/quit`** (or **`/exit`**)
-  - **Description:** Exit Qwen Code.
+  - **Description:** Exit Theo Code.
 
 - **`/vim`**
   - **Description:** Toggle vim mode on or off. When vim mode is enabled, the input area supports vim-style navigation and editing commands in both NORMAL and INSERT modes.

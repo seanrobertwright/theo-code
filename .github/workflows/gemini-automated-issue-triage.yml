@@ -1,4 +1,4 @@
-name: Qwen Automated Issue Triage
+name: Theo Automated Issue Triage
 
 on:
   issues:
@@ -7,7 +7,7 @@ on:
 jobs:
   triage-issue:
     timeout-minutes: 5
-    if: ${{ github.repository == 'QwenLM/qwen-code' }}
+    if: ${{ github.repository == 'seanrobertwright/theo-code' }}
     permissions:
       issues: write
       contents: read
@@ -17,8 +17,8 @@ jobs:
       cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
-      - name: Run Qwen Issue Triage
-        uses: QwenLM/qwen-code-action@5fd6818d04d64e87d255ee4d5f77995e32fbf4c2
+      - name: Run Theo Issue Triage
+        uses: seanrobertwright/theo-code-action@5fd6818d04d64e87d255ee4d5f77995e32fbf4c2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_TITLE: ${{ github.event.issue.title }}

@@ -1,4 +1,4 @@
-# Qwen CLI Roadmap
+# Theo CLI Roadmap
 
 The [Official Gemini CLI Roadmap](https://github.com/orgs/google-gemini/projects/11/)
 

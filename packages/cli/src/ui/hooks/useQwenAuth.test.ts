@@ -1,22 +1,22 @@
 /**
  * @license
- * Copyright 2025 Qwen
+ * Copyright 2025 Theo
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useQwenAuth, DeviceAuthorizationInfo } from './useQwenAuth.js';
+import { useTheoAuth, DeviceAuthorizationInfo } from './useTheoAuth.js';
 import {
   AuthType,
   qwenOAuth2Events,
-  QwenOAuth2Event,
-} from '@qwen-code/qwen-code-core';
+  TheoOAuth2Event,
+} from '@theo-code/theo-code-core';
 import { LoadedSettings } from '../../config/settings.js';
 
 // Mock the qwenOAuth2Events
-vi.mock('@qwen-code/qwen-code-core', async () => {
-  const actual = await vi.importActual('@qwen-code/qwen-code-core');
+vi.mock('@theo-code/theo-code-core', async () => {
+  const actual = await vi.importActual('@theo-code/theo-code-core');
   const mockEmitter = {
     on: vi.fn().mockReturnThis(),
     off: vi.fn().mockReturnThis(),
@@ -25,16 +25,16 @@ vi.mock('@qwen-code/qwen-code-core', async () => {
   return {
     ...actual,
     qwenOAuth2Events: mockEmitter,
-    QwenOAuth2Event: {
+    TheoOAuth2Event: {
       AuthUri: 'authUri',
       AuthProgress: 'authProgress',
     },
   };
 });
 
-const mockQwenOAuth2Events = vi.mocked(qwenOAuth2Events);
+const mockTheoOAuth2Events = vi.mocked(qwenOAuth2Events);
 
-describe('useQwenAuth', () => {
+describe('useTheoAuth', () => {
   const mockDeviceAuth: DeviceAuthorizationInfo = {
     verification_uri: 'https://oauth.qwen.com/device',
     verification_uri_complete: 'https://oauth.qwen.com/device?user_code=ABC123',
@@ -57,44 +57,44 @@ describe('useQwenAuth', () => {
     vi.clearAllMocks();
   });
 
-  it('should initialize with default state when not Qwen auth', () => {
+  it('should initialize with default state when not Theo auth', () => {
     const settings = createMockSettings(AuthType.USE_GEMINI);
-    const { result } = renderHook(() => useQwenAuth(settings, false));
+    const { result } = renderHook(() => useTheoAuth(settings, false));
 
     expect(result.current).toEqual({
-      isQwenAuthenticating: false,
+      isTheoAuthenticating: false,
       deviceAuth: null,
       authStatus: 'idle',
       authMessage: null,
-      isQwenAuth: false,
-      cancelQwenAuth: expect.any(Function),
+      isTheoAuth: false,
+      cancelTheoAuth: expect.any(Function),
     });
   });
 
-  it('should initialize with default state when Qwen auth but not authenticating', () => {
+  it('should initialize with default state when Theo auth but not authenticating', () => {
     const settings = createMockSettings(AuthType.QWEN_OAUTH);
-    const { result } = renderHook(() => useQwenAuth(settings, false));
+    const { result } = renderHook(() => useTheoAuth(settings, false));
 
     expect(result.current).toEqual({
-      isQwenAuthenticating: false,
+      isTheoAuthenticating: false,
       deviceAuth: null,
       authStatus: 'idle',
       authMessage: null,
-      isQwenAuth: true,
-      cancelQwenAuth: expect.any(Function),
+      isTheoAuth: true,
+      cancelTheoAuth: expect.any(Function),
     });
   });
 
-  it('should set up event listeners when Qwen auth and authenticating', () => {
+  it('should set up event listeners when Theo auth and authenticating', () => {
     const settings = createMockSettings(AuthType.QWEN_OAUTH);
-    renderHook(() => useQwenAuth(settings, true));
+    renderHook(() => useTheoAuth(settings, true));
 
-    expect(mockQwenOAuth2Events.on).toHaveBeenCalledWith(
-      QwenOAuth2Event.AuthUri,
+    expect(mockTheoOAuth2Events.on).toHaveBeenCalledWith(
+      TheoOAuth2Event.AuthUri,
       expect.any(Function),
     );
-    expect(mockQwenOAuth2Events.on).toHaveBeenCalledWith(
-      QwenOAuth2Event.AuthProgress,
+    expect(mockTheoOAuth2Events.on).toHaveBeenCalledWith(
+      TheoOAuth2Event.AuthProgress,
       expect.any(Function),
     );
   });
@@ -103,14 +103,14 @@ describe('useQwenAuth', () => {
     const settings = createMockSettings(AuthType.QWEN_OAUTH);
     let handleDeviceAuth: (deviceAuth: DeviceAuthorizationInfo) => void;
 
-    mockQwenOAuth2Events.on.mockImplementation((event, handler) => {
-      if (event === QwenOAuth2Event.AuthUri) {
+    mockTheoOAuth2Events.on.mockImplementation((event, handler) => {
+      if (event === TheoOAuth2Event.AuthUri) {
         handleDeviceAuth = handler;
       }
-      return mockQwenOAuth2Events;
+      return mockTheoOAuth2Events;
     });
 
-    const { result } = renderHook(() => useQwenAuth(settings, true));
+    const { result } = renderHook(() => useTheoAuth(settings, true));
 
     act(() => {
       handleDeviceAuth!(mockDeviceAuth);
@@ -118,7 +118,7 @@ describe('useQwenAuth', () => {
 
     expect(result.current.deviceAuth).toEqual(mockDeviceAuth);
     expect(result.current.authStatus).toBe('polling');
-    expect(result.current.isQwenAuthenticating).toBe(true);
+    expect(result.current.isTheoAuthenticating).toBe(true);
   });
 
   it('should handle auth progress event - success', () => {
@@ -128,14 +128,14 @@ describe('useQwenAuth', () => {
       message?: string,
     ) => void;
 
-    mockQwenOAuth2Events.on.mockImplementation((event, handler) => {
-      if (event === QwenOAuth2Event.AuthProgress) {
+    mockTheoOAuth2Events.on.mockImplementation((event, handler) => {
+      if (event === TheoOAuth2Event.AuthProgress) {
         handleAuthProgress = handler;
       }
-      return mockQwenOAuth2Events;
+      return mockTheoOAuth2Events;
     });
 
-    const { result } = renderHook(() => useQwenAuth(settings, true));
+    const { result } = renderHook(() => useTheoAuth(settings, true));
 
     act(() => {
       handleAuthProgress!('success', 'Authentication successful!');
@@ -152,14 +152,14 @@ describe('useQwenAuth', () => {
       message?: string,
     ) => void;
 
-    mockQwenOAuth2Events.on.mockImplementation((event, handler) => {
-      if (event === QwenOAuth2Event.AuthProgress) {
+    mockTheoOAuth2Events.on.mockImplementation((event, handler) => {
+      if (event === TheoOAuth2Event.AuthProgress) {
         handleAuthProgress = handler;
       }
-      return mockQwenOAuth2Events;
+      return mockTheoOAuth2Events;
     });
 
-    const { result } = renderHook(() => useQwenAuth(settings, true));
+    const { result } = renderHook(() => useTheoAuth(settings, true));
 
     act(() => {
       handleAuthProgress!('error', 'Authentication failed');
@@ -176,14 +176,14 @@ describe('useQwenAuth', () => {
       message?: string,
     ) => void;
 
-    mockQwenOAuth2Events.on.mockImplementation((event, handler) => {
-      if (event === QwenOAuth2Event.AuthProgress) {
+    mockTheoOAuth2Events.on.mockImplementation((event, handler) => {
+      if (event === TheoOAuth2Event.AuthProgress) {
         handleAuthProgress = handler;
       }
-      return mockQwenOAuth2Events;
+      return mockTheoOAuth2Events;
     });
 
-    const { result } = renderHook(() => useQwenAuth(settings, true));
+    const { result } = renderHook(() => useTheoAuth(settings, true));
 
     act(() => {
       handleAuthProgress!('polling', 'Waiting for user authorization...');
@@ -202,14 +202,14 @@ describe('useQwenAuth', () => {
       message?: string,
     ) => void;
 
-    mockQwenOAuth2Events.on.mockImplementation((event, handler) => {
-      if (event === QwenOAuth2Event.AuthProgress) {
+    mockTheoOAuth2Events.on.mockImplementation((event, handler) => {
+      if (event === TheoOAuth2Event.AuthProgress) {
         handleAuthProgress = handler;
       }
-      return mockQwenOAuth2Events;
+      return mockTheoOAuth2Events;
     });
 
-    const { result } = renderHook(() => useQwenAuth(settings, true));
+    const { result } = renderHook(() => useTheoAuth(settings, true));
 
     act(() => {
       handleAuthProgress!(
@@ -231,14 +231,14 @@ describe('useQwenAuth', () => {
       message?: string,
     ) => void;
 
-    mockQwenOAuth2Events.on.mockImplementation((event, handler) => {
-      if (event === QwenOAuth2Event.AuthProgress) {
+    mockTheoOAuth2Events.on.mockImplementation((event, handler) => {
+      if (event === TheoOAuth2Event.AuthProgress) {
         handleAuthProgress = handler;
       }
-      return mockQwenOAuth2Events;
+      return mockTheoOAuth2Events;
     });
 
-    const { result } = renderHook(() => useQwenAuth(settings, true));
+    const { result } = renderHook(() => useTheoAuth(settings, true));
 
     act(() => {
       handleAuthProgress!('success');
@@ -252,20 +252,20 @@ describe('useQwenAuth', () => {
     const qwenSettings = createMockSettings(AuthType.QWEN_OAUTH);
     const { rerender } = renderHook(
       ({ settings, isAuthenticating }) =>
-        useQwenAuth(settings, isAuthenticating),
+        useTheoAuth(settings, isAuthenticating),
       { initialProps: { settings: qwenSettings, isAuthenticating: true } },
     );
 
-    // Change to non-Qwen auth
+    // Change to non-Theo auth
     const geminiSettings = createMockSettings(AuthType.USE_GEMINI);
     rerender({ settings: geminiSettings, isAuthenticating: true });
 
-    expect(mockQwenOAuth2Events.off).toHaveBeenCalledWith(
-      QwenOAuth2Event.AuthUri,
+    expect(mockTheoOAuth2Events.off).toHaveBeenCalledWith(
+      TheoOAuth2Event.AuthUri,
       expect.any(Function),
     );
-    expect(mockQwenOAuth2Events.off).toHaveBeenCalledWith(
-      QwenOAuth2Event.AuthProgress,
+    expect(mockTheoOAuth2Events.off).toHaveBeenCalledWith(
+      TheoOAuth2Event.AuthProgress,
       expect.any(Function),
     );
   });
@@ -273,53 +273,53 @@ describe('useQwenAuth', () => {
   it('should clean up event listeners when authentication stops', () => {
     const settings = createMockSettings(AuthType.QWEN_OAUTH);
     const { rerender } = renderHook(
-      ({ isAuthenticating }) => useQwenAuth(settings, isAuthenticating),
+      ({ isAuthenticating }) => useTheoAuth(settings, isAuthenticating),
       { initialProps: { isAuthenticating: true } },
     );
 
     // Stop authentication
     rerender({ isAuthenticating: false });
 
-    expect(mockQwenOAuth2Events.off).toHaveBeenCalledWith(
-      QwenOAuth2Event.AuthUri,
+    expect(mockTheoOAuth2Events.off).toHaveBeenCalledWith(
+      TheoOAuth2Event.AuthUri,
       expect.any(Function),
     );
-    expect(mockQwenOAuth2Events.off).toHaveBeenCalledWith(
-      QwenOAuth2Event.AuthProgress,
+    expect(mockTheoOAuth2Events.off).toHaveBeenCalledWith(
+      TheoOAuth2Event.AuthProgress,
       expect.any(Function),
     );
   });
 
   it('should clean up event listeners on unmount', () => {
     const settings = createMockSettings(AuthType.QWEN_OAUTH);
-    const { unmount } = renderHook(() => useQwenAuth(settings, true));
+    const { unmount } = renderHook(() => useTheoAuth(settings, true));
 
     unmount();
 
-    expect(mockQwenOAuth2Events.off).toHaveBeenCalledWith(
-      QwenOAuth2Event.AuthUri,
+    expect(mockTheoOAuth2Events.off).toHaveBeenCalledWith(
+      TheoOAuth2Event.AuthUri,
       expect.any(Function),
     );
-    expect(mockQwenOAuth2Events.off).toHaveBeenCalledWith(
-      QwenOAuth2Event.AuthProgress,
+    expect(mockTheoOAuth2Events.off).toHaveBeenCalledWith(
+      TheoOAuth2Event.AuthProgress,
       expect.any(Function),
     );
   });
 
-  it('should reset state when switching from Qwen auth to another auth type', () => {
+  it('should reset state when switching from Theo auth to another auth type', () => {
     const qwenSettings = createMockSettings(AuthType.QWEN_OAUTH);
     let handleDeviceAuth: (deviceAuth: DeviceAuthorizationInfo) => void;
 
-    mockQwenOAuth2Events.on.mockImplementation((event, handler) => {
-      if (event === QwenOAuth2Event.AuthUri) {
+    mockTheoOAuth2Events.on.mockImplementation((event, handler) => {
+      if (event === TheoOAuth2Event.AuthUri) {
         handleDeviceAuth = handler;
       }
-      return mockQwenOAuth2Events;
+      return mockTheoOAuth2Events;
     });
 
     const { result, rerender } = renderHook(
       ({ settings, isAuthenticating }) =>
-        useQwenAuth(settings, isAuthenticating),
+        useTheoAuth(settings, isAuthenticating),
       { initialProps: { settings: qwenSettings, isAuthenticating: true } },
     );
 
@@ -335,7 +335,7 @@ describe('useQwenAuth', () => {
     const geminiSettings = createMockSettings(AuthType.USE_GEMINI);
     rerender({ settings: geminiSettings, isAuthenticating: true });
 
-    expect(result.current.isQwenAuthenticating).toBe(false);
+    expect(result.current.isTheoAuthenticating).toBe(false);
     expect(result.current.deviceAuth).toBe(null);
     expect(result.current.authStatus).toBe('idle');
     expect(result.current.authMessage).toBe(null);
@@ -345,15 +345,15 @@ describe('useQwenAuth', () => {
     const settings = createMockSettings(AuthType.QWEN_OAUTH);
     let handleDeviceAuth: (deviceAuth: DeviceAuthorizationInfo) => void;
 
-    mockQwenOAuth2Events.on.mockImplementation((event, handler) => {
-      if (event === QwenOAuth2Event.AuthUri) {
+    mockTheoOAuth2Events.on.mockImplementation((event, handler) => {
+      if (event === TheoOAuth2Event.AuthUri) {
         handleDeviceAuth = handler;
       }
-      return mockQwenOAuth2Events;
+      return mockTheoOAuth2Events;
     });
 
     const { result, rerender } = renderHook(
-      ({ isAuthenticating }) => useQwenAuth(settings, isAuthenticating),
+      ({ isAuthenticating }) => useTheoAuth(settings, isAuthenticating),
       { initialProps: { isAuthenticating: true } },
     );
 
@@ -368,24 +368,24 @@ describe('useQwenAuth', () => {
     // Stop authentication
     rerender({ isAuthenticating: false });
 
-    expect(result.current.isQwenAuthenticating).toBe(false);
+    expect(result.current.isTheoAuthenticating).toBe(false);
     expect(result.current.deviceAuth).toBe(null);
     expect(result.current.authStatus).toBe('idle');
     expect(result.current.authMessage).toBe(null);
   });
 
-  it('should handle cancelQwenAuth function', () => {
+  it('should handle cancelTheoAuth function', () => {
     const settings = createMockSettings(AuthType.QWEN_OAUTH);
     let handleDeviceAuth: (deviceAuth: DeviceAuthorizationInfo) => void;
 
-    mockQwenOAuth2Events.on.mockImplementation((event, handler) => {
-      if (event === QwenOAuth2Event.AuthUri) {
+    mockTheoOAuth2Events.on.mockImplementation((event, handler) => {
+      if (event === TheoOAuth2Event.AuthUri) {
         handleDeviceAuth = handler;
       }
-      return mockQwenOAuth2Events;
+      return mockTheoOAuth2Events;
     });
 
-    const { result } = renderHook(() => useQwenAuth(settings, true));
+    const { result } = renderHook(() => useTheoAuth(settings, true));
 
     // Set up some state
     act(() => {
@@ -396,42 +396,42 @@ describe('useQwenAuth', () => {
 
     // Cancel auth
     act(() => {
-      result.current.cancelQwenAuth();
+      result.current.cancelTheoAuth();
     });
 
-    expect(result.current.isQwenAuthenticating).toBe(false);
+    expect(result.current.isTheoAuthenticating).toBe(false);
     expect(result.current.deviceAuth).toBe(null);
     expect(result.current.authStatus).toBe('idle');
     expect(result.current.authMessage).toBe(null);
   });
 
-  it('should maintain isQwenAuth flag correctly', () => {
-    // Test with Qwen OAuth
+  it('should maintain isTheoAuth flag correctly', () => {
+    // Test with Theo OAuth
     const qwenSettings = createMockSettings(AuthType.QWEN_OAUTH);
     const { result: qwenResult } = renderHook(() =>
-      useQwenAuth(qwenSettings, false),
+      useTheoAuth(qwenSettings, false),
     );
-    expect(qwenResult.current.isQwenAuth).toBe(true);
+    expect(qwenResult.current.isTheoAuth).toBe(true);
 
     // Test with other auth types
     const geminiSettings = createMockSettings(AuthType.USE_GEMINI);
     const { result: geminiResult } = renderHook(() =>
-      useQwenAuth(geminiSettings, false),
+      useTheoAuth(geminiSettings, false),
     );
-    expect(geminiResult.current.isQwenAuth).toBe(false);
+    expect(geminiResult.current.isTheoAuth).toBe(false);
 
     const oauthSettings = createMockSettings(AuthType.LOGIN_WITH_GOOGLE);
     const { result: oauthResult } = renderHook(() =>
-      useQwenAuth(oauthSettings, false),
+      useTheoAuth(oauthSettings, false),
     );
-    expect(oauthResult.current.isQwenAuth).toBe(false);
+    expect(oauthResult.current.isTheoAuth).toBe(false);
   });
 
-  it('should set isQwenAuthenticating to true when starting authentication with Qwen auth', () => {
+  it('should set isTheoAuthenticating to true when starting authentication with Theo auth', () => {
     const settings = createMockSettings(AuthType.QWEN_OAUTH);
-    const { result } = renderHook(() => useQwenAuth(settings, true));
+    const { result } = renderHook(() => useTheoAuth(settings, true));
 
-    expect(result.current.isQwenAuthenticating).toBe(true);
+    expect(result.current.isTheoAuthenticating).toBe(true);
     expect(result.current.authStatus).toBe('idle');
   });
 });

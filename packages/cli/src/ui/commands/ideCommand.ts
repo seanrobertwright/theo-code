@@ -10,7 +10,7 @@ import {
   IDEConnectionStatus,
   getIdeDisplayName,
   getIdeInstaller,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 import {
   CommandContext,
   SlashCommand,

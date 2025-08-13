@@ -1,14 +1,14 @@
 /**
  * @license
- * Copyright 2025 Qwen
+ * Copyright 2025 Theo
  * SPDX-License-Identifier: Apache-2.0
  */
 
 // React import not needed for test files
 import { render } from 'ink-testing-library';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { QwenOAuthProgress } from './QwenOAuthProgress.js';
-import { DeviceAuthorizationInfo } from '../hooks/useQwenAuth.js';
+import { TheoOAuthProgress } from './TheoOAuthProgress.js';
+import { DeviceAuthorizationInfo } from '../hooks/useTheoAuth.js';
 
 // Mock qrcode-terminal module
 vi.mock('qrcode-terminal', () => ({
@@ -28,7 +28,7 @@ vi.mock('ink-link', () => ({
     children,
 }));
 
-describe('QwenOAuthProgress', () => {
+describe('TheoOAuthProgress', () => {
   const mockOnTimeout = vi.fn();
   const mockOnCancel = vi.fn();
 
@@ -58,7 +58,7 @@ describe('QwenOAuthProgress', () => {
     }> = {},
   ) =>
     render(
-      <QwenOAuthProgress
+      <TheoOAuthProgress
         onTimeout={mockOnTimeout}
         onCancel={mockOnCancel}
         {...props}
@@ -80,7 +80,7 @@ describe('QwenOAuthProgress', () => {
 
       const output = lastFrame();
       expect(output).toContain('MockSpinner(dots)');
-      expect(output).toContain('Waiting for Qwen OAuth authentication...');
+      expect(output).toContain('Waiting for Theo OAuth authentication...');
       expect(output).toContain('(Press ESC to cancel)');
     });
 
@@ -89,7 +89,7 @@ describe('QwenOAuthProgress', () => {
       const output = lastFrame();
 
       // Should not contain auth flow elements
-      expect(output).not.toContain('Qwen OAuth Authentication');
+      expect(output).not.toContain('Theo OAuth Authentication');
       expect(output).not.toContain('Please visit this URL to authorize:');
       // Loading state still shows time remaining with default timeout
       expect(output).toContain('Time remaining:');
@@ -132,7 +132,7 @@ describe('QwenOAuthProgress', () => {
       }
 
       rerender(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={customAuth}
@@ -149,7 +149,7 @@ describe('QwenOAuthProgress', () => {
       };
 
       const { lastFrame } = render(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={deviceAuthWithCustomTime}
@@ -167,7 +167,7 @@ describe('QwenOAuthProgress', () => {
       };
 
       const { lastFrame } = render(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={deviceAuthWithCustomTime}
@@ -187,7 +187,7 @@ describe('QwenOAuthProgress', () => {
       };
 
       const { rerender } = render(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={deviceAuthWithShortTime}
@@ -197,7 +197,7 @@ describe('QwenOAuthProgress', () => {
       // Advance timer by 1 second
       vi.advanceTimersByTime(1000);
       rerender(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={deviceAuthWithShortTime}
@@ -207,7 +207,7 @@ describe('QwenOAuthProgress', () => {
       // Advance timer by another second to trigger timeout
       vi.advanceTimersByTime(1000);
       rerender(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={deviceAuthWithShortTime}
@@ -219,7 +219,7 @@ describe('QwenOAuthProgress', () => {
 
     it('should update time remaining display', async () => {
       const { lastFrame, rerender } = render(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -232,7 +232,7 @@ describe('QwenOAuthProgress', () => {
       // Advance by 1 second
       vi.advanceTimersByTime(1000);
       rerender(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -245,7 +245,7 @@ describe('QwenOAuthProgress', () => {
 
     it('should use default 300 second timeout when deviceAuth is null', () => {
       const { lastFrame } = render(
-        <QwenOAuthProgress onTimeout={mockOnTimeout} onCancel={mockOnCancel} />,
+        <TheoOAuthProgress onTimeout={mockOnTimeout} onCancel={mockOnCancel} />,
       );
 
       // Should show default 5:00 (300 seconds) timeout
@@ -259,7 +259,7 @@ describe('QwenOAuthProgress', () => {
   describe('Animated dots', () => {
     it('should cycle through animated dots', async () => {
       const { lastFrame, rerender } = render(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -272,7 +272,7 @@ describe('QwenOAuthProgress', () => {
       // Advance by 500ms to add first dot
       vi.advanceTimersByTime(500);
       rerender(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -283,7 +283,7 @@ describe('QwenOAuthProgress', () => {
       // Advance by another 500ms to add second dot
       vi.advanceTimersByTime(500);
       rerender(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -294,7 +294,7 @@ describe('QwenOAuthProgress', () => {
       // Advance by another 500ms to add third dot
       vi.advanceTimersByTime(500);
       rerender(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -305,7 +305,7 @@ describe('QwenOAuthProgress', () => {
       // Advance by another 500ms to reset dots
       vi.advanceTimersByTime(500);
       rerender(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -325,7 +325,7 @@ describe('QwenOAuthProgress', () => {
       });
 
       render(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -350,7 +350,7 @@ describe('QwenOAuthProgress', () => {
       });
 
       const { lastFrame, rerender } = render(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -363,7 +363,7 @@ describe('QwenOAuthProgress', () => {
       }
 
       rerender(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -387,7 +387,7 @@ describe('QwenOAuthProgress', () => {
       });
 
       const { lastFrame } = render(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -410,7 +410,7 @@ describe('QwenOAuthProgress', () => {
       const mockGenerate = vi.mocked(qrcode.default.generate);
 
       render(
-        <QwenOAuthProgress onTimeout={mockOnTimeout} onCancel={mockOnCancel} />,
+        <TheoOAuthProgress onTimeout={mockOnTimeout} onCancel={mockOnCancel} />,
       );
 
       expect(mockGenerate).not.toHaveBeenCalled();
@@ -420,7 +420,7 @@ describe('QwenOAuthProgress', () => {
   describe('User interactions', () => {
     it('should call onCancel when ESC key is pressed', () => {
       const { stdin } = render(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -435,7 +435,7 @@ describe('QwenOAuthProgress', () => {
 
     it('should call onCancel when ESC is pressed in loading state', () => {
       const { stdin } = render(
-        <QwenOAuthProgress onTimeout={mockOnTimeout} onCancel={mockOnCancel} />,
+        <TheoOAuthProgress onTimeout={mockOnTimeout} onCancel={mockOnCancel} />,
       );
 
       // Simulate ESC key press
@@ -446,7 +446,7 @@ describe('QwenOAuthProgress', () => {
 
     it('should not call onCancel for other key presses', () => {
       const { stdin } = render(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -470,7 +470,7 @@ describe('QwenOAuthProgress', () => {
       };
 
       const { lastFrame } = render(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={deviceAuthWith10Min}
@@ -482,7 +482,7 @@ describe('QwenOAuthProgress', () => {
 
     it('should reset to loading state when deviceAuth becomes null', () => {
       const { rerender, lastFrame } = render(
-        <QwenOAuthProgress
+        <TheoOAuthProgress
           onTimeout={mockOnTimeout}
           onCancel={mockOnCancel}
           deviceAuth={mockDeviceAuth}
@@ -493,10 +493,10 @@ describe('QwenOAuthProgress', () => {
       expect(lastFrame()).toContain('Waiting for authorization');
 
       rerender(
-        <QwenOAuthProgress onTimeout={mockOnTimeout} onCancel={mockOnCancel} />,
+        <TheoOAuthProgress onTimeout={mockOnTimeout} onCancel={mockOnCancel} />,
       );
 
-      expect(lastFrame()).toContain('Waiting for Qwen OAuth authentication...');
+      expect(lastFrame()).toContain('Waiting for Theo OAuth authentication...');
       expect(lastFrame()).not.toContain('Waiting for authorization');
     });
   });
@@ -509,7 +509,7 @@ describe('QwenOAuthProgress', () => {
       });
 
       const output = lastFrame();
-      expect(output).toContain('Qwen OAuth Authentication Timeout');
+      expect(output).toContain('Theo OAuth Authentication Timeout');
       expect(output).toContain('Custom timeout message');
       expect(output).toContain(
         'Press any key to return to authentication type selection.',
@@ -522,7 +522,7 @@ describe('QwenOAuthProgress', () => {
       });
 
       const output = lastFrame();
-      expect(output).toContain('Qwen OAuth Authentication Timeout');
+      expect(output).toContain('Theo OAuth Authentication Timeout');
       expect(output).toContain(
         'OAuth token expired (over 300 seconds). Please select authentication method again.',
       );

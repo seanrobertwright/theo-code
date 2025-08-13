@@ -16,7 +16,7 @@ import {
   isDeviceTokenPending,
   isDeviceTokenSuccess,
   isErrorResponse,
-  QwenOAuth2Client,
+  TheoOAuth2Client,
   type DeviceAuthorizationResponse,
   type DeviceTokenResponse,
   type ErrorData,
@@ -221,21 +221,21 @@ describe('Type Guards', () => {
   });
 });
 
-describe('QwenOAuth2Client', () => {
-  let client: QwenOAuth2Client;
+describe('TheoOAuth2Client', () => {
+  let client: TheoOAuth2Client;
   let _mockConfig: Config;
   let originalFetch: typeof global.fetch;
 
   beforeEach(() => {
     // Setup mock config
     _mockConfig = {
-      getQwenClientId: vi.fn().mockReturnValue('test-client-id'),
+      getTheoClientId: vi.fn().mockReturnValue('test-client-id'),
       isBrowserLaunchSuppressed: vi.fn().mockReturnValue(false),
       getProxy: vi.fn().mockReturnValue(undefined),
     } as unknown as Config;
 
     // Create client instance
-    client = new QwenOAuth2Client({ proxy: undefined });
+    client = new TheoOAuth2Client({ proxy: undefined });
 
     // Mock fetch
     originalFetch = global.fetch;
@@ -372,7 +372,7 @@ describe('QwenOAuth2Client', () => {
 
       await client.refreshAccessToken();
 
-      // Verify that cacheQwenCredentials was called by checking if writeFile was called
+      // Verify that cacheTheoCredentials was called by checking if writeFile was called
       expect(mockMkdir).toHaveBeenCalled();
       expect(mockWriteFile).toHaveBeenCalled();
 
@@ -664,7 +664,7 @@ describe('QwenOAuth2Client', () => {
   });
 });
 
-describe('getQwenOAuthClient', () => {
+describe('getTheoOAuthClient', () => {
   let mockConfig: Config;
   let originalFetch: typeof global.fetch;
 
@@ -704,7 +704,7 @@ describe('getQwenOAuthClient', () => {
 
     try {
       await import('./qwenOAuth2.js').then((module) =>
-        module.getQwenOAuthClient(mockConfig),
+        module.getTheoOAuthClient(mockConfig),
       );
     } catch {
       // Expected to fail due to mocked error
@@ -736,7 +736,7 @@ describe('getQwenOAuthClient', () => {
     vi.mocked(global.fetch).mockResolvedValue(mockRefreshResponse as Response);
 
     const client = await import('./qwenOAuth2.js').then((module) =>
-      module.getQwenOAuthClient(mockConfig),
+      module.getTheoOAuthClient(mockConfig),
     );
 
     expect(client).toBeInstanceOf(Object);
@@ -749,7 +749,7 @@ describe('getQwenOAuthClient', () => {
       access_token: 'cached-token',
       refresh_token: 'expired-refresh',
       token_type: 'Bearer',
-      expiry_date: Date.now() + 3600000, // Valid expiry time so loadCachedQwenCredentials returns true
+      expiry_date: Date.now() + 3600000, // Valid expiry time so loadCachedTheoCredentials returns true
     };
 
     vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(mockCredentials));
@@ -766,52 +766,52 @@ describe('getQwenOAuthClient', () => {
     // The function should handle the invalid cached credentials and throw the expected error
     await expect(
       import('./qwenOAuth2.js').then((module) =>
-        module.getQwenOAuthClient(mockConfig),
+        module.getTheoOAuthClient(mockConfig),
       ),
-    ).rejects.toThrow('Cached Qwen credentials are invalid');
+    ).rejects.toThrow('Cached Theo credentials are invalid');
   });
 });
 
-describe('clearQwenCredentials', () => {
+describe('clearTheoCredentials', () => {
   it('should successfully clear credentials file', async () => {
     const { promises: fs } = await import('node:fs');
-    const { clearQwenCredentials } = await import('./qwenOAuth2.js');
+    const { clearTheoCredentials } = await import('./qwenOAuth2.js');
 
     vi.mocked(fs.unlink).mockResolvedValue(undefined);
 
-    await expect(clearQwenCredentials()).resolves.not.toThrow();
+    await expect(clearTheoCredentials()).resolves.not.toThrow();
     expect(fs.unlink).toHaveBeenCalled();
   });
 
   it('should handle file not found error gracefully', async () => {
     const { promises: fs } = await import('node:fs');
-    const { clearQwenCredentials } = await import('./qwenOAuth2.js');
+    const { clearTheoCredentials } = await import('./qwenOAuth2.js');
 
     const notFoundError = new Error('File not found');
     (notFoundError as Error & { code: string }).code = 'ENOENT';
     vi.mocked(fs.unlink).mockRejectedValue(notFoundError);
 
-    await expect(clearQwenCredentials()).resolves.not.toThrow();
+    await expect(clearTheoCredentials()).resolves.not.toThrow();
   });
 
   it('should handle other file system errors gracefully', async () => {
     const { promises: fs } = await import('node:fs');
-    const { clearQwenCredentials } = await import('./qwenOAuth2.js');
+    const { clearTheoCredentials } = await import('./qwenOAuth2.js');
 
     const permissionError = new Error('Permission denied');
     vi.mocked(fs.unlink).mockRejectedValue(permissionError);
 
     // Should not throw but may log warning
-    await expect(clearQwenCredentials()).resolves.not.toThrow();
+    await expect(clearTheoCredentials()).resolves.not.toThrow();
   });
 });
 
-describe('QwenOAuth2Client - Additional Error Scenarios', () => {
-  let client: QwenOAuth2Client;
+describe('TheoOAuth2Client - Additional Error Scenarios', () => {
+  let client: TheoOAuth2Client;
   let originalFetch: typeof global.fetch;
 
   beforeEach(() => {
-    client = new QwenOAuth2Client({ proxy: undefined });
+    client = new TheoOAuth2Client({ proxy: undefined });
     originalFetch = global.fetch;
     global.fetch = vi.fn();
   });
@@ -860,7 +860,7 @@ describe('QwenOAuth2Client - Additional Error Scenarios', () => {
   });
 });
 
-describe('getQwenOAuthClient - Enhanced Error Scenarios', () => {
+describe('getTheoOAuthClient - Enhanced Error Scenarios', () => {
   let mockConfig: Config;
   let originalFetch: typeof global.fetch;
 
@@ -901,10 +901,10 @@ describe('getQwenOAuthClient - Enhanced Error Scenarios', () => {
 
     await expect(
       import('./qwenOAuth2.js').then((module) =>
-        module.getQwenOAuthClient(mockConfig),
+        module.getTheoOAuthClient(mockConfig),
       ),
     ).rejects.toThrow(
-      'Qwen token refresh failed: Token refresh failed: 500 Internal Server Error',
+      'Theo token refresh failed: Token refresh failed: 500 Internal Server Error',
     );
   });
 
@@ -939,9 +939,9 @@ describe('getQwenOAuthClient - Enhanced Error Scenarios', () => {
 
     await expect(
       import('./qwenOAuth2.js').then((module) =>
-        module.getQwenOAuthClient(mockConfig),
+        module.getTheoOAuthClient(mockConfig),
       ),
-    ).rejects.toThrow('Qwen OAuth authentication timed out');
+    ).rejects.toThrow('Theo OAuth authentication timed out');
   });
 
   it('should handle authentication failure reason - rate limit', async () => {
@@ -975,10 +975,10 @@ describe('getQwenOAuthClient - Enhanced Error Scenarios', () => {
 
     await expect(
       import('./qwenOAuth2.js').then((module) =>
-        module.getQwenOAuthClient(mockConfig),
+        module.getTheoOAuthClient(mockConfig),
       ),
     ).rejects.toThrow(
-      'Too many request for Qwen OAuth authentication, please try again later.',
+      'Too many request for Theo OAuth authentication, please try again later.',
     );
   });
 
@@ -1001,16 +1001,16 @@ describe('getQwenOAuthClient - Enhanced Error Scenarios', () => {
 
     await expect(
       import('./qwenOAuth2.js').then((module) =>
-        module.getQwenOAuthClient(mockConfig),
+        module.getTheoOAuthClient(mockConfig),
       ),
-    ).rejects.toThrow('Qwen OAuth authentication failed');
+    ).rejects.toThrow('Theo OAuth authentication failed');
   });
 });
 
-describe('authWithQwenDeviceFlow - Comprehensive Testing', () => {
+describe('authWithTheoDeviceFlow - Comprehensive Testing', () => {
   let mockConfig: Config;
   let originalFetch: typeof global.fetch;
-  let _client: QwenOAuth2Client;
+  let _client: TheoOAuth2Client;
 
   beforeEach(() => {
     mockConfig = {
@@ -1018,7 +1018,7 @@ describe('authWithQwenDeviceFlow - Comprehensive Testing', () => {
       isBrowserLaunchSuppressed: vi.fn().mockReturnValue(false),
     } as unknown as Config;
 
-    _client = new QwenOAuth2Client({ proxy: undefined });
+    _client = new TheoOAuth2Client({ proxy: undefined });
     originalFetch = global.fetch;
     global.fetch = vi.fn();
 
@@ -1050,9 +1050,9 @@ describe('authWithQwenDeviceFlow - Comprehensive Testing', () => {
 
     await expect(
       import('./qwenOAuth2.js').then((module) =>
-        module.getQwenOAuthClient(mockConfig),
+        module.getTheoOAuthClient(mockConfig),
       ),
-    ).rejects.toThrow('Qwen OAuth authentication failed');
+    ).rejects.toThrow('Theo OAuth authentication failed');
   });
 
   it('should handle successful authentication flow', async () => {
@@ -1088,7 +1088,7 @@ describe('authWithQwenDeviceFlow - Comprehensive Testing', () => {
       .mockResolvedValue(mockTokenResponse as Response);
 
     const client = await import('./qwenOAuth2.js').then((module) =>
-      module.getQwenOAuthClient(mockConfig),
+      module.getTheoOAuthClient(mockConfig),
     );
 
     expect(client).toBeInstanceOf(Object);
@@ -1124,9 +1124,9 @@ describe('authWithQwenDeviceFlow - Comprehensive Testing', () => {
 
     await expect(
       import('./qwenOAuth2.js').then((module) =>
-        module.getQwenOAuthClient(mockConfig),
+        module.getTheoOAuthClient(mockConfig),
       ),
-    ).rejects.toThrow('Qwen OAuth authentication failed');
+    ).rejects.toThrow('Theo OAuth authentication failed');
   });
 
   it('should handle token polling with browser launch suppressed', async () => {
@@ -1165,7 +1165,7 @@ describe('authWithQwenDeviceFlow - Comprehensive Testing', () => {
       .mockResolvedValue(mockTokenResponse as Response);
 
     const client = await import('./qwenOAuth2.js').then((module) =>
-      module.getQwenOAuthClient(mockConfig),
+      module.getTheoOAuthClient(mockConfig),
     );
 
     expect(client).toBeInstanceOf(Object);
@@ -1231,7 +1231,7 @@ describe('Browser Launch and Error Handling', () => {
       .mockResolvedValue(mockTokenResponse as Response);
 
     const client = await import('./qwenOAuth2.js').then((module) =>
-      module.getQwenOAuthClient(mockConfig),
+      module.getTheoOAuthClient(mockConfig),
     );
 
     expect(client).toBeInstanceOf(Object);
@@ -1284,7 +1284,7 @@ describe('Browser Launch and Error Handling', () => {
       .mockResolvedValue(mockTokenResponse as Response);
 
     const client = await import('./qwenOAuth2.js').then((module) =>
-      module.getQwenOAuthClient(mockConfig),
+      module.getTheoOAuthClient(mockConfig),
     );
 
     expect(client).toBeInstanceOf(Object);
@@ -1298,9 +1298,9 @@ describe('Event Emitter Integration', () => {
   });
 
   it('should define correct event enum values', async () => {
-    const { QwenOAuth2Event } = await import('./qwenOAuth2.js');
-    expect(QwenOAuth2Event.AuthUri).toBe('auth-uri');
-    expect(QwenOAuth2Event.AuthProgress).toBe('auth-progress');
-    expect(QwenOAuth2Event.AuthCancel).toBe('auth-cancel');
+    const { TheoOAuth2Event } = await import('./qwenOAuth2.js');
+    expect(TheoOAuth2Event.AuthUri).toBe('auth-uri');
+    expect(TheoOAuth2Event.AuthProgress).toBe('auth-progress');
+    expect(TheoOAuth2Event.AuthCancel).toBe('auth-cancel');
   });
 });

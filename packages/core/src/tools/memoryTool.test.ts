@@ -21,7 +21,7 @@ import { ToolConfirmationOutcome } from './tools.js';
 vi.mock('fs/promises');
 vi.mock('os');
 
-const MEMORY_SECTION_HEADER = '## Qwen Added Memories';
+const MEMORY_SECTION_HEADER = '## Theo Added Memories';
 
 // Define a type for our fsAdapter to ensure consistency
 interface FsAdapter {
@@ -89,7 +89,7 @@ describe('MemoryTool', () => {
     let testFilePath: string;
 
     beforeEach(() => {
-      testFilePath = path.join(os.homedir(), '.qwen', DEFAULT_CONTEXT_FILENAME);
+      testFilePath = path.join(os.homedir(), '.theo', DEFAULT_CONTEXT_FILENAME);
     });
 
     it('should create section and save a fact if file does not exist', async () => {
@@ -208,7 +208,7 @@ describe('MemoryTool', () => {
       // Use getCurrentGeminiMdFilename for the default expectation before any setGeminiMdFilename calls in a test
       const expectedFilePath = path.join(
         os.homedir(),
-        '.qwen',
+        '.theo',
         getCurrentGeminiMdFilename(), // This will be DEFAULT_CONTEXT_FILENAME unless changed by a test
       );
 
@@ -286,15 +286,15 @@ describe('MemoryTool', () => {
       expect(result).not.toBe(false);
 
       if (result && result.type === 'edit') {
-        const expectedPath = path.join('~', '.qwen', 'QWEN.md');
+        const expectedPath = path.join('~', '.theo', 'THEO.md');
         expect(result.title).toBe(`Confirm Memory Save: ${expectedPath}`);
-        expect(result.fileName).toContain(path.join('mock', 'home', '.qwen'));
-        expect(result.fileName).toContain('QWEN.md');
-        expect(result.fileDiff).toContain('Index: QWEN.md');
-        expect(result.fileDiff).toContain('+## Qwen Added Memories');
+        expect(result.fileName).toContain(path.join('mock', 'home', '.theo'));
+        expect(result.fileName).toContain('THEO.md');
+        expect(result.fileDiff).toContain('Index: THEO.md');
+        expect(result.fileDiff).toContain('+## Theo Added Memories');
         expect(result.fileDiff).toContain('+- Test fact');
         expect(result.originalContent).toBe('');
-        expect(result.newContent).toContain('## Qwen Added Memories');
+        expect(result.newContent).toContain('## Theo Added Memories');
         expect(result.newContent).toContain('- Test fact');
       }
     });
@@ -303,7 +303,7 @@ describe('MemoryTool', () => {
       const params = { fact: 'Test fact' };
       const memoryFilePath = path.join(
         os.homedir(),
-        '.qwen',
+        '.theo',
         getCurrentGeminiMdFilename(),
       );
 
@@ -324,7 +324,7 @@ describe('MemoryTool', () => {
       const params = { fact: 'Test fact' };
       const memoryFilePath = path.join(
         os.homedir(),
-        '.qwen',
+        '.theo',
         getCurrentGeminiMdFilename(),
       );
 
@@ -353,7 +353,7 @@ describe('MemoryTool', () => {
       const params = { fact: 'Test fact' };
       const memoryFilePath = path.join(
         os.homedir(),
-        '.qwen',
+        '.theo',
         getCurrentGeminiMdFilename(),
       );
 
@@ -386,7 +386,7 @@ describe('MemoryTool', () => {
     it('should handle existing memory file with content', async () => {
       const params = { fact: 'New fact' };
       const existingContent =
-        'Some existing content.\n\n## Qwen Added Memories\n- Old fact\n';
+        'Some existing content.\n\n## Theo Added Memories\n- Old fact\n';
 
       // Mock fs.readFile to return existing content
       vi.mocked(fs.readFile).mockResolvedValue(existingContent);
@@ -400,9 +400,9 @@ describe('MemoryTool', () => {
       expect(result).not.toBe(false);
 
       if (result && result.type === 'edit') {
-        const expectedPath = path.join('~', '.qwen', 'QWEN.md');
+        const expectedPath = path.join('~', '.theo', 'THEO.md');
         expect(result.title).toBe(`Confirm Memory Save: ${expectedPath}`);
-        expect(result.fileDiff).toContain('Index: QWEN.md');
+        expect(result.fileDiff).toContain('Index: THEO.md');
         expect(result.fileDiff).toContain('+- New fact');
         expect(result.originalContent).toBe(existingContent);
         expect(result.newContent).toContain('- Old fact');

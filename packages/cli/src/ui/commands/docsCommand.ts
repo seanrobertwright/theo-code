@@ -15,10 +15,10 @@ import { MessageType } from '../types.js';
 
 export const docsCommand: SlashCommand = {
   name: 'docs',
-  description: 'open full Qwen Code documentation in your browser',
+  description: 'open full Theo Code documentation in your browser',
   kind: CommandKind.BUILT_IN,
   action: async (context: CommandContext): Promise<void> => {
-    const docsUrl = 'https://github.com/QwenLM/qwen-code';
+    const docsUrl = 'https://github.com/seanrobertwright/theo-code';
 
     if (process.env.SANDBOX && process.env.SANDBOX !== 'sandbox-exec') {
       context.ui.addItem(

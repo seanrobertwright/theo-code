@@ -43,7 +43,7 @@ import {
   DEFAULT_GEMINI_EMBEDDING_MODEL,
   DEFAULT_GEMINI_FLASH_MODEL,
 } from './models.js';
-import { QwenLogger } from '../telemetry/qwen-logger/qwen-logger.js';
+import { TheoLogger } from '../telemetry/qwen-logger/qwen-logger.js';
 import { shouldAttemptBrowserLaunch } from '../utils/browser.js';
 import { MCPOAuthConfig } from '../mcp/oauth-provider.js';
 import { IdeClient } from '../ide/ide-client.js';
@@ -316,8 +316,8 @@ export class Config {
     };
     this.gitCoAuthor = {
       enabled: params.gitCoAuthor?.enabled ?? true,
-      name: params.gitCoAuthor?.name ?? 'Qwen-Coder',
-      email: params.gitCoAuthor?.email ?? 'qwen-coder@alibabacloud.com',
+      name: params.gitCoAuthor?.name ?? 'Theo-Coder',
+      email: params.gitCoAuthor?.email ?? 'seanrobertwright@gmail.com',
     };
     this.usageStatisticsEnabled = params.usageStatisticsEnabled ?? true;
 
@@ -363,7 +363,7 @@ export class Config {
     }
 
     if (this.getUsageStatisticsEnabled()) {
-      QwenLogger.getInstance(this)?.logStartSessionEvent(
+      TheoLogger.getInstance(this)?.logStartSessionEvent(
         new StartSessionEvent(this),
       );
     } else {

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 Qwen
+ * Copyright 2025 Theo
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,7 +12,7 @@ import qrcode from 'qrcode-terminal';
 import { Colors } from '../colors.js';
 import { DeviceAuthorizationInfo } from '../hooks/useQwenAuth.js';
 
-interface QwenOAuthProgressProps {
+interface TheoOAuthProgressProps {
   onTimeout: () => void;
   onCancel: () => void;
   deviceAuth?: DeviceAuthorizationInfo;
@@ -39,13 +39,13 @@ interface StaticItem {
   qrCode?: string;
 }
 
-export function QwenOAuthProgress({
+export function TheoOAuthProgress({
   onTimeout,
   onCancel,
   deviceAuth,
   authStatus,
   authMessage,
-}: QwenOAuthProgressProps): React.JSX.Element {
+}: TheoOAuthProgressProps): React.JSX.Element {
   const defaultTimeout = deviceAuth?.expires_in || 300; // Default 5 minutes
   const [timeRemaining, setTimeRemaining] = useState<number>(defaultTimeout);
   const [dots, setDots] = useState<string>('');
@@ -132,7 +132,7 @@ export function QwenOAuthProgress({
         width="100%"
       >
         <Text bold color={Colors.AccentRed}>
-          Qwen OAuth Authentication Timeout
+          Theo OAuth Authentication Timeout
         </Text>
 
         <Box marginTop={1}>
@@ -162,7 +162,7 @@ export function QwenOAuthProgress({
       >
         <Box>
           <Text>
-            <Spinner type="dots" /> Waiting for Qwen OAuth authentication...
+            <Spinner type="dots" /> Waiting for Theo OAuth authentication...
           </Text>
         </Box>
         <Box marginTop={1} justifyContent="space-between">
@@ -203,7 +203,7 @@ export function QwenOAuthProgress({
               key={item.key}
             >
               <Text bold color={Colors.AccentBlue}>
-                Qwen OAuth Authentication
+                Theo OAuth Authentication
               </Text>
 
               <Box marginTop={1}>

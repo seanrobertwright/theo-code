@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 Qwen
+ * Copyright 2025 Theo
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -9,8 +9,8 @@ import { LoadedSettings } from '../../config/settings.js';
 import {
   AuthType,
   qwenOAuth2Events,
-  QwenOAuth2Event,
-} from '@qwen-code/qwen-code-core';
+  TheoOAuth2Event,
+} from '@theo-code/theo-code-core';
 
 export interface DeviceAuthorizationInfo {
   verification_uri: string;
@@ -19,8 +19,8 @@ export interface DeviceAuthorizationInfo {
   expires_in: number;
 }
 
-interface QwenAuthState {
-  isQwenAuthenticating: boolean;
+interface TheoAuthState {
+  isTheoAuthenticating: boolean;
   deviceAuth: DeviceAuthorizationInfo | null;
   authStatus:
     | 'idle'
@@ -32,25 +32,25 @@ interface QwenAuthState {
   authMessage: string | null;
 }
 
-export const useQwenAuth = (
+export const useTheoAuth = (
   settings: LoadedSettings,
   isAuthenticating: boolean,
 ) => {
-  const [qwenAuthState, setQwenAuthState] = useState<QwenAuthState>({
-    isQwenAuthenticating: false,
+  const [qwenAuthState, setTheoAuthState] = useState<TheoAuthState>({
+    isTheoAuthenticating: false,
     deviceAuth: null,
     authStatus: 'idle',
     authMessage: null,
   });
 
-  const isQwenAuth = settings.merged.selectedAuthType === AuthType.QWEN_OAUTH;
+  const isTheoAuth = settings.merged.selectedAuthType === AuthType.QWEN_OAUTH;
 
   // Set up event listeners when authentication starts
   useEffect(() => {
-    if (!isQwenAuth || !isAuthenticating) {
-      // Reset state when not authenticating or not Qwen auth
-      setQwenAuthState({
-        isQwenAuthenticating: false,
+    if (!isTheoAuth || !isAuthenticating) {
+      // Reset state when not authenticating or not Theo auth
+      setTheoAuthState({
+        isTheoAuthenticating: false,
         deviceAuth: null,
         authStatus: 'idle',
         authMessage: null,
@@ -58,15 +58,15 @@ export const useQwenAuth = (
       return;
     }
 
-    setQwenAuthState((prev) => ({
+    setTheoAuthState((prev) => ({
       ...prev,
-      isQwenAuthenticating: true,
+      isTheoAuthenticating: true,
       authStatus: 'idle',
     }));
 
     // Set up event listeners
     const handleDeviceAuth = (deviceAuth: DeviceAuthorizationInfo) => {
-      setQwenAuthState((prev) => ({
+      setTheoAuthState((prev) => ({
         ...prev,
         deviceAuth: {
           verification_uri: deviceAuth.verification_uri,
@@ -82,7 +82,7 @@ export const useQwenAuth = (
       status: 'success' | 'error' | 'polling' | 'timeout' | 'rate_limit',
       message?: string,
     ) => {
-      setQwenAuthState((prev) => ({
+      setTheoAuthState((prev) => ({
         ...prev,
         authStatus: status,
         authMessage: message || null,
@@ -90,22 +90,22 @@ export const useQwenAuth = (
     };
 
     // Add event listeners
-    qwenOAuth2Events.on(QwenOAuth2Event.AuthUri, handleDeviceAuth);
-    qwenOAuth2Events.on(QwenOAuth2Event.AuthProgress, handleAuthProgress);
+    qwenOAuth2Events.on(TheoOAuth2Event.AuthUri, handleDeviceAuth);
+    qwenOAuth2Events.on(TheoOAuth2Event.AuthProgress, handleAuthProgress);
 
     // Cleanup event listeners when component unmounts or auth finishes
     return () => {
-      qwenOAuth2Events.off(QwenOAuth2Event.AuthUri, handleDeviceAuth);
-      qwenOAuth2Events.off(QwenOAuth2Event.AuthProgress, handleAuthProgress);
+      qwenOAuth2Events.off(TheoOAuth2Event.AuthUri, handleDeviceAuth);
+      qwenOAuth2Events.off(TheoOAuth2Event.AuthProgress, handleAuthProgress);
     };
-  }, [isQwenAuth, isAuthenticating]);
+  }, [isTheoAuth, isAuthenticating]);
 
-  const cancelQwenAuth = useCallback(() => {
+  const cancelTheoAuth = useCallback(() => {
     // Emit cancel event to stop polling
-    qwenOAuth2Events.emit(QwenOAuth2Event.AuthCancel);
+    qwenOAuth2Events.emit(TheoOAuth2Event.AuthCancel);
 
-    setQwenAuthState({
-      isQwenAuthenticating: false,
+    setTheoAuthState({
+      isTheoAuthenticating: false,
       deviceAuth: null,
       authStatus: 'idle',
       authMessage: null,
@@ -114,7 +114,7 @@ export const useQwenAuth = (
 
   return {
     ...qwenAuthState,
-    isQwenAuth,
-    cancelQwenAuth,
+    isTheoAuth,
+    cancelTheoAuth,
   };
 };

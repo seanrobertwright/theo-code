@@ -13,7 +13,7 @@ import {
   isGenericQuotaExceededError,
   isApiError,
   isStructuredError,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 
 // Free Tier message functions
 const getRateLimitErrorMessageGoogleFree = (

@@ -12,7 +12,7 @@ import {
   type SlashCommandActionReturn,
   CommandKind,
 } from './types.js';
-import { Config } from '@qwen-code/qwen-code-core';
+import { Config } from '@theo-code/theo-code-core';
 
 async function restoreAction(
   context: CommandContext,

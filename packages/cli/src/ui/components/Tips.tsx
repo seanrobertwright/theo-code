@@ -7,7 +7,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
-import { type Config } from '@qwen-code/qwen-code-core';
+import { type Config } from '@theo-code/theo-code-core';
 
 interface TipsProps {
   config: Config;
@@ -28,9 +28,9 @@ export const Tips: React.FC<TipsProps> = ({ config }) => {
         <Text color={Colors.Foreground}>
           3. Create{' '}
           <Text bold color={Colors.AccentPurple}>
-            QWEN.md
+            THEO.md
           </Text>{' '}
-          files to customize your interactions with Qwen Code.
+          files to customize your interactions with Theo Code.
         </Text>
       )}
       <Text color={Colors.Foreground}>

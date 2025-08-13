@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ThoughtSummary } from '@qwen-code/qwen-code-core';
+import { ThoughtSummary } from '@theo-code/theo-code-core';
 import React from 'react';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';

@@ -586,7 +586,7 @@ export async function connectToMcpServer(
   debugMode: boolean,
 ): Promise<Client> {
   const mcpClient = new Client({
-    name: 'qwen-code-mcp-client',
+    name: 'theo-code-mcp-client',
     version: '0.0.1',
   });
 

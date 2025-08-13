@@ -11,7 +11,7 @@ import {
   allowEditorTypeInSandbox,
   checkHasEditorType,
   EditorType,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 
 interface UseEditorSettingsReturn {
   isEditorDialogOpen: boolean;

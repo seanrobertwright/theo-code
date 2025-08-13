@@ -4,7 +4,7 @@ This document describes the `save_memory` tool for the Gemini CLI.
 
 ## Description
 
-Use `save_memory` to save and recall information across your Qwen Code sessions. With `save_memory`, you can direct the CLI to remember key details across sessions, providing personalized and directed assistance.
+Use `save_memory` to save and recall information across your Theo Code sessions. With `save_memory`, you can direct the CLI to remember key details across sessions, providing personalized and directed assistance.
 
 ### Arguments
 
@@ -14,13 +14,13 @@ Use `save_memory` to save and recall information across your Qwen Code sessions.
 
 ## How to use `save_memory` with the Gemini CLI
 
-The tool appends the provided `fact` to your context file in the user's home directory (`~/.qwen/QWEN.md` by default). This filename can be configured via `contextFileName`.
+The tool appends the provided `fact` to your context file in the user's home directory (`~/.theo/THEO.md` by default). This filename can be configured via `contextFileName`.
 
-Once added, the facts are stored under a `## Qwen Added Memories` section. This file is loaded as context in subsequent sessions, allowing the CLI to recall the saved information.
+Once added, the facts are stored under a `## Theo Added Memories` section. This file is loaded as context in subsequent sessions, allowing the CLI to recall the saved information.
 
 Usage:
 
-```
+```bash
 save_memory(fact="Your fact here.")
 ```
 
@@ -28,13 +28,13 @@ save_memory(fact="Your fact here.")
 
 Remember a user preference:
 
-```
+```bash
 save_memory(fact="My preferred programming language is Python.")
 ```
 
 Store a project-specific detail:
 
-```
+```bash
 save_memory(fact="The project I'm currently working on is called 'gemini-cli'.")
 ```
 

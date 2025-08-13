@@ -29,10 +29,10 @@ describe('loadExtensions', () => {
 
   beforeEach(() => {
     tempWorkspaceDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'qwen-code-test-workspace-'),
+      path.join(os.tmpdir(), 'theo-code-test-workspace-'),
     );
     tempHomeDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), 'qwen-code-test-home-'),
+      path.join(os.tmpdir(), 'theo-code-test-home-'),
     );
     vi.mocked(os.homedir).mockReturnValue(tempHomeDir);
   });
@@ -117,7 +117,7 @@ describe('loadExtensions', () => {
     expect(extensions[0].config.name).toBe('test-extension');
   });
 
-  it('should load context file path when QWEN.md is present', () => {
+  it('should load context file path when THEO.md is present', () => {
     const workspaceExtensionsDir = path.join(
       tempWorkspaceDir,
       EXTENSIONS_DIRECTORY_NAME,
@@ -132,7 +132,7 @@ describe('loadExtensions', () => {
     const ext1 = extensions.find((e) => e.config.name === 'ext1');
     const ext2 = extensions.find((e) => e.config.name === 'ext2');
     expect(ext1?.contextFiles).toEqual([
-      path.join(workspaceExtensionsDir, 'ext1', 'QWEN.md'),
+      path.join(workspaceExtensionsDir, 'ext1', 'THEO.md'),
     ]);
     expect(ext2?.contextFiles).toEqual([]);
   });
@@ -227,7 +227,7 @@ function createExtension(
   );
 
   if (addContextFile) {
-    fs.writeFileSync(path.join(extDir, 'QWEN.md'), 'context');
+    fs.writeFileSync(path.join(extDir, 'THEO.md'), 'context');
   }
 
   if (contextFileName) {

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 Qwen
+ * Copyright 2025 Theo
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -99,7 +99,7 @@ describe('OpenAIContentGenerator', () => {
         timeout: 120000,
         maxRetries: 3,
         defaultHeaders: {
-          'User-Agent': expect.stringMatching(/^QwenCode/),
+          'User-Agent': expect.stringMatching(/^TheoCode/),
         },
       });
     });
@@ -115,7 +115,7 @@ describe('OpenAIContentGenerator', () => {
         timeout: 120000,
         maxRetries: 3,
         defaultHeaders: {
-          'User-Agent': expect.stringMatching(/^QwenCode/),
+          'User-Agent': expect.stringMatching(/^TheoCode/),
         },
       });
     });
@@ -131,9 +131,9 @@ describe('OpenAIContentGenerator', () => {
         timeout: 120000,
         maxRetries: 3,
         defaultHeaders: {
-          'User-Agent': expect.stringMatching(/^QwenCode/),
-          'HTTP-Referer': 'https://github.com/QwenLM/qwen-code.git',
-          'X-Title': 'Qwen Code',
+          'User-Agent': expect.stringMatching(/^TheoCode/),
+          'HTTP-Referer': 'https://github.com/seanrobertwright/theo-code.git',
+          'X-Title': 'Theo Code',
         },
       });
     });
@@ -155,7 +155,7 @@ describe('OpenAIContentGenerator', () => {
         timeout: 300000,
         maxRetries: 5,
         defaultHeaders: {
-          'User-Agent': expect.stringMatching(/^QwenCode/),
+          'User-Agent': expect.stringMatching(/^TheoCode/),
         },
       });
     });
@@ -2396,9 +2396,9 @@ describe('OpenAIContentGenerator', () => {
 
   describe('metadata control', () => {
     it('should include metadata when authType is QWEN_OAUTH', async () => {
-      const qwenConfig = {
+      const theoConfig = {
         getContentGeneratorConfig: vi.fn().mockReturnValue({
-          authType: 'qwen-oauth',
+          authType: 'theo-oauth',
           enableOpenAILogging: false,
         }),
         getSessionId: vi.fn().mockReturnValue('test-session-id'),
@@ -2408,7 +2408,7 @@ describe('OpenAIContentGenerator', () => {
       const qwenGenerator = new OpenAIContentGenerator(
         'test-key',
         'qwen-turbo',
-        qwenConfig,
+        theoConfig,
       );
 
       const mockResponse = {

@@ -7,7 +7,7 @@
 import {
   getErrorMessage,
   loadServerHierarchicalMemory,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 import { MessageType } from '../types.js';
 import {
   CommandKind,

@@ -15,7 +15,7 @@ import {
   SETTINGS_DIRECTORY_NAME,
 } from '../config/settings.js';
 import { promisify } from 'util';
-import { Config, SandboxConfig } from '@qwen-code/qwen-code-core';
+import { Config, SandboxConfig } from '@theo-code/theo-code-core';
 
 const execAsync = promisify(exec);
 
@@ -31,9 +31,9 @@ function getContainerPath(hostPath: string): string {
   return hostPath;
 }
 
-const LOCAL_DEV_SANDBOX_IMAGE_NAME = 'qwen-code-sandbox';
-const SANDBOX_NETWORK_NAME = 'qwen-code-sandbox';
-const SANDBOX_PROXY_NAME = 'qwen-code-sandbox-proxy';
+const LOCAL_DEV_SANDBOX_IMAGE_NAME = 'theo-code-sandbox';
+const SANDBOX_NETWORK_NAME = 'theo-code-sandbox';
+const SANDBOX_PROXY_NAME = 'theo-code-sandbox-proxy';
 const BUILTIN_SEATBELT_PROFILES = [
   'permissive-open',
   'permissive-closed',
@@ -172,8 +172,8 @@ function entrypoint(workdir: string): string[] {
         ? 'npm run debug --'
         : 'npm rebuild && npm run start --'
       : process.env.DEBUG
-        ? `node --inspect-brk=0.0.0.0:${process.env.DEBUG_PORT || '9229'} $(which qwen)`
-        : 'qwen';
+        ? `node --inspect-brk=0.0.0.0:${process.env.DEBUG_PORT || '9229'} $(which theo)`
+        : 'theo';
 
   const args = [...shellCmds, cliCmd, ...cliArgs];
 
@@ -558,7 +558,7 @@ export async function start_sandbox(
     args.push('--env', `GOOGLE_API_KEY=${process.env.GOOGLE_API_KEY}`);
   }
 
-  // copy OPENAI_API_KEY and related env vars for Qwen
+  // copy OPENAI_API_KEY and related env vars for Theo
   if (process.env.OPENAI_API_KEY) {
     args.push('--env', `OPENAI_API_KEY=${process.env.OPENAI_API_KEY}`);
   }

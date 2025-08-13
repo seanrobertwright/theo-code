@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 Qwen
+ * Copyright 2025 Theo
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -90,9 +90,9 @@ export interface ErrorData {
 }
 
 /**
- * Qwen OAuth2 credentials interface
+ * Theo OAuth2 credentials interface
  */
-export interface QwenCredentials {
+export interface TheoCredentials {
   access_token?: string;
   refresh_token?: string;
   id_token?: string;
@@ -211,11 +211,11 @@ export interface TokenRefreshData {
 export type TokenRefreshResponse = TokenRefreshData | ErrorData;
 
 /**
- * Qwen OAuth2 client interface
+ * Theo OAuth2 client interface
  */
-export interface IQwenOAuth2Client {
-  setCredentials(credentials: QwenCredentials): void;
-  getCredentials(): QwenCredentials;
+export interface ITheoOAuth2Client {
+  setCredentials(credentials: TheoCredentials): void;
+  getCredentials(): TheoCredentials;
   getAccessToken(): Promise<{ token?: string }>;
   requestDeviceAuthorization(options: {
     scope: string;
@@ -230,21 +230,21 @@ export interface IQwenOAuth2Client {
 }
 
 /**
- * Qwen OAuth2 client implementation
+ * Theo OAuth2 client implementation
  */
-export class QwenOAuth2Client implements IQwenOAuth2Client {
-  private credentials: QwenCredentials = {};
+export class TheoOAuth2Client implements ITheoOAuth2Client {
+  private credentials: TheoCredentials = {};
   private proxy?: string;
 
   constructor(options: { proxy?: string }) {
     this.proxy = options.proxy;
   }
 
-  setCredentials(credentials: QwenCredentials): void {
+  setCredentials(credentials: TheoCredentials): void {
     this.credentials = credentials;
   }
 
-  getCredentials(): QwenCredentials {
+  getCredentials(): TheoCredentials {
     return this.credentials;
   }
 
@@ -393,7 +393,7 @@ export class QwenOAuth2Client implements IQwenOAuth2Client {
       const errorData = await response.text();
       // Handle 401 errors which might indicate refresh token expiry
       if (response.status === 400) {
-        await clearQwenCredentials();
+        await clearTheoCredentials();
         throw new Error(
           "Refresh token expired or invalid. Please use '/auth' to re-authenticate.",
         );
@@ -415,7 +415,7 @@ export class QwenOAuth2Client implements IQwenOAuth2Client {
 
     // Handle successful response
     const tokenData = responseData as TokenRefreshData;
-    const tokens: QwenCredentials = {
+    const tokens: TheoCredentials = {
       access_token: tokenData.access_token,
       token_type: tokenData.token_type,
       // Use new refresh token if provided, otherwise preserve existing one
@@ -427,7 +427,7 @@ export class QwenOAuth2Client implements IQwenOAuth2Client {
     this.setCredentials(tokens);
 
     // Cache the updated credentials to file
-    await cacheQwenCredentials(tokens);
+    await cacheTheoCredentials(tokens);
 
     return responseData;
   }
@@ -441,7 +441,7 @@ export class QwenOAuth2Client implements IQwenOAuth2Client {
   }
 }
 
-export enum QwenOAuth2Event {
+export enum TheoOAuth2Event {
   AuthUri = 'auth-uri',
   AuthProgress = 'auth-progress',
   AuthCancel = 'auth-cancel',
@@ -458,20 +458,20 @@ export type AuthResult =
     };
 
 /**
- * Global event emitter instance for QwenOAuth2 authentication events
+ * Global event emitter instance for TheoOAuth2 authentication events
  */
 export const qwenOAuth2Events = new EventEmitter();
 
-export async function getQwenOAuthClient(
+export async function getTheoOAuthClient(
   config: Config,
-): Promise<QwenOAuth2Client> {
-  const client = new QwenOAuth2Client({
+): Promise<TheoOAuth2Client> {
+  const client = new TheoOAuth2Client({
     proxy: config.getProxy(),
   });
 
   // If there are cached creds on disk, they always take precedence
-  if (await loadCachedQwenCredentials(client)) {
-    console.log('Loaded cached Qwen credentials.');
+  if (await loadCachedTheoCredentials(client)) {
+    console.log('Loaded cached Theo credentials.');
 
     try {
       await client.refreshAccessToken();
@@ -488,23 +488,23 @@ export async function getQwenOAuthClient(
         ? 'Cached credentials are invalid. Please re-authenticate.'
         : `Token refresh failed: ${errorMessage}`;
       const throwMessage = isInvalidToken
-        ? 'Cached Qwen credentials are invalid. Please re-authenticate.'
-        : `Qwen token refresh failed: ${errorMessage}`;
+        ? 'Cached Theo credentials are invalid. Please re-authenticate.'
+        : `Theo token refresh failed: ${errorMessage}`;
 
       // Emit token refresh error event
-      qwenOAuth2Events.emit(QwenOAuth2Event.AuthProgress, 'error', userMessage);
+      qwenOAuth2Events.emit(TheoOAuth2Event.AuthProgress, 'error', userMessage);
       throw new Error(throwMessage);
     }
   }
 
   // Use device authorization flow for authentication (single attempt)
-  const result = await authWithQwenDeviceFlow(client, config);
+  const result = await authWithTheoDeviceFlow(client, config);
   if (!result.success) {
     // Only emit timeout event if the failure reason is actually timeout
     // Other error types (401, 429, etc.) have already emitted their specific events
     if (result.reason === 'timeout') {
       qwenOAuth2Events.emit(
-        QwenOAuth2Event.AuthProgress,
+        TheoOAuth2Event.AuthProgress,
         'timeout',
         'Authentication timed out. Please try again or select a different authentication method.',
       );
@@ -513,24 +513,24 @@ export async function getQwenOAuthClient(
     // Throw error with appropriate message based on failure reason
     switch (result.reason) {
       case 'timeout':
-        throw new Error('Qwen OAuth authentication timed out');
+        throw new Error('Theo OAuth authentication timed out');
       case 'cancelled':
-        throw new Error('Qwen OAuth authentication was cancelled by user');
+        throw new Error('Theo OAuth authentication was cancelled by user');
       case 'rate_limit':
         throw new Error(
-          'Too many request for Qwen OAuth authentication, please try again later.',
+          'Too many request for Theo OAuth authentication, please try again later.',
         );
       case 'error':
       default:
-        throw new Error('Qwen OAuth authentication failed');
+        throw new Error('Theo OAuth authentication failed');
     }
   }
 
   return client;
 }
 
-async function authWithQwenDeviceFlow(
-  client: QwenOAuth2Client,
+async function authWithTheoDeviceFlow(
+  client: TheoOAuth2Client,
   config: Config,
 ): Promise<AuthResult> {
   let isCancelled = false;
@@ -539,7 +539,7 @@ async function authWithQwenDeviceFlow(
   const cancelHandler = () => {
     isCancelled = true;
   };
-  qwenOAuth2Events.once(QwenOAuth2Event.AuthCancel, cancelHandler);
+  qwenOAuth2Events.once(TheoOAuth2Event.AuthCancel, cancelHandler);
 
   try {
     // Generate PKCE code verifier and challenge
@@ -561,10 +561,10 @@ async function authWithQwenDeviceFlow(
     }
 
     // Emit device authorization event for UI integration immediately
-    qwenOAuth2Events.emit(QwenOAuth2Event.AuthUri, deviceAuth);
+    qwenOAuth2Events.emit(TheoOAuth2Event.AuthUri, deviceAuth);
 
     const showFallbackMessage = () => {
-      console.log('\n=== Qwen OAuth Device Authorization ===');
+      console.log('\n=== Theo OAuth Device Authorization ===');
       console.log(
         'Please visit the following URL in your browser to authorize:',
       );
@@ -597,7 +597,7 @@ async function authWithQwenDeviceFlow(
 
     // Emit auth progress event
     qwenOAuth2Events.emit(
-      QwenOAuth2Event.AuthProgress,
+      TheoOAuth2Event.AuthProgress,
       'polling',
       'Waiting for authorization...',
     );
@@ -615,7 +615,7 @@ async function authWithQwenDeviceFlow(
       if (isCancelled) {
         console.log('\nAuthentication cancelled by user.');
         qwenOAuth2Events.emit(
-          QwenOAuth2Event.AuthProgress,
+          TheoOAuth2Event.AuthProgress,
           'error',
           'Authentication cancelled by user.',
         );
@@ -633,8 +633,8 @@ async function authWithQwenDeviceFlow(
         if (isDeviceTokenSuccess(tokenResponse)) {
           const tokenData = tokenResponse as DeviceTokenData;
 
-          // Convert to QwenCredentials format
-          const credentials: QwenCredentials = {
+          // Convert to TheoCredentials format
+          const credentials: TheoCredentials = {
             access_token: tokenData.access_token!, // Safe to assert as non-null due to isDeviceTokenSuccess check
             refresh_token: tokenData.refresh_token || undefined,
             token_type: tokenData.token_type,
@@ -647,11 +647,11 @@ async function authWithQwenDeviceFlow(
           client.setCredentials(credentials);
 
           // Cache the new tokens
-          await cacheQwenCredentials(credentials);
+          await cacheTheoCredentials(credentials);
 
           // Emit auth progress success event
           qwenOAuth2Events.emit(
-            QwenOAuth2Event.AuthProgress,
+            TheoOAuth2Event.AuthProgress,
             'success',
             'Authentication successful! Access token obtained.',
           );
@@ -676,7 +676,7 @@ async function authWithQwenDeviceFlow(
 
           // Emit polling progress event
           qwenOAuth2Events.emit(
-            QwenOAuth2Event.AuthProgress,
+            TheoOAuth2Event.AuthProgress,
             'polling',
             `Polling... (attempt ${attempt + 1}/${maxAttempts})`,
           );
@@ -711,7 +711,7 @@ async function authWithQwenDeviceFlow(
           if (isCancelled) {
             console.log('\nAuthentication cancelled by user.');
             qwenOAuth2Events.emit(
-              QwenOAuth2Event.AuthProgress,
+              TheoOAuth2Event.AuthProgress,
               'error',
               'Authentication cancelled by user.',
             );
@@ -742,7 +742,7 @@ async function authWithQwenDeviceFlow(
             'Device code expired or invalid, please restart the authorization process.';
 
           // Emit error event
-          qwenOAuth2Events.emit(QwenOAuth2Event.AuthProgress, 'error', message);
+          qwenOAuth2Events.emit(TheoOAuth2Event.AuthProgress, 'error', message);
 
           return { success: false, reason: 'error' };
         }
@@ -754,7 +754,7 @@ async function authWithQwenDeviceFlow(
 
           // Emit rate limit event to notify user
           qwenOAuth2Events.emit(
-            QwenOAuth2Event.AuthProgress,
+            TheoOAuth2Event.AuthProgress,
             'rate_limit',
             message,
           );
@@ -768,7 +768,7 @@ async function authWithQwenDeviceFlow(
         const message = `Error polling for token: ${errorMessage}`;
 
         // Emit error event
-        qwenOAuth2Events.emit(QwenOAuth2Event.AuthProgress, 'error', message);
+        qwenOAuth2Events.emit(TheoOAuth2Event.AuthProgress, 'error', message);
 
         // Check for cancellation before waiting
         if (isCancelled) {
@@ -783,7 +783,7 @@ async function authWithQwenDeviceFlow(
 
     // Emit timeout error event
     qwenOAuth2Events.emit(
-      QwenOAuth2Event.AuthProgress,
+      TheoOAuth2Event.AuthProgress,
       'timeout',
       timeoutMessage,
     );
@@ -796,17 +796,17 @@ async function authWithQwenDeviceFlow(
     return { success: false, reason: 'error' };
   } finally {
     // Clean up event listener
-    qwenOAuth2Events.off(QwenOAuth2Event.AuthCancel, cancelHandler);
+    qwenOAuth2Events.off(TheoOAuth2Event.AuthCancel, cancelHandler);
   }
 }
 
-async function loadCachedQwenCredentials(
-  client: QwenOAuth2Client,
+async function loadCachedTheoCredentials(
+  client: TheoOAuth2Client,
 ): Promise<boolean> {
   try {
-    const keyFile = getQwenCachedCredentialPath();
+    const keyFile = getTheoCachedCredentialPath();
     const creds = await fs.readFile(keyFile, 'utf-8');
-    const credentials = JSON.parse(creds) as QwenCredentials;
+    const credentials = JSON.parse(creds) as TheoCredentials;
     client.setCredentials(credentials);
 
     // Verify that the credentials are still valid
@@ -821,8 +821,8 @@ async function loadCachedQwenCredentials(
   }
 }
 
-async function cacheQwenCredentials(credentials: QwenCredentials) {
-  const filePath = getQwenCachedCredentialPath();
+async function cacheTheoCredentials(credentials: TheoCredentials) {
+  const filePath = getTheoCachedCredentialPath();
   await fs.mkdir(path.dirname(filePath), { recursive: true });
 
   const credString = JSON.stringify(credentials, null, 2);
@@ -830,14 +830,14 @@ async function cacheQwenCredentials(credentials: QwenCredentials) {
 }
 
 /**
- * Clear cached Qwen credentials from disk
+ * Clear cached Theo credentials from disk
  * This is useful when credentials have expired or need to be reset
  */
-export async function clearQwenCredentials(): Promise<void> {
+export async function clearTheoCredentials(): Promise<void> {
   try {
-    const filePath = getQwenCachedCredentialPath();
+    const filePath = getTheoCachedCredentialPath();
     await fs.unlink(filePath);
-    console.log('Cached Qwen credentials cleared successfully.');
+    console.log('Cached Theo credentials cleared successfully.');
   } catch (error: unknown) {
     // If file doesn't exist or can't be deleted, we consider it cleared
     if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
@@ -845,10 +845,10 @@ export async function clearQwenCredentials(): Promise<void> {
       return;
     }
     // Log other errors but don't throw - clearing credentials should be non-critical
-    console.warn('Warning: Failed to clear cached Qwen credentials:', error);
+    console.warn('Warning: Failed to clear cached Theo credentials:', error);
   }
 }
 
-function getQwenCachedCredentialPath(): string {
+function getTheoCachedCredentialPath(): string {
   return path.join(os.homedir(), QWEN_DIR, QWEN_CREDENTIAL_FILENAME);
 }

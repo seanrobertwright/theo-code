@@ -41,7 +41,7 @@ const npmVersionArg = isSpecificVersion ? versionArg : versionArg;
 run(`npm version ${npmVersionArg} --no-git-tag-version --allow-same-version`);
 
 // 4. Get all workspaces and filter out the one we don't want to version.
-const workspacesToExclude = ['qwen-code-vscode-ide-companion'];
+const workspacesToExclude = ['theo-code-vscode-ide-companion'];
 const lsOutput = JSON.parse(
   execSync('npm ls --workspaces --json --depth=0').toString(),
 );

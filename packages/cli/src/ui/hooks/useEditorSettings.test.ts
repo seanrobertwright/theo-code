@@ -22,10 +22,10 @@ import {
   type EditorType,
   checkHasEditorType,
   allowEditorTypeInSandbox,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 
-vi.mock('@qwen-code/qwen-code-core', async () => {
-  const actual = await vi.importActual('@qwen-code/qwen-code-core');
+vi.mock('@theo-code/theo-code-core', async () => {
+  const actual = await vi.importActual('@theo-code/theo-code-core');
   return {
     ...actual,
     checkHasEditorType: vi.fn(() => true),

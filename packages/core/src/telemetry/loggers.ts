@@ -39,7 +39,7 @@ import {
 } from './metrics.js';
 import { isTelemetrySdkInitialized } from './sdk.js';
 import { uiTelemetryService, UiEvent } from './uiTelemetry.js';
-import { QwenLogger } from './qwen-logger/qwen-logger.js';
+import { TheoLogger } from './qwen-logger/qwen-logger.js';
 import { safeJsonStringify } from '../utils/safeJsonStringify.js';
 
 const shouldLogUserPrompts = (config: Config): boolean =>
@@ -55,7 +55,7 @@ export function logCliConfiguration(
   config: Config,
   event: StartSessionEvent,
 ): void {
-  QwenLogger.getInstance(config)?.logStartSessionEvent(event);
+  TheoLogger.getInstance(config)?.logStartSessionEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
   const attributes: LogAttributes = {
@@ -84,7 +84,7 @@ export function logCliConfiguration(
 }
 
 export function logUserPrompt(config: Config, event: UserPromptEvent): void {
-  QwenLogger.getInstance(config)?.logNewPromptEvent(event);
+  TheoLogger.getInstance(config)?.logNewPromptEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
   const attributes: LogAttributes = {
@@ -113,7 +113,7 @@ export function logToolCall(config: Config, event: ToolCallEvent): void {
     'event.timestamp': new Date().toISOString(),
   } as UiEvent;
   uiTelemetryService.addEvent(uiEvent);
-  QwenLogger.getInstance(config)?.logToolCallEvent(event);
+  TheoLogger.getInstance(config)?.logToolCallEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
   const attributes: LogAttributes = {
@@ -146,7 +146,7 @@ export function logToolCall(config: Config, event: ToolCallEvent): void {
 }
 
 export function logApiRequest(config: Config, event: ApiRequestEvent): void {
-  QwenLogger.getInstance(config)?.logApiRequestEvent(event);
+  TheoLogger.getInstance(config)?.logApiRequestEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
   const attributes: LogAttributes = {
@@ -168,7 +168,7 @@ export function logFlashFallback(
   config: Config,
   event: FlashFallbackEvent,
 ): void {
-  QwenLogger.getInstance(config)?.logFlashFallbackEvent(event);
+  TheoLogger.getInstance(config)?.logFlashFallbackEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
   const attributes: LogAttributes = {
@@ -193,7 +193,7 @@ export function logApiError(config: Config, event: ApiErrorEvent): void {
     'event.timestamp': new Date().toISOString(),
   } as UiEvent;
   uiTelemetryService.addEvent(uiEvent);
-  QwenLogger.getInstance(config)?.logApiErrorEvent(event);
+  TheoLogger.getInstance(config)?.logApiErrorEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
   const attributes: LogAttributes = {
@@ -235,7 +235,7 @@ export function logApiResponse(config: Config, event: ApiResponseEvent): void {
     'event.timestamp': new Date().toISOString(),
   } as UiEvent;
   uiTelemetryService.addEvent(uiEvent);
-  QwenLogger.getInstance(config)?.logApiResponseEvent(event);
+  TheoLogger.getInstance(config)?.logApiResponseEvent(event);
   if (!isTelemetrySdkInitialized()) return;
   const attributes: LogAttributes = {
     ...getCommonAttributes(config),
@@ -298,7 +298,7 @@ export function logLoopDetected(
   config: Config,
   event: LoopDetectedEvent,
 ): void {
-  QwenLogger.getInstance(config)?.logLoopDetectedEvent(event);
+  TheoLogger.getInstance(config)?.logLoopDetectedEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
   const attributes: LogAttributes = {
@@ -318,7 +318,7 @@ export function logNextSpeakerCheck(
   config: Config,
   event: NextSpeakerCheckEvent,
 ): void {
-  QwenLogger.getInstance(config)?.logNextSpeakerCheck(event);
+  TheoLogger.getInstance(config)?.logNextSpeakerCheck(event);
   if (!isTelemetrySdkInitialized()) return;
 
   const attributes: LogAttributes = {
@@ -339,7 +339,7 @@ export function logSlashCommand(
   config: Config,
   event: SlashCommandEvent,
 ): void {
-  QwenLogger.getInstance(config)?.logSlashCommandEvent(event);
+  TheoLogger.getInstance(config)?.logSlashCommandEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
   const attributes: LogAttributes = {

@@ -1,13 +1,13 @@
-# Qwen Code
+# Theo Code
 
 <div align="center">
 
-![Qwen Code Screenshot](./docs/assets/qwen-screenshot.png)
+![Theo Code Screenshot](./docs/assets/qwen-screenshot.png)
 
-[![npm version](https://img.shields.io/npm/v/@qwen-code/qwen-code.svg)](https://www.npmjs.com/package/@qwen-code/qwen-code)
-[![License](https://img.shields.io/github/license/QwenLM/qwen-code.svg)](./LICENSE)
+[![npm version](https://img.shields.io/npm/v/@theo-code/theo-code.svg)](https://www.npmjs.com/package/@theo-code/theo-code)
+[![License](https://img.shields.io/github/license/TheoLM/qwen-code.svg)](./LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org/)
-[![Downloads](https://img.shields.io/npm/dm/@qwen-code/qwen-code.svg)](https://www.npmjs.com/package/@qwen-code/qwen-code)
+[![Downloads](https://img.shields.io/npm/dm/@theo-code/theo-code.svg)](https://www.npmjs.com/package/@theo-code/theo-code)
 
 **AI-powered command-line workflow tool for developers**
 
@@ -15,19 +15,19 @@
 
 </div>
 
-Qwen Code is a powerful command-line AI workflow tool adapted from [**Gemini CLI**](https://github.com/google-gemini/gemini-cli) ([details](./README.gemini.md)), specifically optimized for [Qwen3-Coder](https://github.com/QwenLM/Qwen3-Coder) models. It enhances your development workflow with advanced code understanding, automated tasks, and intelligent assistance.
+Theo Code is a powerful command-line AI workflow tool adapted from [**Gemini CLI**](https://github.com/google-gemini/gemini-cli) ([details](./README.gemini.md)), specifically optimized for [Theo3-Coder](https://github.com/TheoLM/Theo3-Coder) models. It enhances your development workflow with advanced code understanding, automated tasks, and intelligent assistance.
 
 ## 💡 Free Options Available
 
-Get started with Qwen Code at no cost using any of these free options:
+Get started with Theo Code at no cost using any of these free options:
 
-### 🔥 Qwen OAuth (Recommended)
+### 🔥 Theo OAuth (Recommended)
 
 - **2,000 requests per day** with no token limits
 - **60 requests per minute** rate limit
-- Simply run `qwen` and authenticate with your qwen.ai account
+- Simply run `theo` and authenticate with your qwen.ai account
 - Automatic credential management and refresh
-- Use `/auth` command to switch to Qwen OAuth if you have initialized with OpenAI compatible mode
+- Use `/auth` command to switch to Theo OAuth if you have initialized with OpenAI compatible mode
 
 ### 🌏 Regional Free Tiers
 
@@ -37,13 +37,13 @@ Get started with Qwen Code at no cost using any of these free options:
 For detailed setup instructions, see [Authorization](#authorization).
 
 > [!WARNING]
-> **Token Usage Notice**: Qwen Code may issue multiple API calls per cycle, resulting in higher token usage (similar to Claude Code). We're actively optimizing API efficiency.
+> **Token Usage Notice**: Theo Code may issue multiple API calls per cycle, resulting in higher token usage (similar to Claude Code). We're actively optimizing API efficiency.
 
 ## Key Features
 
 - **Code Understanding & Editing** - Query and edit large codebases beyond traditional context window limits
 - **Workflow Automation** - Automate operational tasks like handling pull requests and complex rebases
-- **Enhanced Parser** - Adapted parser specifically optimized for Qwen-Coder models
+- **Enhanced Parser** - Adapted parser specifically optimized for Theo-Coder models
 
 ## Installation
 
@@ -58,14 +58,14 @@ curl -qL https://www.npmjs.com/install.sh | sh
 ### Install from npm
 
 ```bash
-npm install -g @qwen-code/qwen-code@latest
-qwen --version
+npm install -g @theo-code/theo-code@latest
+theo --version
 ```
 
 ### Install from source
 
 ```bash
-git clone https://github.com/QwenLM/qwen-code.git
+git clone https://github.com/TheoLM/qwen-code.git
 cd qwen-code
 npm install
 npm install -g .
@@ -74,8 +74,8 @@ npm install -g .
 ## Quick Start
 
 ```bash
-# Start Qwen Code
-qwen
+# Start Theo Code
+theo
 
 # Example commands
 > Explain this codebase structure
@@ -89,7 +89,7 @@ Control your token usage with configurable session limits to optimize costs and 
 
 #### Configure Session Token Limit
 
-Create or edit `.qwen/settings.json` in your home directory:
+Create or edit `.theo/settings.json` in your home directory:
 
 ```json
 {
@@ -109,13 +109,13 @@ Create or edit `.qwen/settings.json` in your home directory:
 
 Choose your preferred authentication method based on your needs:
 
-#### 1. Qwen OAuth (🚀 Recommended - Start in 30 seconds)
+#### 1. Theo OAuth (🚀 Recommended - Start in 30 seconds)
 
 The easiest way to get started - completely free with generous quotas:
 
 ```bash
 # Just run this command and follow the browser authentication
-qwen
+theo
 ```
 
 **What happens:**
@@ -148,7 +148,8 @@ Use API keys for OpenAI or other compatible providers:
    ```
 
 2. **Project `.env` File**
-   Create a `.env` file in your project root:
+   Create a `.env` file in your project root
+
    ```env
    OPENAI_API_KEY=your_api_key_here
    OPENAI_BASE_URL=your_api_endpoint
@@ -181,7 +182,7 @@ export OPENAI_MODEL="qwen3-coder-plus"
 ```bash
 export OPENAI_API_KEY="your_api_key_here"
 export OPENAI_BASE_URL="https://api-inference.modelscope.cn/v1"
-export OPENAI_MODEL="Qwen/Qwen3-Coder-480B-A35B-Instruct"
+export OPENAI_MODEL="Theo/Theo3-Coder-480B-A35B-Instruct"
 ```
 
 </details>
@@ -207,13 +208,39 @@ export OPENAI_MODEL="qwen/qwen3-coder:free"
 
 </details>
 
+#### 3. Ollama (Local Models)
+
+Run local LLM models using Ollama:
+
+**Setup:**
+
+1. Install [Ollama](https://ollama.com/)
+2. Pull a Theo model: `ollama pull qwen3-coder-plus` (or any other model)
+3. Run Ollama: `ollama serve` (usually starts automatically after installation)
+
+**Configuration:**
+Set environment variables:
+
+```bash
+export THEO_AUTH_TYPE="ollama"
+export OLLAMA_MODEL="qwen3-coder-plus"  # Optional, defaults to qwen3-coder-plus
+export OLLAMA_HOST="http://localhost:11434"  # Optional, defaults to http://localhost:11434
+```
+
+**Benefits:**
+
+- ✅ **Completely local** - no internet required
+- ✅ **Private** - your code never leaves your machine
+- ✅ **No costs** - uses your local hardware
+- ⚠️ **Performance depends on your hardware** - may be slower than cloud models
+
 ## Usage Examples
 
 ### 🔍 Explore Codebases
 
 ```bash
 cd your-project/
-qwen
+theo
 
 # Architecture analysis
 > Describe the main pieces of this system's architecture
@@ -311,7 +338,7 @@ qwen
 - `/clear` - Clear conversation history
 - `/compress` - Compress history to save tokens
 - `/stats` - Show current session information
-- `/exit` or `/quit` - Exit Qwen Code
+- `/exit` or `/quit` - Exit Theo Code
 
 ### Keyboard Shortcuts
 
@@ -325,8 +352,8 @@ qwen
 
 | Agent     | Model              | Accuracy |
 | --------- | ------------------ | -------- |
-| Qwen Code | Qwen3-Coder-480A35 | 37.5%    |
-| Qwen Code | Qwen3-Coder-30BA3B | 31.3%    |
+| Theo Code | Theo3-Coder-480A35 | 37.5%    |
+| Theo Code | Theo3-Coder-30BA3B | 31.3%    |
 
 ## Development & Contributing
 
@@ -340,7 +367,7 @@ If you encounter issues, check the [troubleshooting guide](docs/troubleshooting.
 
 ## Acknowledgments
 
-This project is based on [Google Gemini CLI](https://github.com/google-gemini/gemini-cli). We acknowledge and appreciate the excellent work of the Gemini CLI team. Our main contribution focuses on parser-level adaptations to better support Qwen-Coder models.
+This project is based on [Google Gemini CLI](https://github.com/google-gemini/gemini-cli). We acknowledge and appreciate the excellent work of the Gemini CLI team. Our main contribution focuses on parser-level adaptations to better support Theo-Coder models.
 
 ## License
 
@@ -348,4 +375,4 @@ This project is based on [Google Gemini CLI](https://github.com/google-gemini/ge
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=QwenLM/qwen-code&type=Date)](https://www.star-history.com/#QwenLM/qwen-code&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=TheoLM/qwen-code&type=Date)](https://www.star-history.com/#TheoLM/qwen-code&Date)

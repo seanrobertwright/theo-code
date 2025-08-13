@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { MCPServerConfig, GeminiCLIExtension } from '@qwen-code/qwen-code-core';
+import { MCPServerConfig, GeminiCLIExtension } from '@theo-code/theo-code-core';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-export const EXTENSIONS_DIRECTORY_NAME = path.join('.qwen', 'extensions');
+export const EXTENSIONS_DIRECTORY_NAME = path.join('.theo', 'extensions');
 export const EXTENSIONS_CONFIG_FILENAME = 'gemini-extension.json';
 
 export interface Extension {
@@ -105,7 +105,7 @@ function loadExtension(extensionDir: string): Extension | null {
 
 function getContextFileNames(config: ExtensionConfig): string[] {
   if (!config.contextFileName) {
-    return ['QWEN.md'];
+    return ['THEO.md'];
   } else if (!Array.isArray(config.contextFileName)) {
     return [config.contextFileName];
   }

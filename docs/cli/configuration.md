@@ -18,10 +18,10 @@ Configuration is applied in the following order of precedence (lower numbers are
 Gemini CLI uses `settings.json` files for persistent configuration. There are three locations for these files:
 
 - **User settings file:**
-  - **Location:** `~/.qwen/settings.json` (where `~` is your home directory).
+  - **Location:** `~/.theo/settings.json` (where `~` is your home directory).
   - **Scope:** Applies to all Gemini CLI sessions for the current user.
 - **Project settings file:**
-  - **Location:** `.qwen/settings.json` within your project's root directory.
+  - **Location:** `.theo/settings.json` within your project's root directory.
   - **Scope:** Applies only when running Gemini CLI from that specific project. Project settings override user settings.
 - **System settings file:**
   - **Location:** `/etc/gemini-cli/settings.json` (Linux), `C:\ProgramData\gemini-cli\settings.json` (Windows) or `/Library/Application Support/GeminiCli/settings.json` (macOS). The path can be overridden using the `GEMINI_CLI_SYSTEM_SETTINGS_PATH` environment variable.
@@ -33,7 +33,7 @@ Gemini CLI uses `settings.json` files for persistent configuration. There are th
 
 In addition to a project settings file, a project's `.gemini` directory can contain other project-specific files related to Gemini CLI's operation, such as:
 
-- [Custom sandbox profiles](#sandboxing) (e.g., `.qwen/sandbox-macos-custom.sb`, `.qwen/sandbox.Dockerfile`).
+- [Custom sandbox profiles](#sandboxing) (e.g., `.theo/sandbox-macos-custom.sb`, `.theo/sandbox.Dockerfile`).
 
 ### Available settings in `settings.json`:
 
@@ -288,7 +288,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
 
 The CLI keeps a history of shell commands you run. To avoid conflicts between different projects, this history is stored in a project-specific directory within your user's home folder.
 
-- **Location:** `~/.qwen/tmp/<project_hash>/shell_history`
+- **Location:** `~/.theo/tmp/<project_hash>/shell_history`
   - `<project_hash>` is a unique identifier generated from your project's root path.
   - The history is stored in a file named `shell_history`.
 
@@ -340,7 +340,7 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
   - Switches the Seatbelt (`sandbox-exec`) profile on macOS.
   - `permissive-open`: (Default) Restricts writes to the project folder (and a few other folders, see `packages/cli/src/utils/sandbox-macos-permissive-open.sb`) but allows other operations.
   - `strict`: Uses a strict profile that declines operations by default.
-  - `<profile_name>`: Uses a custom profile. To define a custom profile, create a file named `sandbox-macos-<profile_name>.sb` in your project's `.qwen/` directory (e.g., `my-project/.qwen/sandbox-macos-custom.sb`).
+  - `<profile_name>`: Uses a custom profile. To define a custom profile, create a file named `sandbox-macos-<profile_name>.sb` in your project's `.theo/` directory (e.g., `my-project/.theo/sandbox-macos-custom.sb`).
 - **`DEBUG` or `DEBUG_MODE`** (often used by underlying libraries or the CLI itself):
   - Set to `true` or `1` to enable verbose debug logging, which can be helpful for troubleshooting.
   - **Note:** These variables are automatically excluded from project `.env` files by default to prevent interference with gemini-cli behavior. Use `.gemini/.env` files if you need to set these for gemini-cli specifically.
@@ -452,7 +452,7 @@ This example demonstrates how you can provide general project context, specific 
 
 - **Hierarchical Loading and Precedence:** The CLI implements a sophisticated hierarchical memory system by loading context files (e.g., `QWEN.md`) from several locations. Content from files lower in this list (more specific) typically overrides or supplements content from files higher up (more general). The exact concatenation order and final context can be inspected using the `/memory show` command. The typical loading order is:
   1.  **Global Context File:**
-      - Location: `~/.qwen/<contextFileName>` (e.g., `~/.qwen/QWEN.md` in your user home directory).
+      - Location: `~/.theo/<contextFileName>` (e.g., `~/.theo/THEO.md` in your user home directory).
       - Scope: Provides default instructions for all your projects.
   2.  **Project Root & Ancestors Context Files:**
       - Location: The CLI searches for the configured context file in the current working directory and then in each parent directory up to either the project root (identified by a `.git` folder) or your home directory.

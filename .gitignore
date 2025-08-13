@@ -40,6 +40,6 @@ packages/cli/src/generated/
 .integration-tests/
 packages/vscode-ide-companion/*.vsix
 
-# Qwen Code Configs
-.qwen/
+# Theo Code Configs
+.theo/
 logs/

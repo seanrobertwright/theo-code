@@ -24,8 +24,8 @@ const qwenLightColors: ColorsTheme = {
   GradientColors: ['#399ee6', '#86b300'],
 };
 
-export const QwenLight: Theme = new Theme(
-  'Qwen Light',
+export const TheoLight: Theme = new Theme(
+  'Theo Light',
   'light',
   {
     hljs: {

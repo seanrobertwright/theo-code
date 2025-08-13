@@ -16,7 +16,7 @@ import {
   SandboxConfig,
   GeminiClient,
   ideContext,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 import { LoadedSettings, SettingsFile, Settings } from '../config/settings.js';
 import process from 'node:process';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
@@ -86,10 +86,10 @@ interface MockServerConfig {
   getUserTier: Mock<() => Promise<string | undefined>>;
 }
 
-// Mock @qwen-code/qwen-code-core and its Config class
-vi.mock('@qwen-code/qwen-code-core', async (importOriginal) => {
+// Mock @theo-code/theo-code-core and its Config class
+vi.mock('@theo-code/theo-code-core', async (importOriginal) => {
   const actualCore =
-    await importOriginal<typeof import('@qwen-code/qwen-code-core')>();
+    await importOriginal<typeof import('@theo-code/theo-code-core')>();
   const ConfigClassMock = vi
     .fn()
     .mockImplementation((optionsPassedToConstructor) => {
@@ -239,7 +239,7 @@ vi.mock('./config/auth.js', () => ({
 
 const mockedCheckForUpdates = vi.mocked(checkForUpdates);
 const { isGitRepository: mockedIsGitRepository } = vi.mocked(
-  await import('@qwen-code/qwen-code-core'),
+  await import('@theo-code/theo-code-core'),
 );
 
 vi.mock('node:child_process');
@@ -338,11 +338,11 @@ describe('App UI', () => {
       mockedIsGitRepository.mockResolvedValue(true);
       const info: UpdateObject = {
         update: {
-          name: '@qwen-code/qwen-code',
+          name: '@theo-code/theo-code',
           latest: '1.1.0',
           current: '1.0.0',
         },
-        message: 'Qwen Code update available!',
+        message: 'Theo Code update available!',
       };
       mockedCheckForUpdates.mockResolvedValue(info);
       const { spawn } = await import('node:child_process');
@@ -365,7 +365,7 @@ describe('App UI', () => {
       mockedIsGitRepository.mockResolvedValue(false);
       const info: UpdateObject = {
         update: {
-          name: '@qwen-code/qwen-code',
+          name: '@theo-code/theo-code',
           latest: '1.1.0',
           current: '1.0.0',
         },
@@ -395,7 +395,7 @@ describe('App UI', () => {
       mockedIsGitRepository.mockResolvedValue(false);
       const info: UpdateObject = {
         update: {
-          name: '@qwen-code/qwen-code',
+          name: '@theo-code/theo-code',
           latest: '1.1.0',
           current: '1.0.0',
         },
@@ -425,7 +425,7 @@ describe('App UI', () => {
       mockedIsGitRepository.mockResolvedValue(false);
       const info: UpdateObject = {
         update: {
-          name: '@qwen-code/qwen-code',
+          name: '@theo-code/theo-code',
           latest: '1.1.0',
           current: '1.0.0',
         },
@@ -458,7 +458,7 @@ describe('App UI', () => {
       process.env.GEMINI_CLI_DISABLE_AUTOUPDATER = 'true';
       const info: UpdateObject = {
         update: {
-          name: '@qwen-code/qwen-code',
+          name: '@theo-code/theo-code',
           latest: '1.1.0',
           current: '1.0.0',
         },

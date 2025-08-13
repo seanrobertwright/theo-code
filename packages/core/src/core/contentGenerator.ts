@@ -47,6 +47,7 @@ export enum AuthType {
   CLOUD_SHELL = 'cloud-shell',
   USE_OPENAI = 'openai',
   QWEN_OAUTH = 'qwen-oauth',
+  USE_OLLAMA = 'ollama',
 }
 
 export type ContentGeneratorConfig = {
@@ -133,12 +134,21 @@ export function createContentGeneratorConfig(
   }
 
   if (authType === AuthType.QWEN_OAUTH) {
-    // For Qwen OAuth, we'll handle the API key dynamically in createContentGenerator
-    // Set a special marker to indicate this is Qwen OAuth
+    // For Theo OAuth, we'll handle the API key dynamically in createContentGenerator
+    // Set a special marker to indicate this is Theo OAuth
     contentGeneratorConfig.apiKey = 'QWEN_OAUTH_DYNAMIC_TOKEN';
 
-    // Prefer to use qwen3-coder-plus as the default Qwen model if QWEN_MODEL is not set.
+    // Prefer to use qwen3-coder-plus as the default Theo model if QWEN_MODEL is not set.
     contentGeneratorConfig.model = process.env.QWEN_MODEL || DEFAULT_QWEN_MODEL;
+
+    return contentGeneratorConfig;
+  }
+
+  if (authType === AuthType.USE_OLLAMA) {
+    // For Ollama, we don't need an API key but need to set the model
+    contentGeneratorConfig.apiKey = 'ollama'; // Placeholder, not actually used
+    contentGeneratorConfig.model =
+      process.env.OLLAMA_MODEL || DEFAULT_QWEN_MODEL;
 
     return contentGeneratorConfig;
   }
@@ -196,28 +206,38 @@ export async function createContentGenerator(
     return new OpenAIContentGenerator(config.apiKey, config.model, gcConfig);
   }
 
+  if (config.authType === AuthType.USE_OLLAMA) {
+    // Import OllamaContentGenerator dynamically
+    const { OllamaContentGenerator } = await import(
+      '../ollama/ollamaContentGenerator.js'
+    );
+
+    // Create the content generator for Ollama
+    return new OllamaContentGenerator(config.model, gcConfig);
+  }
+
   if (config.authType === AuthType.QWEN_OAUTH) {
     if (config.apiKey !== 'QWEN_OAUTH_DYNAMIC_TOKEN') {
-      throw new Error('Invalid Qwen OAuth configuration');
+      throw new Error('Invalid Theo OAuth configuration');
     }
 
     // Import required classes dynamically
-    const { getQwenOAuthClient: getQwenOauthClient } = await import(
+    const { getTheoOAuthClient: getTheoOauthClient } = await import(
       '../qwen/qwenOAuth2.js'
     );
-    const { QwenContentGenerator } = await import(
+    const { TheoContentGenerator } = await import(
       '../qwen/qwenContentGenerator.js'
     );
 
     try {
-      // Get the Qwen OAuth client (now includes integrated token management)
-      const qwenClient = await getQwenOauthClient(gcConfig);
+      // Get the Theo OAuth client (now includes integrated token management)
+      const qwenClient = await getTheoOauthClient(gcConfig);
 
       // Create the content generator with dynamic token management
-      return new QwenContentGenerator(qwenClient, config.model, gcConfig);
+      return new TheoContentGenerator(qwenClient, config.model, gcConfig);
     } catch (error) {
       throw new Error(
-        `Failed to initialize Qwen: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to initialize Theo: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

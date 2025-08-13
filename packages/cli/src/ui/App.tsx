@@ -22,7 +22,7 @@ import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
 import { useThemeCommand } from './hooks/useThemeCommand.js';
 import { useAuthCommand } from './hooks/useAuthCommand.js';
-import { useQwenAuth } from './hooks/useQwenAuth.js';
+import { useTheoAuth } from './hooks/useQwenAuth.js';
 import { useEditorSettings } from './hooks/useEditorSettings.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
 import { useAutoAcceptIndicator } from './hooks/useAutoAcceptIndicator.js';
@@ -36,7 +36,7 @@ import { Footer } from './components/Footer.js';
 import { ThemeDialog } from './components/ThemeDialog.js';
 import { AuthDialog } from './components/AuthDialog.js';
 import { AuthInProgress } from './components/AuthInProgress.js';
-import { QwenOAuthProgress } from './components/QwenOAuthProgress.js';
+import { TheoOAuthProgress } from './components/QwenOAuthProgress.js';
 import { EditorSettingsDialog } from './components/EditorSettingsDialog.js';
 import { ShellConfirmationDialog } from './components/ShellConfirmationDialog.js';
 import { Colors } from './colors.js';
@@ -63,7 +63,7 @@ import {
   AuthType,
   type IdeContext,
   ideContext,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 import { validateAuthMethod } from '../config/auth.js';
 import { useLogger } from './hooks/useLogger.js';
 import { StreamingContext } from './contexts/StreamingContext.js';
@@ -83,7 +83,7 @@ import {
   isProQuotaExceededError,
   isGenericQuotaExceededError,
   UserTierId,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 import { UpdateObject } from './utils/updateCheck.js';
 import ansiEscapes from 'ansi-escapes';
 import { OverflowProvider } from './contexts/OverflowContext.js';
@@ -234,13 +234,13 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
   } = useAuthCommand(settings, setAuthError, config);
 
   const {
-    isQwenAuthenticating,
+    isTheoAuthenticating,
     deviceAuth,
-    isQwenAuth,
-    cancelQwenAuth,
+    isTheoAuth,
+    cancelTheoAuth,
     authStatus,
     authMessage,
-  } = useQwenAuth(settings, isAuthenticating);
+  } = useTheoAuth(settings, isAuthenticating);
 
   useEffect(() => {
     if (settings.merged.selectedAuthType && !settings.merged.useExternalAuth) {
@@ -265,22 +265,22 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
     }
   }, [config, isAuthenticating]);
 
-  // Handle Qwen OAuth timeout
+  // Handle Theo OAuth timeout
   useEffect(() => {
-    if (isQwenAuth && authStatus === 'timeout') {
+    if (isTheoAuth && authStatus === 'timeout') {
       setAuthError(
         authMessage ||
-          'Qwen OAuth authentication timed out. Please try again or select a different authentication method.',
+          'Theo OAuth authentication timed out. Please try again or select a different authentication method.',
       );
-      cancelQwenAuth();
+      cancelTheoAuth();
       cancelAuthentication();
       openAuthDialog();
     }
   }, [
-    isQwenAuth,
+    isTheoAuth,
     authStatus,
     authMessage,
-    cancelQwenAuth,
+    cancelTheoAuth,
     cancelAuthentication,
     openAuthDialog,
     setAuthError,
@@ -900,22 +900,22 @@ const App = ({ config, settings, startupWarnings = [], version }: AppProps) => {
             </Box>
           ) : isAuthenticating ? (
             <>
-              {isQwenAuth && isQwenAuthenticating ? (
-                <QwenOAuthProgress
+              {isTheoAuth && isTheoAuthenticating ? (
+                <TheoOAuthProgress
                   deviceAuth={deviceAuth || undefined}
                   authStatus={authStatus}
                   authMessage={authMessage}
                   onTimeout={() => {
                     setAuthError(
-                      'Qwen OAuth authentication timed out. Please try again.',
+                      'Theo OAuth authentication timed out. Please try again.',
                     );
-                    cancelQwenAuth();
+                    cancelTheoAuth();
                     cancelAuthentication();
                     openAuthDialog();
                   }}
                   onCancel={() => {
-                    setAuthError('Qwen OAuth authentication cancelled.');
-                    cancelQwenAuth();
+                    setAuthError('Theo OAuth authentication cancelled.');
+                    cancelTheoAuth();
                     cancelAuthentication();
                     openAuthDialog();
                   }}

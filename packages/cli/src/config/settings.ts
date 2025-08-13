@@ -15,13 +15,13 @@ import {
   BugCommandSettings,
   TelemetrySettings,
   AuthType,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 import stripJsonComments from 'strip-json-comments';
 import { DefaultLight } from '../ui/themes/default-light.js';
 import { DefaultDark } from '../ui/themes/default.js';
 import { CustomTheme } from '../ui/themes/theme.js';
 
-export const SETTINGS_DIRECTORY_NAME = '.qwen';
+export const SETTINGS_DIRECTORY_NAME = '.theo';
 export const USER_SETTINGS_DIR = path.join(homedir(), SETTINGS_DIRECTORY_NAME);
 export const USER_SETTINGS_PATH = path.join(USER_SETTINGS_DIR, 'settings.json');
 export const DEFAULT_EXCLUDED_ENV_VARS = ['DEBUG', 'DEBUG_MODE'];
@@ -31,11 +31,11 @@ export function getSystemSettingsPath(): string {
     return process.env.GEMINI_CLI_SYSTEM_SETTINGS_PATH;
   }
   if (platform() === 'darwin') {
-    return '/Library/Application Support/QwenCode/settings.json';
+    return '/Library/Application Support/TheoCode/settings.json';
   } else if (platform() === 'win32') {
-    return 'C:\\ProgramData\\qwen-code\\settings.json';
+    return 'C:\\ProgramData\\heo-code\\settings.json';
   } else {
-    return '/etc/qwen-code/settings.json';
+    return '/etc/theo-code/settings.json';
   }
 }
 

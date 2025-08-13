@@ -9,7 +9,7 @@ import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { AuthType } from '@qwen-code/qwen-code-core';
+import { AuthType } from '@theo-code/theo-code-core';
 import {
   validateAuthMethod,
   setOpenAIApiKey,
@@ -46,7 +46,7 @@ export function AuthDialog({
   );
   const [showOpenAIKeyPrompt, setShowOpenAIKeyPrompt] = useState(false);
   const items = [
-    { label: 'Qwen OAuth', value: AuthType.QWEN_OAUTH },
+    { label: 'Theo OAuth', value: AuthType.QWEN_OAUTH },
     { label: 'OpenAI', value: AuthType.USE_OPENAI },
   ];
 
@@ -168,11 +168,11 @@ export function AuthDialog({
         <Text color={Colors.AccentPurple}>(Use Enter to Set Auth)</Text>
       </Box>
       <Box marginTop={1}>
-        <Text>Terms of Services and Privacy Notice for Qwen Code</Text>
+        <Text>Terms of Services and Privacy Notice for Theo Code</Text>
       </Box>
       <Box marginTop={1}>
         <Text color={Colors.AccentBlue}>
-          {'https://github.com/QwenLM/Qwen3-Coder/blob/main/README.md'}
+          {'https://github.com/TheoLM/Theo3-Coder/blob/main/README.md'}
         </Text>
       </Box>
     </Box>

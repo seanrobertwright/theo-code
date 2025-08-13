@@ -93,7 +93,7 @@ describe('initCommand', () => {
     // Assert: Check that the correct prompt is submitted
     expect(result.type).toBe('submit_prompt');
     expect(result.content).toContain(
-      'You are Qwen Code, an interactive CLI agent',
+      'You are Theo Code, an interactive CLI agent',
     );
   });
 

@@ -18,7 +18,7 @@ import { useReverseSearchCompletion } from '../hooks/useReverseSearchCompletion.
 import { useCommandCompletion } from '../hooks/useCommandCompletion.js';
 import { useKeypress, Key } from '../hooks/useKeypress.js';
 import { CommandContext, SlashCommand } from '../commands/types.js';
-import { Config } from '@qwen-code/qwen-code-core';
+import { Config } from '@theo-code/theo-code-core';
 import {
   clipboardHasImage,
   saveClipboardImage,

@@ -236,7 +236,7 @@ export class GeminiClient {
     }
 
     const context = `
-  This is the Qwen Code. We are setting up the context for our chat.
+  This is the Theo Code. We are setting up the context for our chat.
   Today's date is ${today}.
   My operating system is: ${platform}
   ${workingDirPreamble}
@@ -799,7 +799,7 @@ export class GeminiClient {
   ): Promise<string | null> {
     // Handle different auth types
     if (authType === AuthType.QWEN_OAUTH) {
-      return this.handleQwenOAuthError(error);
+      return this.handleTheoOAuthError(error);
     }
 
     // Only handle fallback for OAuth users
@@ -842,9 +842,9 @@ export class GeminiClient {
   }
 
   /**
-   * Handles Qwen OAuth authentication errors and rate limiting
+   * Handles Theo OAuth authentication errors and rate limiting
    */
-  private async handleQwenOAuthError(error?: unknown): Promise<string | null> {
+  private async handleTheoOAuthError(error?: unknown): Promise<string | null> {
     if (!error) {
       return null;
     }
@@ -876,17 +876,17 @@ export class GeminiClient {
       errorMessage.includes('too many requests');
 
     if (isAuthError) {
-      console.warn('Qwen OAuth authentication error detected:', errorMessage);
-      // The QwenContentGenerator should automatically handle token refresh
+      console.warn('Theo OAuth authentication error detected:', errorMessage);
+      // The TheoContentGenerator should automatically handle token refresh
       // If it still fails, it likely means the refresh token is also expired
       console.log(
-        'Note: If this persists, you may need to re-authenticate with Qwen OAuth',
+        'Note: If this persists, you may need to re-authenticate with Theo OAuth',
       );
       return null;
     }
 
     if (isRateLimitError) {
-      console.warn('Qwen API rate limit encountered:', errorMessage);
+      console.warn('Theo API rate limit encountered:', errorMessage);
       // For rate limiting, we don't need to do anything special
       // The retry mechanism will handle the backoff
       return null;

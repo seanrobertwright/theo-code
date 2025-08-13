@@ -30,7 +30,7 @@ describe('bugCommand', () => {
   beforeEach(() => {
     vi.mocked(getCliVersion).mockResolvedValue('0.1.0');
     vi.mocked(formatMemoryUsage).mockReturnValue('100 MB');
-    vi.stubEnv('SANDBOX', 'qwen-test');
+    vi.stubEnv('SANDBOX', 'theo-test');
   });
 
   afterEach(() => {
@@ -60,7 +60,7 @@ describe('bugCommand', () => {
 * **Memory Usage:** 100 MB
 `;
     const expectedUrl =
-      'https://github.com/QwenLM/qwen-code/issues/new?template=bug_report.yml&title=A%20test%20bug&info=' +
+      'https://github.com/seanrobertwright/theo-code/issues/new?template=bug_report.yml&title=A%20test%20bug&info=' +
       encodeURIComponent(expectedInfo);
 
     expect(open).toHaveBeenCalledWith(expectedUrl);

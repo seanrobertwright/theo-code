@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { QwenLogger } from './qwen-logger/qwen-logger.js';
+import { TheoLogger } from './qwen-logger/qwen-logger.js';
 import { RumEvent } from './qwen-logger/event-types.js';
 import { Config } from '../config/config.js';
 
@@ -57,8 +57,8 @@ describe('Circular Reference Integration Test', () => {
       },
     } as RumEvent;
 
-    // Test that QwenLogger can handle this
-    const logger = QwenLogger.getInstance(mockConfig);
+    // Test that TheoLogger can handle this
+    const logger = TheoLogger.getInstance(mockConfig);
 
     expect(() => {
       logger?.enqueueLogEvent(problematicEvent);

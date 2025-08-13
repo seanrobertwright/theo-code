@@ -1,20 +1,22 @@
-# Qwen Code Companion
+# Theo README
 
-The Qwen Code Companion extension seamlessly integrates [Qwen Code](https://github.com/QwenLM/qwen-code) into your VS Code environment. This integration enables Qwen Code to access active information like your open files.
+## Theo Code Companion
 
-# Features
+The Theo Code Companion extension seamlessly integrates [Theo Code](https://github.com/seanrobertwright/theo-code) into your VS Code environment. This integration enables Theo Code to access active information like your open files.
 
-- Open Editor File Context: Qwen Code gains awareness of the files you have open in your editor, providing it with a richer understanding of your project's structure and content.
+## Features
 
-- Selection Context: Qwen Code can easily access your cursor's position and selected text within the editor, giving it valuable context directly from your current work.
+- Open Editor File Context: Theo Code gains awareness of the files you have open in your editor, providing it with a richer understanding of your project's structure and content.
 
-# Requirements
+- Selection Context: Theo Code can easily access your cursor's position and selected text within the editor, giving it valuable context directly from your current work.
+
+## Requirements
 
 To use this extension, you'll need:
 
 - VS Code version 1.101.0 or newer
-- Qwen Code (installed separately) running within the VS Code integrated terminal
+- Theo Code (installed separately) running within the VS Code integrated terminal
 
-# Terms of Service and Privacy Notice
+## Terms of Service and Privacy Notice
 
-By installing this extension, you agree to the [Terms of Service](https://github.com/QwenLM/qwen-code/blob/main/docs/tos-privacy.md).
+By installing this extension, you agree to the [Terms of Service](https://github.com/seanrobertwright/theo-code/blob/main/docs/tos-privacy.md).

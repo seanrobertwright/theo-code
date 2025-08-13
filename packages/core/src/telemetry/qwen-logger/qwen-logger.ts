@@ -50,8 +50,8 @@ export interface LogResponse {
 
 // Singleton class for batch posting log events to RUM. When a new event comes in, the elapsed time
 // is checked and events are flushed to RUM if at least a minute has passed since the last flush.
-export class QwenLogger {
-  private static instance: QwenLogger;
+export class TheoLogger {
+  private static instance: TheoLogger;
   private config?: Config;
   private readonly events: RumEvent[] = [];
   private last_flush_time: number = Date.now();
@@ -77,16 +77,16 @@ export class QwenLogger {
     return `user-${getInstallationId()}`;
   }
 
-  static getInstance(config?: Config): QwenLogger | undefined {
+  static getInstance(config?: Config): TheoLogger | undefined {
     if (config === undefined || !config?.getUsageStatisticsEnabled())
       return undefined;
-    if (!QwenLogger.instance) {
-      QwenLogger.instance = new QwenLogger(config);
+    if (!TheoLogger.instance) {
+      TheoLogger.instance = new TheoLogger(config);
     }
 
-    process.on('exit', QwenLogger.instance.shutdown.bind(QwenLogger.instance));
+    process.on('exit', TheoLogger.instance.shutdown.bind(TheoLogger.instance));
 
-    return QwenLogger.instance;
+    return TheoLogger.instance;
   }
 
   enqueueLogEvent(event: RumEvent): void {
@@ -158,10 +158,10 @@ export class QwenLogger {
       },
       view: {
         id: this.viewId,
-        name: 'qwen-code-cli',
+        name: 'theo-code-cli',
       },
       events: [...this.events],
-      _v: `qwen-code@${version}`,
+      _v: `theo-code@${version}`,
     };
   }
 

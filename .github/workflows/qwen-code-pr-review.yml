@@ -1,4 +1,4 @@
-name: 🧐 Qwen Pull Request Review
+name: 🧐 Theo Pull Request Review
 
 on:
   pull_request_target:
@@ -21,17 +21,17 @@ jobs:
       (github.event_name == 'pull_request' && github.event.action == 'opened') ||
       (github.event_name == 'issue_comment' &&
         github.event.issue.pull_request &&
-        contains(github.event.comment.body, '@qwen /review') &&
+        contains(github.event.comment.body, '@theo /review') &&
         (github.event.comment.author_association == 'OWNER' ||
          github.event.comment.author_association == 'MEMBER' ||
          github.event.comment.author_association == 'COLLABORATOR')) ||
       (github.event_name == 'pull_request_review_comment' &&
-        contains(github.event.comment.body, '@qwen /review') &&
+        contains(github.event.comment.body, '@theo /review') &&
         (github.event.comment.author_association == 'OWNER' ||
          github.event.comment.author_association == 'MEMBER' ||
          github.event.comment.author_association == 'COLLABORATOR')) ||
       (github.event_name == 'pull_request_review' &&
-        contains(github.event.review.body, '@qwen /review') &&
+        contains(github.event.review.body, '@theo /review') &&
         (github.event.review.author_association == 'OWNER' ||
          github.event.review.author_association == 'MEMBER' ||
          github.event.review.author_association == 'COLLABORATOR'))
@@ -80,7 +80,7 @@ jobs:
           PR_NUMBER=${{ github.event.issue.number }}
           echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           # Extract additional instructions from comment
-          ADDITIONAL_INSTRUCTIONS=$(echo "$COMMENT_BODY" | sed 's/.*@qwen \/review//' | xargs)
+          ADDITIONAL_INSTRUCTIONS=$(echo "$COMMENT_BODY" | sed 's/.*@theo \/review//' | xargs)
           echo "additional_instructions=$ADDITIONAL_INSTRUCTIONS" >> "$GITHUB_OUTPUT"
           # Get PR details
           PR_DATA=$(gh pr view $PR_NUMBER --json title,body,additions,deletions,changedFiles,baseRefName,headRefName)
@@ -91,8 +91,8 @@ jobs:
           echo "$CHANGED_FILES" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
-      - name: Run Qwen PR Review
-        uses: QwenLM/qwen-code-action@5fd6818d04d64e87d255ee4d5f77995e32fbf4c2
+      - name: Run Theo PR Review
+        uses: seanrobertwright/theo-code-action@5fd6818d04d64e87d255ee4d5f77995e32fbf4c2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.get_pr.outputs.pr_number || steps.get_pr_comment.outputs.pr_number }}

@@ -88,10 +88,10 @@ This section guides contributors on how to build, modify, and understand the dev
 
 **Prerequisites:**
 
-1.  **Node.js**:
+1. **Node.js**:
     - **Development:** Please use Node.js `~20.19.0`. This specific version is required due to an upstream development dependency issue. You can use a tool like [nvm](https://github.com/nvm-sh/nvm) to manage Node.js versions.
     - **Production:** For running the CLI in a production environment, any version of Node.js `>=20` is acceptable.
-2.  **Git**
+2. **Git**
 
 ### Build Process
 
@@ -224,11 +224,12 @@ For more detailed architecture, see `docs/architecture.md`.
 
 ## Debugging
 
-### VS Code:
+### VS Code
 
-0.  Run the CLI to interactively debug in VS Code with `F5`
-1.  Start the CLI in debug mode from the root directory:
-    ```bash
+0. Run the CLI to interactively debug in VS Code with `F5`
+1. Start the CLI in debug mode from the root directory:
+
+```bash
     npm run debug
     ```
     This command runs `node --inspect-brk dist/gemini.js` within the `packages/cli` directory, pausing execution until a debugger attaches. You can then open `chrome://inspect` in your Chrome browser to connect to the debugger.
@@ -248,13 +249,13 @@ DEBUG=1 gemini
 
 To debug the CLI's React-based UI, you can use React DevTools. Ink, the library used for the CLI's interface, is compatible with React DevTools version 4.x.
 
-1.  **Start the Gemini CLI in development mode:**
+1. **Start the Gemini CLI in development mode:**
 
     ```bash
     DEV=true npm start
     ```
 
-2.  **Install and run React DevTools version 4.28.5 (or the latest compatible 4.x version):**
+2. **Install and run React DevTools version 4.28.5 (or the latest compatible 4.x version):**
 
     You can either install it globally:
 
@@ -276,13 +277,13 @@ To debug the CLI's React-based UI, you can use React DevTools. Ink, the library 
 
 ### macOS Seatbelt
 
-On macOS, `qwen` uses Seatbelt (`sandbox-exec`) under a `permissive-open` profile (see `packages/cli/src/utils/sandbox-macos-permissive-open.sb`) that restricts writes to the project folder but otherwise allows all other operations and outbound network traffic ("open") by default. You can switch to a `restrictive-closed` profile (see `packages/cli/src/utils/sandbox-macos-restrictive-closed.sb`) that declines all operations and outbound network traffic ("closed") by default by setting `SEATBELT_PROFILE=restrictive-closed` in your environment or `.env` file. Available built-in profiles are `{permissive,restrictive}-{open,closed,proxied}` (see below for proxied networking). You can also switch to a custom profile `SEATBELT_PROFILE=<profile>` if you also create a file `.qwen/sandbox-macos-<profile>.sb` under your project settings directory `.qwen`.
+On macOS, `theo` uses Seatbelt (`sandbox-exec`) under a `permissive-open` profile (see `packages/cli/src/utils/sandbox-macos-permissive-open.sb`) that restricts writes to the project folder but otherwise allows all other operations and outbound network traffic ("open") by default. You can switch to a `restrictive-closed` profile (see `packages/cli/src/utils/sandbox-macos-restrictive-closed.sb`) that declines all operations and outbound network traffic ("closed") by default by setting `SEATBELT_PROFILE=restrictive-closed` in your environment or `.env` file. Available built-in profiles are `{permissive,restrictive}-{open,closed,proxied}` (see below for proxied networking). You can also switch to a custom profile `SEATBELT_PROFILE=<profile>` if you also create a file `.theo/sandbox-macos-<profile>.sb` under your project settings directory `.theo`.
 
 ### Container-based Sandboxing (All Platforms)
 
 For stronger container-based sandboxing on macOS or other platforms, you can set `GEMINI_SANDBOX=true|docker|podman|<command>` in your environment or `.env` file. The specified command (or if `true` then either `docker` or `podman`) must be installed on the host machine. Once enabled, `npm run build:all` will build a minimal container ("sandbox") image and `npm start` will launch inside a fresh instance of that container. The first build can take 20-30s (mostly due to downloading of the base image) but after that both build and start overhead should be minimal. Default builds (`npm run build`) will not rebuild the sandbox.
 
-Container-based sandboxing mounts the project directory (and system temp directory) with read-write access and is started/stopped/removed automatically as you start/stop Gemini CLI. Files created within the sandbox should be automatically mapped to your user/group on host machine. You can easily specify additional mounts, ports, or environment variables by setting `SANDBOX_{MOUNTS,PORTS,ENV}` as needed. You can also fully customize the sandbox for your projects by creating the files `.qwen/sandbox.Dockerfile` and/or `.qwen/sandbox.bashrc` under your project settings directory (`.qwen`) and running `qwen` with `BUILD_SANDBOX=1` to trigger building of your custom sandbox.
+Container-based sandboxing mounts the project directory (and system temp directory) with read-write access and is started/stopped/removed automatically as you start/stop Gemini CLI. Files created within the sandbox should be automatically mapped to your user/group on host machine. You can easily specify additional mounts, ports, or environment variables by setting `SANDBOX_{MOUNTS,PORTS,ENV}` as needed. You can also fully customize the sandbox for your projects by creating the files `.theo/sandbox.Dockerfile` and/or `.theo/sandbox.bashrc` under your project settings directory (`.theo`) and running `theo` with `BUILD_SANDBOX=1` to trigger building of your custom sandbox.
 
 #### Proxied Networking
 
@@ -292,7 +293,7 @@ All sandboxing methods, including macOS Seatbelt using `*-proxied` profiles, sup
 
 We publish an artifact for each commit to our internal registry. But if you need to manually cut a local build, then run the following commands:
 
-```
+```npm
 npm run clean
 npm install
 npm run auth

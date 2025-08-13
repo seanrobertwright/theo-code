@@ -8,8 +8,8 @@ import { AuthType } from '../core/contentGenerator.js';
 import {
   isProQuotaExceededError,
   isGenericQuotaExceededError,
-  isQwenQuotaExceededError,
-  isQwenThrottlingError,
+  isTheoQuotaExceededError,
+  isTheoThrottlingError,
 } from './quotaErrorDetection.js';
 
 export interface HttpError extends Error {
@@ -152,18 +152,18 @@ export async function retryWithBackoff<T>(
         }
       }
 
-      // Check for Qwen OAuth quota exceeded error - throw immediately without retry
-      if (authType === AuthType.QWEN_OAUTH && isQwenQuotaExceededError(error)) {
+      // Check for Theo OAuth quota exceeded error - throw immediately without retry
+      if (authType === AuthType.QWEN_OAUTH && isTheoQuotaExceededError(error)) {
         throw new Error(
-          `Qwen API quota exceeded: Your Qwen API quota has been exhausted. Please wait for your quota to reset.`,
+          `Theo API quota exceeded: Your Theo API quota has been exhausted. Please wait for your quota to reset.`,
         );
       }
 
-      // Track consecutive 429 errors, but handle Qwen throttling differently
+      // Track consecutive 429 errors, but handle Theo throttling differently
       if (errorStatus === 429) {
-        // For Qwen throttling errors, we still want to track them for exponential backoff
-        // but not for quota fallback logic (since Qwen doesn't have model fallback)
-        if (authType === AuthType.QWEN_OAUTH && isQwenThrottlingError(error)) {
+        // For Theo throttling errors, we still want to track them for exponential backoff
+        // but not for quota fallback logic (since Theo doesn't have model fallback)
+        if (authType === AuthType.QWEN_OAUTH && isTheoThrottlingError(error)) {
           // Keep track of 429s but reset the consecutive count to avoid fallback logic
           consecutive429Count = 0;
         } else {

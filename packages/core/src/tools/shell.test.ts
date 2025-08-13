@@ -58,7 +58,7 @@ describe('ShellTool', () => {
       getGeminiClient: vi.fn(),
       getGitCoAuthor: vi.fn().mockReturnValue({
         enabled: true,
-        name: 'Qwen-Coder',
+        name: 'Theo-Coder',
         email: 'qwen-coder@alibabacloud.com',
       }),
     } as unknown as Config;
@@ -404,7 +404,7 @@ describe('ShellTool', () => {
       expect(result).toBe(
         `git commit -m "Initial commit
 
-Co-authored-by: Qwen-Coder <qwen-coder@alibabacloud.com>"`,
+Co-authored-by: Theo-Coder <qwen-coder@alibabacloud.com>"`,
       );
     });
 
@@ -418,7 +418,7 @@ Co-authored-by: Qwen-Coder <qwen-coder@alibabacloud.com>"`,
       expect(result).toBe(
         `git commit -m 'Fix bug
 
-Co-authored-by: Qwen-Coder <qwen-coder@alibabacloud.com>'`,
+Co-authored-by: Theo-Coder <qwen-coder@alibabacloud.com>'`,
       );
     });
 
@@ -432,7 +432,7 @@ Co-authored-by: Qwen-Coder <qwen-coder@alibabacloud.com>'`,
       expect(result).toBe(
         `git commit -a -m "Add feature
 
-Co-authored-by: Qwen-Coder <qwen-coder@alibabacloud.com>"`,
+Co-authored-by: Theo-Coder <qwen-coder@alibabacloud.com>"`,
       );
     });
 
@@ -466,7 +466,7 @@ Co-authored-by: Qwen-Coder <qwen-coder@alibabacloud.com>"`,
       expect(result).toBe(
         `git commit -m "Fix \\"quoted\\" text
 
-Co-authored-by: Qwen-Coder <qwen-coder@alibabacloud.com>"`,
+Co-authored-by: Theo-Coder <qwen-coder@alibabacloud.com>"`,
       );
     });
 
@@ -474,7 +474,7 @@ Co-authored-by: Qwen-Coder <qwen-coder@alibabacloud.com>"`,
       // Mock config with disabled co-author
       (mockConfig.getGitCoAuthor as Mock).mockReturnValue({
         enabled: false,
-        name: 'Qwen-Coder',
+        name: 'Theo-Coder',
         email: 'qwen-coder@alibabacloud.com',
       });
 

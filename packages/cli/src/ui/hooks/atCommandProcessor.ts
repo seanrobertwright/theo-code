@@ -12,7 +12,7 @@ import {
   getErrorMessage,
   isNodeError,
   unescapePath,
-} from '@qwen-code/qwen-code-core';
+} from '@theo-code/theo-code-core';
 import {
   HistoryItem,
   IndividualToolCallDisplay,
