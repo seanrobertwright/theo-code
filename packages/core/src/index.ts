@@ -25,6 +25,9 @@ export * from './qwen/qwenOAuth2.js';
 export * from './code_assist/server.js';
 export * from './code_assist/types.js';
 
+// Export Ollama services
+export * from './ollama/ollamaModelService.js';
+
 // Export utilities
 export * from './utils/paths.js';
 export * from './utils/schemaValidator.js';

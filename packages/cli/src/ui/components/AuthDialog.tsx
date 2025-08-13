@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
@@ -17,6 +17,7 @@ import {
   setOpenAIModel,
 } from '../../config/auth.js';
 import { OpenAIKeyPrompt } from './OpenAIKeyPrompt.js';
+import { OllamaModelService, OllamaModel } from '@theo-code/theo-code-core';
 
 interface AuthDialogProps {
   onSelect: (authMethod: AuthType | undefined, scope: SettingScope) => void;
@@ -45,9 +46,14 @@ export function AuthDialog({
     initialErrorMessage || null,
   );
   const [showOpenAIKeyPrompt, setShowOpenAIKeyPrompt] = useState(false);
+  const [showOllamaModelSelection, setShowOllamaModelSelection] = useState(false);
+  const [ollamaModels, setOllamaModels] = useState<OllamaModel[]>([]);
+  const [ollamaError, setOllamaError] = useState<string | null>(null);
+  
   const items = [
     { label: 'Theo OAuth', value: AuthType.QWEN_OAUTH },
     { label: 'OpenAI', value: AuthType.USE_OPENAI },
+    { label: 'Ollama', value: AuthType.USE_OLLAMA },
   ];
 
   const initialAuthIndex = Math.max(
@@ -76,12 +82,47 @@ export function AuthDialog({
     }),
   );
 
+  // Fetch Ollama models when component mounts
+  useEffect(() => {
+    const fetchOllamaModels = async () => {
+      try {
+        const ollamaService = new OllamaModelService();
+        const isAccessible = await ollamaService.isOllamaAccessible();
+        
+        if (!isAccessible) {
+          setOllamaError('Ollama is not accessible. Make sure Ollama is running on localhost:11434');
+          return;
+        }
+        
+        const models = await ollamaService.listModels();
+        setOllamaModels(models);
+        
+        if (models.length === 0) {
+          setOllamaError('No models found in Ollama. Please pull a model first (e.g., "ollama pull llama3")');
+        }
+      } catch (error) {
+        setOllamaError(error instanceof Error ? error.message : 'Failed to fetch Ollama models');
+      }
+    };
+
+    fetchOllamaModels();
+  }, []);
+
   const handleAuthSelect = (authMethod: AuthType) => {
     const error = validateAuthMethod(authMethod);
     if (error) {
       if (authMethod === AuthType.USE_OPENAI && !process.env.OPENAI_API_KEY) {
         setShowOpenAIKeyPrompt(true);
         setErrorMessage(null);
+      } else if (authMethod === AuthType.USE_OLLAMA) {
+        if (ollamaError) {
+          setErrorMessage(ollamaError);
+        } else if (ollamaModels.length === 0) {
+          setErrorMessage('No models available in Ollama. Please pull a model first.');
+        } else {
+          setShowOllamaModelSelection(true);
+          setErrorMessage(null);
+        }
       } else {
         setErrorMessage(error);
       }
@@ -89,6 +130,13 @@ export function AuthDialog({
       setErrorMessage(null);
       onSelect(authMethod, SettingScope.User);
     }
+  };
+
+  const handleOllamaModelSelect = (model: string) => {
+    // Set the OLLAMA_MODEL environment variable
+    process.env.OLLAMA_MODEL = model;
+    setShowOllamaModelSelection(false);
+    onSelect(AuthType.USE_OLLAMA, SettingScope.User);
   };
 
   const handleOpenAIKeySubmit = (
@@ -109,7 +157,7 @@ export function AuthDialog({
   };
 
   useInput((_input, key) => {
-    if (showOpenAIKeyPrompt) {
+    if (showOpenAIKeyPrompt || showOllamaModelSelection) {
       return;
     }
 
@@ -136,6 +184,46 @@ export function AuthDialog({
         onSubmit={handleOpenAIKeySubmit}
         onCancel={handleOpenAIKeyCancel}
       />
+    );
+  }
+
+  if (showOllamaModelSelection) {
+    return (
+      <Box
+        borderStyle="round"
+        borderColor={Colors.Gray}
+        flexDirection="column"
+        padding={1}
+        width="100%"
+      >
+        <Text bold>Select Ollama Model</Text>
+        <Box marginTop={1}>
+          <Text>Choose a model to use with Ollama:</Text>
+        </Box>
+        {ollamaError ? (
+          <Box marginTop={1}>
+            <Text color={Colors.AccentRed}>{ollamaError}</Text>
+          </Box>
+        ) : (
+          <Box marginTop={1}>
+            <RadioButtonSelect
+              items={ollamaModels.map(model => ({ 
+                label: `${model.name} (${(model.size / 1024 / 1024 / 1024).toFixed(1)} GB)`, 
+                value: model.name 
+              }))}
+              initialIndex={0}
+              onSelect={handleOllamaModelSelect}
+              isFocused={true}
+            />
+          </Box>
+        )}
+        <Box marginTop={1}>
+          <Text color={Colors.AccentPurple}>(Use Enter to Select Model)</Text>
+        </Box>
+        <Box marginTop={1}>
+          <Text color={Colors.Gray}>(Press Escape to go back)</Text>
+        </Box>
+      </Box>
     );
   }
 

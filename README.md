@@ -210,16 +210,23 @@ export OPENAI_MODEL="qwen/qwen3-coder:free"
 
 #### 3. Ollama (Local Models)
 
-Run local LLM models using Ollama:
+Run local LLM models using Ollama with an interactive model selection UI:
 
 **Setup:**
 
 1. Install [Ollama](https://ollama.com/)
-2. Pull a Theo model: `ollama pull qwen3-coder-plus` (or any other model)
+2. Pull one or more models: 
+   - `ollama pull qwen3-coder-plus` (recommended)
+   - `ollama pull llama3`
+   - `ollama pull mistral`
 3. Run Ollama: `ollama serve` (usually starts automatically after installation)
 
-**Configuration:**
-Set environment variables:
+**Usage:**
+
+When you run `theo`, select "Ollama" from the authentication options. The application will automatically detect available models and let you choose which one to use.
+
+**Manual Configuration (Optional):**
+Set environment variables if you prefer to skip the UI:
 
 ```bash
 export THEO_AUTH_TYPE="ollama"
@@ -232,6 +239,7 @@ export OLLAMA_HOST="http://localhost:11434"  # Optional, defaults to http://loca
 - ✅ **Completely local** - no internet required
 - ✅ **Private** - your code never leaves your machine
 - ✅ **No costs** - uses your local hardware
+- ✅ **Interactive model selection** - easily switch between models
 - ⚠️ **Performance depends on your hardware** - may be slower than cloud models
 
 ## Usage Examples
