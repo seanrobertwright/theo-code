@@ -1,0 +1,76 @@
+{
+  "name": "theo-code",
+  "version": "0.1.0",
+  "description": "Universal TUI Agent CLI - Model-agnostic AI coding assistant",
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": {
+    "theo-code": "./dist/cli.js"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "tsc -p tsconfig.app.json",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "test:ui": "vitest --ui",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
+    "type-check": "tsc --noEmit",
+    "validate": "npm run type-check && npm run lint && npm run test:coverage",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "cli",
+    "tui",
+    "ai",
+    "llm",
+    "openai",
+    "anthropic",
+    "gemini",
+    "ollama",
+    "coding-assistant",
+    "terminal",
+    "react-ink"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "diff": "^7.0.0",
+    "glob": "^11.0.0",
+    "ink": "^4.4.1",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^5.0.1",
+    "keytar": "^7.9.0",
+    "openai": "^4.70.0",
+    "react": "^18.3.1",
+    "tiktoken": "^1.0.17",
+    "yaml": "^2.4.0",
+    "zod": "^3.23.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.0.0",
+    "@types/diff": "^7.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "@vitest/coverage-v8": "^2.1.0",
+    "eslint": "^9.15.0",
+    "eslint-plugin-react": "^7.37.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-sonarjs": "^3.0.0",
+    "ink-testing-library": "^4.0.0",
+    "prettier": "^3.4.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

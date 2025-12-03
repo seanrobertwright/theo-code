@@ -1,0 +1,36 @@
+# theo-code Security Policy
+# This file controls what operations the agent can perform
+
+# Allow network access from sandboxed code execution
+allowNet: false
+
+# Allowed hosts if network is enabled (only used when allowNet: true)
+# allowedHosts:
+#   - api.github.com
+#   - registry.npmjs.org
+
+# Allow shell command execution
+allowExec: true
+
+# Commands that are blocked (these require explicit override)
+blockedCommands:
+  - "rm -rf /"
+  - "rm -rf ~"
+  - "sudo"
+  - "chmod 777"
+  - "DROP DATABASE"
+  - "DELETE FROM"
+  - "format"
+  - "mkfs"
+
+# Auto-approve read operations without confirmation
+autoApproveRead: true
+
+# Auto-approve write operations (DANGEROUS - keep false in production)
+autoApproveWrite: false
+
+# Maximum file size to read in bytes (1MB default)
+maxFileSize: 1048576
+
+# Sandbox execution timeout in milliseconds
+executionTimeout: 30000
