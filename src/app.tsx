@@ -6,7 +6,8 @@
  * It provides the main layout and orchestrates all UI components.
  */
 
-import { type ReactElement, useState, useEffect, useCallback } from 'react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import React, { type ReactElement, useState, useEffect, useCallback } from 'react';
 import { Box, Text, useApp, useInput, useStdout } from 'ink';
 import type { MergedConfig } from './config/index.js';
 import { useAppStore } from './shared/store/index.js';

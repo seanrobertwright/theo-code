@@ -3,7 +3,8 @@
  * @module shared/components/ConfirmDialog
  */
 
-import { type ReactElement, useState } from 'react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import React, { type ReactElement, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 
 /**
