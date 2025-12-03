@@ -3,8 +3,8 @@
  * @module shared/components/Spinner
  */
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import React, { type ReactElement } from 'react';
+import * as React from 'react';
+import { type ReactElement } from 'react';
 import { Text } from 'ink';
 import InkSpinner from 'ink-spinner';
 

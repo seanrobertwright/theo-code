@@ -3,8 +3,8 @@
  * @module shared/components/DiffView
  */
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import React, { type ReactElement } from 'react';
+import * as React from 'react';
+import { type ReactElement } from 'react';
 import { Box, Text } from 'ink';
 import { diffLines, type Change } from 'diff';
 
