@@ -50,6 +50,8 @@ export default [
         Proxy: 'readonly',
         Reflect: 'readonly',
         globalThis: 'readonly',
+        AbortSignal: 'readonly',
+        AbortController: 'readonly',
       },
     },
     plugins: {

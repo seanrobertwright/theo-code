@@ -7,11 +7,14 @@
  */
 
 import * as React from 'react';
-import { type ReactElement, useState, useEffect, useCallback } from 'react';
+import { type ReactElement, useState, useEffect, useCallback, useRef } from 'react';
 import { Box, Text, useApp, useInput, useStdout } from 'ink';
 import type { MergedConfig } from './config/index.js';
+import { getApiKey } from './config/index.js';
 import { useAppStore } from './shared/store/index.js';
 import { formatTokenCount } from './shared/utils/index.js';
+import { AgentLoop } from './features/agent/index.js';
+import type { ModelConfig } from './shared/types/models.js';
 
 // =============================================================================
 // PROPS
@@ -212,12 +215,42 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
   // Local state for input
   const [inputValue, setInputValue] = useState('');
 
+  // Agent loop ref
+  const agentRef = useRef<AgentLoop | null>(null);
+
   // Store actions
   const setWorkspaceRoot = useAppStore((state) => state.setWorkspaceRoot);
   const setCurrentModel = useAppStore((state) => state.setCurrentModel);
   const createNewSession = useAppStore((state) => state.createNewSession);
   const addMessage = useAppStore((state) => state.addMessage);
   const setError = useAppStore((state) => state.setError);
+
+  // Create model config from app config
+  const createModelConfig = useCallback((): ModelConfig | null => {
+    const provider = config.global.defaultProvider;
+    const apiKey = getApiKey(provider, config);
+
+    if (apiKey === undefined && provider !== 'ollama') {
+      return null;
+    }
+
+    return {
+      provider,
+      model: initialModel,
+      apiKey,
+      contextLimit: 128000,
+      maxOutputTokens: 4096,
+      baseUrl: provider === 'ollama' ? config.global.ollama?.baseUrl : undefined,
+    };
+  }, [config, initialModel]);
+
+  // Initialize agent loop
+  useEffect(() => {
+    const modelConfig = createModelConfig();
+    if (modelConfig !== null) {
+      agentRef.current = new AgentLoop({ modelConfig });
+    }
+  }, [createModelConfig]);
 
   // Initialize store on mount
   useEffect(() => {
@@ -317,13 +350,37 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
       content: trimmedInput,
     });
 
-    // TODO: Trigger agent loop here
-    // For now, just echo back
-    addMessage({
-      role: 'assistant',
-      content: `[Echo] You said: ${trimmedInput}\n\n(Agent loop not yet implemented - this is the Phase 1 scaffold)`,
-    });
-  }, [inputValue, addMessage, handleCommand]);
+    // Run agent loop if available
+    if (agentRef.current !== null) {
+      void agentRef.current.run().catch((err: unknown) => {
+        const errorMessage = err instanceof Error ? err.message : 'Agent error';
+        setError(errorMessage);
+        setTimeout(() => {
+          setError(null);
+        }, 5000);
+      });
+    } else {
+      // No agent available - show configuration hint
+      addMessage({
+        role: 'assistant',
+        content: `⚠️ No API key configured.
+
+**Option 1: Create a .env file in your project:**
+\`\`\`
+OPENAI_API_KEY=sk-...
+\`\`\`
+
+**Option 2: Set environment variable:**
+\`\`\`bash
+export OPENAI_API_KEY="sk-..."
+\`\`\`
+
+**Option 3: Configure in ~/.theo-code/config.yaml**
+
+Then restart theo-code.`,
+      });
+    }
+  }, [inputValue, addMessage, handleCommand, setError]);
 
   // Calculate terminal dimensions
   const terminalHeight = stdout?.rows ?? 24;

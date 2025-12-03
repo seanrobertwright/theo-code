@@ -7,12 +7,16 @@
  * It sets up Commander.js for command parsing and launches the React Ink TUI.
  */
 
+import { config as loadEnv } from 'dotenv';
 import { Command } from 'commander';
 import { render } from 'ink';
 import React from 'react';
 import { App } from './app.js';
 import { ensureConfigDir, createDefaultConfig, loadConfig } from './config/index.js';
 import { logger, LogLevel } from './shared/utils/index.js';
+
+// Load .env file from current directory
+loadEnv();
 
 // =============================================================================
 // VERSION

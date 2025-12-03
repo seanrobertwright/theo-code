@@ -95,7 +95,11 @@ function safeParseYaml(content: string | undefined): unknown {
   }
   try {
     const parsed: unknown = parseYaml(content);
-    return parsed ?? {};
+    // Ensure we return an object, not a primitive
+    if (parsed === null || typeof parsed !== 'object') {
+      return {};
+    }
+    return parsed;
   } catch {
     return {};
   }

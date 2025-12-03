@@ -3,5 +3,4 @@
  * @module features/model
  */
 
-// Export types and schemas when implemented
-export {};
+export * from './adapters/index.js';
