@@ -69,11 +69,9 @@ program
 // =============================================================================
 
 program.action((options: { model?: string; verbose?: boolean; safeMode?: boolean; directory?: string }): void => {
-  // Configure logging
-  if (options.verbose === true) {
-    logger.setLevel(LogLevel.DEBUG);
-    logger.debug('Verbose logging enabled');
-  }
+  // Configure logging - enable verbose by default for debugging
+  logger.setLevel(LogLevel.DEBUG);
+  logger.debug('Debug logging enabled');
 
   // Set safe mode via environment
   if (options.safeMode === true) {

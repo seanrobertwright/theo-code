@@ -96,7 +96,7 @@ export function isDirectory(targetPath: string): boolean {
 }
 
 /**
- * Checks if a path is a file.
+ * Checks if a path exists and is a file.
  *
  * @param targetPath - The path to check
  * @returns True if path is a file

@@ -12,8 +12,12 @@
 import type { Message, ToolCall } from '../../shared/types/index.js';
 import type { StreamChunk, ModelConfig } from '../../shared/types/models.js';
 import type { IModelAdapter } from '../model/adapters/types.js';
+import type { ToolContext } from '../../shared/types/tools.js';
 import { OpenAIAdapter } from '../model/adapters/openai.js';
 import { useAppStore } from '../../shared/store/index.js';
+import { toolRegistry } from '../tools/framework.js';
+import { confirmationService } from '../tools/confirmation.js';
+import { logger } from '../../shared/utils/index.js';
 
 // =============================================================================
 // TYPES
@@ -239,6 +243,71 @@ export class AgentLoop {
   }
 
   /**
+   * Execute tool calls and add results to conversation.
+   */
+  private async executeTools(toolCalls: ToolCall[]): Promise<void> {
+    const store = useAppStore.getState();
+    const toolResults = [];
+    
+    for (const toolCall of toolCalls) {
+      try {
+        // Create tool context
+        const context: ToolContext = {
+          workspaceRoot: store.workspaceRoot,
+          confirm: (message: string, details?: string) => 
+            confirmationService.requestConfirmation(message, details),
+          onProgress: (message: string) => {
+            // TODO: Update progress in UI
+            console.log(`Tool progress: ${message}`);
+          },
+          debug: (message: string, data?: unknown) => {
+            console.debug(`Tool debug [${toolCall.name}]: ${message}`, data);
+          },
+        };
+
+        // Execute tool
+        const result = await toolRegistry.execute(
+          toolCall.name,
+          toolCall.arguments,
+          context
+        );
+
+        // Add successful result
+        toolResults.push({
+          toolCallId: toolCall.id,
+          content: result.output,
+          isError: !result.success,
+        });
+
+        // Remove from pending
+        store.removePendingToolCall(toolCall.id);
+
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        
+        // Add error result
+        toolResults.push({
+          toolCallId: toolCall.id,
+          content: `Error: ${errorMessage}`,
+          isError: true,
+        });
+
+        // Remove from pending
+        store.removePendingToolCall(toolCall.id);
+      }
+    }
+
+    // Add tool results message to conversation
+    if (toolResults.length > 0) {
+      store.addMessage({
+        role: 'tool',
+        content: `Executed ${toolResults.length} tool(s)`,
+        toolResults,
+      });
+    }
+  }
+
+  /**
    * Creates the appropriate adapter based on config.
    */
   private createAdapter(config: ModelConfig): IModelAdapter {
@@ -257,14 +326,31 @@ export class AgentLoop {
     const store = useAppStore.getState();
     const messages = store.messages;
 
+    logger.debug('Agent loop starting', { messageCount: messages.length });
+
     store.setStreaming(true);
     store.clearStreamingText();
 
     try {
+      logger.debug('Processing stream...');
       const state = await this.processStream(messages);
+      logger.debug('Stream processed, committing results...', { 
+        contentLength: state.content.length,
+        toolCallsCount: state.toolCalls.length 
+      });
+      
       this.commitResults(state);
+      
+      // Execute tools if any were requested
+      if (state.toolCalls.length > 0) {
+        logger.debug('Executing tools...', { toolCalls: state.toolCalls.map(tc => tc.name) });
+        await this.executeTools(state.toolCalls);
+      }
+      
+      logger.debug('Agent loop completed successfully');
       return this.buildResult(state);
     } catch (err) {
+      logger.error('Agent loop error:', err);
       return this.handleError(err);
     } finally {
       store.setStreaming(false);
@@ -278,18 +364,39 @@ export class AgentLoop {
   private async processStream(messages: Message[]): Promise<StreamState> {
     let state: StreamState = { content: '', toolCalls: [] };
 
-    for await (const chunk of this.adapter.generateStream(messages)) {
-      if (this.aborted) {
-        state = { ...state, error: 'Aborted by user' };
-        break;
-      }
+    // Get available tool definitions
+    const toolDefinitions = toolRegistry.getAllToolDefinitions();
+    logger.debug('Available tools:', { 
+      toolCount: toolDefinitions.length,
+      toolNames: toolDefinitions.map(t => t.name)
+    });
 
-      state = this.processChunk(chunk, state);
+    logger.debug('Starting stream generation...');
+    try {
+      for await (const chunk of this.adapter.generateStream(messages, toolDefinitions)) {
+        if (this.aborted) {
+          state = { ...state, error: 'Aborted by user' };
+          break;
+        }
 
-      if (state.error !== undefined) {
-        break;
+        logger.debug('Received chunk:', { type: chunk.type });
+        state = this.processChunk(chunk, state);
+
+        if (state.error !== undefined) {
+          logger.error('Chunk processing error:', state.error);
+          break;
+        }
       }
+    } catch (error) {
+      logger.error('Stream generation error:', error);
+      state = { ...state, error: error instanceof Error ? error.message : String(error) };
     }
+
+    logger.debug('Stream processing completed', { 
+      finalContentLength: state.content.length,
+      toolCallsCount: state.toolCalls.length,
+      hasError: !!state.error
+    });
 
     return state;
   }

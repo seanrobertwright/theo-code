@@ -20,17 +20,26 @@ export interface ToolContext {
   /**
    * Request user confirmation for an action.
    *
-   * @param _message - Description of the action requiring confirmation
+   * @param message - Description of the action requiring confirmation
+   * @param details - Optional additional details (e.g., diff preview)
    * @returns Promise resolving to true if confirmed, false if rejected
    */
-  confirm: (_message: string) => Promise<boolean>;
+  confirm: (message: string, details?: string) => Promise<boolean>;
 
   /**
    * Report progress during long-running operations.
    *
-   * @param _message - Progress message to display
+   * @param message - Progress message to display
    */
-  onProgress?: (_message: string) => void;
+  onProgress?: (message: string) => void;
+
+  /**
+   * Log debug information during tool execution.
+   *
+   * @param message - Debug message
+   * @param data - Optional structured data
+   */
+  debug?: (message: string, data?: unknown) => void;
 }
 
 /**
@@ -58,23 +67,34 @@ export interface Tool<TInput = unknown, TOutput = unknown> {
   readonly definition: UniversalToolDefinition;
 
   /** Zod schema for input validation */
-  readonly inputSchema: z.ZodType<TInput>;
+  readonly inputSchema: z.ZodType<TInput, any, any>;
 
   /** Zod schema for output validation */
-  readonly outputSchema: z.ZodType<TOutput>;
+  readonly outputSchema: z.ZodType<TOutput, any, any>;
 
   /** Whether this tool requires user confirmation before execution */
   readonly requiresConfirmation: boolean;
 
+  /** Tool category for organization and filtering */
+  readonly category: ToolCategory;
+
   /**
    * Execute the tool with validated input.
    *
-   * @param _input - Validated input parameters
-   * @param _context - Execution context with workspace info and utilities
+   * @param input - Validated input parameters
+   * @param context - Execution context with workspace info and utilities
    * @returns Promise resolving to the tool output
    * @throws {ToolExecutionError} If execution fails
    */
-  execute(_input: TInput, _context: ToolContext): Promise<TOutput>;
+  execute(input: TInput, context: ToolContext): Promise<TOutput>;
+
+  /**
+   * Validate tool can be executed in current context.
+   *
+   * @param context - Execution context
+   * @returns Promise resolving to validation result
+   */
+  validate?(context: ToolContext): Promise<ToolValidationResult>;
 }
 
 // =============================================================================
@@ -85,9 +105,26 @@ export interface Tool<TInput = unknown, TOutput = unknown> {
  * Registry entry for a tool.
  */
 export interface ToolRegistryEntry {
+  /** Tool instance */
   tool: Tool;
+  /** Whether tool is currently enabled */
   enabled: boolean;
+  /** Registration metadata */
+  metadata: {
+    registeredAt: Date;
+    version: string;
+  };
 }
+
+/**
+ * Tool validation result.
+ */
+export const ToolValidationResultSchema = z.object({
+  valid: z.boolean(),
+  error: z.string().optional(),
+  warnings: z.array(z.string()).default([]),
+});
+export type ToolValidationResult = z.infer<typeof ToolValidationResultSchema>;
 
 /**
  * Tool category for organization.

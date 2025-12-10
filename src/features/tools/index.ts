@@ -3,5 +3,12 @@
  * @module features/tools
  */
 
-// Export types and schemas when implemented
-export {};
+export { ToolRegistry } from './framework.js';
+export { createFileSystemTools } from './filesystem/index.js';
+export { ConfirmationService } from './confirmation.js';
+export type {
+  Tool,
+  ToolContext,
+  ToolExecutionResult,
+  ToolRegistryEntry,
+} from '../shared/types/tools.js';

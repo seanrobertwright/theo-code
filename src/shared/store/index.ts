@@ -55,6 +55,14 @@ export interface AppState {
   /** Current error message, if any */
   error: string | null;
 
+  /** Confirmation dialog state */
+  confirmationDialog: {
+    isVisible: boolean;
+    message: string;
+    details?: string;
+    resolve?: (approved: boolean) => void;
+  };
+
   // -------------------------------------------------------------------------
   // Context State
   // -------------------------------------------------------------------------
@@ -98,6 +106,10 @@ export interface AppState {
   removeContextFile: (path: string) => void;
   clearContextFiles: () => void;
 
+  // Confirmation actions
+  showConfirmation: (message: string, details?: string) => Promise<boolean>;
+  hideConfirmation: () => void;
+
   // General actions
   setWorkspaceRoot: (path: string) => void;
   setCurrentModel: (model: string) => void;
@@ -138,6 +150,12 @@ const initialState: Omit<
   streamingText: '',
   pendingToolCalls: [],
   error: null,
+  confirmationDialog: {
+    isVisible: false,
+    message: '',
+    details: undefined,
+    resolve: undefined,
+  },
   contextFiles: new Map(),
   workspaceRoot: process.cwd(),
   currentModel: 'gpt-4o',
@@ -397,6 +415,36 @@ export const useAppStore = create<AppState>()(
 
     setError: (error): void => {
       set({ error });
+    },
+
+    // -------------------------------------------------------------------------
+    // Confirmation Actions
+    // -------------------------------------------------------------------------
+
+    showConfirmation: (message, details): Promise<boolean> => {
+      return new Promise((resolve) => {
+        set({
+          confirmationDialog: {
+            isVisible: true,
+            message,
+            details,
+            resolve: (approved: boolean) => {
+              resolve(approved);
+            },
+          },
+        });
+      });
+    },
+
+    hideConfirmation: (): void => {
+      set({
+        confirmationDialog: {
+          isVisible: false,
+          message: '',
+          details: undefined,
+          resolve: undefined,
+        },
+      });
     },
 
     reset: (): void => {

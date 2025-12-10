@@ -14,6 +14,9 @@ import { getApiKey } from './config/index.js';
 import { useAppStore } from './shared/store/index.js';
 import { formatTokenCount } from './shared/utils/index.js';
 import { AgentLoop } from './features/agent/index.js';
+import { toolRegistry } from './features/tools/framework.js';
+import { createFileSystemTools } from './features/tools/filesystem/index.js';
+import { ConfirmDialog } from './shared/components/ConfirmDialog/index.js';
 import type { ModelConfig } from './shared/types/models.js';
 
 // =============================================================================
@@ -257,6 +260,12 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
     setWorkspaceRoot(workspaceRoot);
     setCurrentModel(initialModel);
     createNewSession(initialModel);
+
+    // Register filesystem tools
+    const fileSystemTools = createFileSystemTools();
+    for (const tool of fileSystemTools) {
+      toolRegistry.register(tool);
+    }
 
     // Load AGENTS.md as system prompt if available
     if (config.agentsInstructions !== undefined) {

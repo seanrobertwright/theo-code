@@ -29,6 +29,7 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
+import { logger } from '../../../shared/utils/index.js';
 
 // =============================================================================
 // CONSTANTS
@@ -410,6 +411,13 @@ export class OpenAIAdapter implements IModelAdapter {
     tools: ChatCompletionTool[] | undefined,
     options?: GenerateOptions
   ): Promise<AsyncIterable<ChatCompletionChunk>> {
+    logger.debug('[OpenAI] Creating stream with:', {
+      messageCount: messages.length,
+      hasTools: !!tools,
+      toolsCount: tools?.length ?? 0,
+      model: this.model
+    });
+
     const requestParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
       model: this.model,
       messages,
@@ -421,7 +429,23 @@ export class OpenAIAdapter implements IModelAdapter {
       ...(options?.stopSequences !== undefined ? { stop: options.stopSequences } : {}),
     };
 
-    return this.client.chat.completions.create(requestParams);
+    logger.debug('[OpenAI] Request params:', {
+      model: requestParams.model,
+      messageCount: requestParams.messages.length,
+      hasTools: 'tools' in requestParams,
+      temperature: requestParams.temperature,
+      max_tokens: requestParams.max_tokens
+    });
+
+    try {
+      logger.debug('[OpenAI] Making API call...');
+      const stream = await this.client.chat.completions.create(requestParams);
+      logger.debug('[OpenAI] Stream created successfully');
+      return stream;
+    } catch (error) {
+      logger.error('[OpenAI] API call failed:', error);
+      throw error;
+    }
   }
 
   /**
