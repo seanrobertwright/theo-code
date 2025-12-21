@@ -548,9 +548,15 @@ export class SessionStorage implements ISessionStorage {
       }
     }
     
+    // Get updated session list after age-based deletions
+    const updatedIndex = await this.getIndex();
+    const remainingSessions = Object.values(updatedIndex.sessions).filter(s => s !== undefined);
+    
     // Delete excess sessions if we still have too many
-    const remainingSessions = sessions.filter(s => s && !deletedIds.includes(s.id));
     if (remainingSessions.length > maxCount) {
+      // Sort remaining sessions by last modified (oldest first) for consistent deletion order
+      remainingSessions.sort((a, b) => (a?.lastModified || 0) - (b?.lastModified || 0));
+      
       const excessCount = remainingSessions.length - maxCount;
       const sessionsToDelete = remainingSessions.slice(0, excessCount);
       

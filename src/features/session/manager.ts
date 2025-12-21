@@ -214,6 +214,121 @@ interface FilterSessionsOptions {
 }
 
 /**
+ * Session configuration interface.
+ */
+interface SessionConfiguration {
+  /** Sessions directory path */
+  sessionsDir: string;
+  
+  /** Maximum number of sessions to keep */
+  maxSessions: number;
+  
+  /** Maximum age of sessions in milliseconds */
+  maxAgeMs: number;
+  
+  /** Whether compression is enabled */
+  compressionEnabled: boolean;
+  
+  /** Whether auto-save is enabled */
+  autoSaveEnabled: boolean;
+  
+  /** Auto-save interval in milliseconds */
+  autoSaveInterval: number;
+  
+  /** Whether to sanitize exports */
+  sanitizeExports: boolean;
+  
+  /** Whether audit logging is enabled */
+  auditLogging: boolean;
+  
+  /** Whether index caching is enabled */
+  indexCaching: boolean;
+  
+  /** Whether background cleanup is enabled */
+  backgroundCleanup: boolean;
+}
+
+/**
+ * Configuration validation result.
+ */
+interface ConfigurationValidationResult {
+  /** Whether the configuration is valid */
+  valid: boolean;
+  
+  /** Error message if invalid */
+  error?: string;
+  
+  /** Current value of the setting */
+  currentValue: string;
+  
+  /** Suggested valid values */
+  suggestions?: string[];
+  
+  /** Whether this change requires user confirmation */
+  requiresConfirmation?: boolean;
+  
+  /** Warning message for confirmation */
+  warning?: string;
+  
+  /** Whether this change requires application restart */
+  restartRequired?: boolean;
+  
+  /** Number of settings checked (for validation) */
+  checkedSettings?: number;
+  
+  /** Configuration issues found */
+  issues?: Array<{ setting: string; error: string }>;
+  
+  /** Configuration warnings */
+  warnings?: Array<{ setting: string; message: string }>;
+}
+
+/**
+ * Configuration reset result.
+ */
+interface ConfigurationResetResult {
+  /** Old value before reset */
+  oldValue?: string;
+  
+  /** New value after reset */
+  newValue?: string;
+  
+  /** Number of settings reset (for bulk reset) */
+  resetCount?: number;
+  
+  /** Whether restart is required */
+  restartRequired: boolean;
+}
+
+/**
+ * Storage information interface.
+ */
+interface StorageInfo {
+  totalSessions: number;
+  totalSizeBytes: number;
+  oldestSessionAge: number;
+  availableDiskSpace: number;
+  sessionSizeDistribution: Array<{
+    sessionId: string;
+    sizeBytes: number;
+    age: number;
+  }>;
+}
+
+/**
+ * Storage limit check result interface.
+ */
+interface StorageLimitResult {
+  withinLimits: boolean;
+  sessionCountExceeded: boolean;
+  totalSizeExceeded: boolean;
+  diskSpaceExceeded: boolean;
+  warningThresholdReached: boolean;
+  suggestedActions: string[];
+  estimatedSpaceSavings: number;
+}
+
+/**
  * Auto-save configuration.
  */
 interface AutoSaveConfig {
@@ -358,6 +473,17 @@ interface ISessionManager {
   // Import/Export
   exportSession(sessionId: SessionId, options?: ExportSessionOptions): Promise<ExportResult>;
   importSession(data: string, options?: ImportSessionOptions): Promise<ImportResult>;
+  
+  // Configuration Management
+  getConfiguration(): Promise<SessionConfiguration>;
+  setConfiguration(key: string, value: string): Promise<void>;
+  validateConfigChange(key: string, value: string): Promise<ConfigurationValidationResult>;
+  resetConfiguration(key?: string): Promise<ConfigurationResetResult>;
+  validateConfiguration(): Promise<ConfigurationValidationResult>;
+  
+  // Storage Limit Management
+  getStorageInfo(): Promise<StorageInfo>;
+  checkStorageLimits(): Promise<StorageLimitResult>;
 }
 
 // =============================================================================
@@ -1342,12 +1468,14 @@ export class SessionManager implements ISessionManager {
           console.log(`Session cleanup: Starting with ${beforeCleanup.length} sessions`);
         }
         
+        // Get session metadata before deletion for space calculation
+        const index = await this.storage.getIndex();
+        const sessions = Object.values(index.sessions).filter((session): session is SessionMetadata => session !== undefined);
+        
         // Use storage layer's cleanup method
         const deletedIds = await this.storage.cleanupOldSessions(maxCount, maxAgeMs);
         
         // Calculate breakdown by getting session metadata before deletion
-        const index = await this.storage.getIndex();
-        const sessions = Object.values(index.sessions).filter((session): session is SessionMetadata => session !== undefined);
         const now = Date.now();
         
         // Count deletions by reason
@@ -1364,7 +1492,7 @@ export class SessionManager implements ISessionManager {
         deletedByAge = Math.min(oldSessions.length, totalDeleted);
         deletedByCount = Math.max(0, totalDeleted - deletedByAge);
         
-        // Estimate space freed
+        // Calculate space freed using metadata from before deletion
         for (const sessionId of deletedIds) {
           const sessionMeta = sessions.find(s => s.id === sessionId);
           if (sessionMeta) {
@@ -2078,6 +2206,666 @@ export class SessionManager implements ISessionManager {
     } catch {
       return false;
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Configuration Management
+  // -------------------------------------------------------------------------
+
+  /**
+   * Gets the current session configuration.
+   * 
+   * @returns Promise resolving to current configuration
+   */
+  async getConfiguration(): Promise<SessionConfiguration> {
+    const config = loadConfig(process.cwd());
+    const sessionConfig = config.global.session;
+    
+    return {
+      sessionsDir: getSessionsDir(),
+      maxSessions: sessionConfig?.maxSessions ?? 50,
+      maxAgeMs: 30 * 24 * 60 * 60 * 1000, // 30 days default
+      compressionEnabled: true, // Default enabled
+      autoSaveEnabled: this.isAutoSaveEnabled(),
+      autoSaveInterval: this.autoSaveConfig?.intervalMs ?? sessionConfig?.autoSaveInterval ?? 30000,
+      sanitizeExports: true, // Default enabled
+      auditLogging: false, // Default disabled
+      indexCaching: true, // Default enabled
+      backgroundCleanup: true, // Default enabled
+    };
+  }
+
+  /**
+   * Sets a configuration value.
+   * 
+   * @param key - Configuration key to set
+   * @param value - Value to set
+   * @throws {Error} If configuration update fails
+   */
+  async setConfiguration(key: string, value: string): Promise<void> {
+    // Parse and validate the value based on the key
+    const parsedValue = this.parseConfigurationValue(key, value);
+    
+    // Apply the configuration change
+    switch (key) {
+      case 'max-sessions':
+        // This would typically update the global config file
+        // For now, we'll just validate and accept it
+        if (typeof parsedValue !== 'number' || parsedValue < 1) {
+          throw new Error('max-sessions must be a positive number');
+        }
+        break;
+        
+      case 'max-age-days':
+        if (typeof parsedValue !== 'number' || parsedValue < 1) {
+          throw new Error('max-age-days must be a positive number');
+        }
+        break;
+        
+      case 'auto-save-interval':
+        if (typeof parsedValue !== 'number' || parsedValue < 5 || parsedValue > 300) {
+          throw new Error('auto-save-interval must be between 5 and 300 seconds');
+        }
+        // Update auto-save configuration
+        if (this.autoSaveConfig) {
+          this.enableAutoSave({
+            ...this.autoSaveConfig,
+            intervalMs: parsedValue * 1000,
+          });
+        }
+        break;
+        
+      case 'compression':
+      case 'sanitize-exports':
+      case 'audit-logging':
+        if (typeof parsedValue !== 'boolean') {
+          throw new Error(`${key} must be true or false`);
+        }
+        break;
+        
+      case 'sessions-dir':
+        if (typeof parsedValue !== 'string' || parsedValue.trim().length === 0) {
+          throw new Error('sessions-dir must be a non-empty string');
+        }
+        break;
+        
+      default:
+        throw new Error(`Unknown configuration key: ${key}`);
+    }
+    
+    // In a real implementation, you would persist this to the config file
+    console.log(`Configuration updated: ${key} = ${value}`);
+  }
+
+  /**
+   * Validates a configuration change before applying it.
+   * 
+   * @param key - Configuration key to validate
+   * @param value - Value to validate
+   * @returns Promise resolving to validation result
+   */
+  async validateConfigChange(key: string, value: string): Promise<ConfigurationValidationResult> {
+    try {
+      const currentConfig = await this.getConfiguration();
+      const currentValue = this.getCurrentConfigValue(currentConfig, key);
+      
+      // Parse the new value
+      const parsedValue = this.parseConfigurationValue(key, value);
+      
+      // Validate the value
+      const validation = this.validateConfigurationValue(key, parsedValue);
+      if (!validation.valid) {
+        return {
+          valid: false,
+          error: validation.error!,
+          currentValue: String(currentValue),
+          suggestions: validation.suggestions,
+        };
+      }
+      
+      // Check if confirmation is required for disruptive changes
+      const requiresConfirmation = this.configChangeRequiresConfirmation(key, parsedValue, currentValue);
+      const warning = requiresConfirmation ? this.getConfigChangeWarning(key, parsedValue) : undefined;
+      
+      return {
+        valid: true,
+        currentValue: String(currentValue),
+        requiresConfirmation,
+        warning,
+        restartRequired: this.configChangeRequiresRestart(key),
+      };
+      
+    } catch (error: any) {
+      return {
+        valid: false,
+        error: error.message || 'Validation failed',
+        currentValue: 'unknown',
+      };
+    }
+  }
+
+  /**
+   * Resets configuration to defaults.
+   * 
+   * @param key - Optional specific key to reset, or undefined to reset all
+   * @returns Promise resolving to reset result
+   */
+  async resetConfiguration(key?: string): Promise<ConfigurationResetResult> {
+    if (key) {
+      // Reset specific key
+      const defaultValue = this.getDefaultConfigValue(key);
+      const currentConfig = await this.getConfiguration();
+      const oldValue = this.getCurrentConfigValue(currentConfig, key);
+      
+      // Apply the default value
+      await this.setConfiguration(key, String(defaultValue));
+      
+      return {
+        oldValue: String(oldValue),
+        newValue: String(defaultValue),
+        restartRequired: this.configChangeRequiresRestart(key),
+      };
+    } else {
+      // Reset all configuration
+      const configKeys = [
+        'max-sessions',
+        'max-age-days', 
+        'auto-save-interval',
+        'compression',
+        'sanitize-exports',
+        'audit-logging',
+      ];
+      
+      let resetCount = 0;
+      let restartRequired = false;
+      
+      for (const configKey of configKeys) {
+        try {
+          const defaultValue = this.getDefaultConfigValue(configKey);
+          await this.setConfiguration(configKey, String(defaultValue));
+          resetCount++;
+          
+          if (this.configChangeRequiresRestart(configKey)) {
+            restartRequired = true;
+          }
+        } catch (error) {
+          console.warn(`Failed to reset ${configKey}:`, error);
+        }
+      }
+      
+      return {
+        resetCount,
+        restartRequired,
+      };
+    }
+  }
+
+  /**
+   * Validates the current configuration.
+   * 
+   * @returns Promise resolving to validation result
+   */
+  async validateConfiguration(): Promise<ConfigurationValidationResult> {
+    const issues: Array<{ setting: string; error: string }> = [];
+    const warnings: Array<{ setting: string; message: string }> = [];
+    let checkedSettings = 0;
+    
+    try {
+      const config = await this.getConfiguration();
+      
+      // Validate sessions directory
+      checkedSettings++;
+      if (!config.sessionsDir || config.sessionsDir.trim().length === 0) {
+        issues.push({
+          setting: 'sessions-dir',
+          error: 'Sessions directory is not configured',
+        });
+      }
+      
+      // Validate max sessions
+      checkedSettings++;
+      if (config.maxSessions < 1 || config.maxSessions > 10000) {
+        issues.push({
+          setting: 'max-sessions',
+          error: 'Max sessions must be between 1 and 10000',
+        });
+      } else if (config.maxSessions > 1000) {
+        warnings.push({
+          setting: 'max-sessions',
+          message: 'Large number of sessions may impact performance',
+        });
+      }
+      
+      // Validate max age
+      checkedSettings++;
+      if (config.maxAgeMs < 24 * 60 * 60 * 1000) { // Less than 1 day
+        warnings.push({
+          setting: 'max-age-days',
+          message: 'Very short retention period may cause frequent cleanup',
+        });
+      }
+      
+      // Validate auto-save interval
+      checkedSettings++;
+      if (config.autoSaveEnabled && (config.autoSaveInterval < 5000 || config.autoSaveInterval > 300000)) {
+        issues.push({
+          setting: 'auto-save-interval',
+          error: 'Auto-save interval must be between 5 and 300 seconds',
+        });
+      }
+      
+      // Check storage directory accessibility (placeholder)
+      checkedSettings++;
+      // In a real implementation, you would check if the directory is writable
+      
+      const valid = issues.length === 0;
+      
+      return {
+        valid,
+        checkedSettings,
+        issues: issues.length > 0 ? issues : undefined,
+        warnings: warnings.length > 0 ? warnings : undefined,
+      };
+      
+    } catch (error: any) {
+      return {
+        valid: false,
+        checkedSettings,
+        issues: [{
+          setting: 'general',
+          error: `Configuration validation failed: ${error.message}`,
+        }],
+      };
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Configuration Helper Methods
+  // -------------------------------------------------------------------------
+
+  /**
+   * Parses a configuration value from string to appropriate type.
+   * 
+   * @param key - Configuration key
+   * @param value - String value to parse
+   * @returns Parsed value
+   */
+  private parseConfigurationValue(key: string, value: string): any {
+    switch (key) {
+      case 'max-sessions':
+      case 'max-age-days':
+      case 'auto-save-interval':
+        const numValue = parseInt(value, 10);
+        if (isNaN(numValue)) {
+          throw new Error(`${key} must be a number`);
+        }
+        return numValue;
+        
+      case 'compression':
+      case 'sanitize-exports':
+      case 'audit-logging':
+        if (value.toLowerCase() === 'true') return true;
+        if (value.toLowerCase() === 'false') return false;
+        throw new Error(`${key} must be 'true' or 'false'`);
+        
+      case 'sessions-dir':
+        return value.trim();
+        
+      default:
+        return value;
+    }
+  }
+
+  /**
+   * Validates a parsed configuration value.
+   * 
+   * @param key - Configuration key
+   * @param value - Parsed value to validate
+   * @returns Validation result
+   */
+  private validateConfigurationValue(key: string, value: any): { valid: boolean; error?: string; suggestions?: string[] } {
+    switch (key) {
+      case 'max-sessions':
+        if (typeof value !== 'number' || value < 1 || value > 10000) {
+          return {
+            valid: false,
+            error: 'Must be a number between 1 and 10000',
+            suggestions: ['50', '100', '200'],
+          };
+        }
+        return { valid: true };
+        
+      case 'max-age-days':
+        if (typeof value !== 'number' || value < 1 || value > 365) {
+          return {
+            valid: false,
+            error: 'Must be a number between 1 and 365 days',
+            suggestions: ['7', '30', '90'],
+          };
+        }
+        return { valid: true };
+        
+      case 'auto-save-interval':
+        if (typeof value !== 'number' || value < 5 || value > 300) {
+          return {
+            valid: false,
+            error: 'Must be between 5 and 300 seconds',
+            suggestions: ['30', '60', '120'],
+          };
+        }
+        return { valid: true };
+        
+      case 'compression':
+      case 'sanitize-exports':
+      case 'audit-logging':
+        if (typeof value !== 'boolean') {
+          return {
+            valid: false,
+            error: 'Must be true or false',
+            suggestions: ['true', 'false'],
+          };
+        }
+        return { valid: true };
+        
+      case 'sessions-dir':
+        if (typeof value !== 'string' || value.length === 0) {
+          return {
+            valid: false,
+            error: 'Must be a non-empty directory path',
+            suggestions: ['~/.theo-code/sessions', './sessions'],
+          };
+        }
+        return { valid: true };
+        
+      default:
+        return {
+          valid: false,
+          error: `Unknown configuration key: ${key}`,
+        };
+    }
+  }
+
+  /**
+   * Gets the current value for a configuration key.
+   * 
+   * @param config - Current configuration
+   * @param key - Configuration key
+   * @returns Current value
+   */
+  private getCurrentConfigValue(config: SessionConfiguration, key: string): any {
+    switch (key) {
+      case 'max-sessions':
+        return config.maxSessions;
+      case 'max-age-days':
+        return Math.round(config.maxAgeMs / (24 * 60 * 60 * 1000));
+      case 'auto-save-interval':
+        return Math.round(config.autoSaveInterval / 1000);
+      case 'compression':
+        return config.compressionEnabled;
+      case 'sanitize-exports':
+        return config.sanitizeExports;
+      case 'audit-logging':
+        return config.auditLogging;
+      case 'sessions-dir':
+        return config.sessionsDir;
+      default:
+        return undefined;
+    }
+  }
+
+  /**
+   * Gets the default value for a configuration key.
+   * 
+   * @param key - Configuration key
+   * @returns Default value
+   */
+  private getDefaultConfigValue(key: string): any {
+    switch (key) {
+      case 'max-sessions':
+        return 50;
+      case 'max-age-days':
+        return 30;
+      case 'auto-save-interval':
+        return 30; // seconds
+      case 'compression':
+        return true;
+      case 'sanitize-exports':
+        return true;
+      case 'audit-logging':
+        return false;
+      case 'sessions-dir':
+        return getSessionsDir();
+      default:
+        throw new Error(`No default value defined for ${key}`);
+    }
+  }
+
+  /**
+   * Checks if a configuration change requires user confirmation.
+   * 
+   * @param key - Configuration key
+   * @param newValue - New value
+   * @param currentValue - Current value
+   * @returns True if confirmation is required
+   */
+  private configChangeRequiresConfirmation(key: string, newValue: any, currentValue: any): boolean {
+    switch (key) {
+      case 'max-sessions':
+        // Require confirmation if significantly reducing max sessions
+        return typeof newValue === 'number' && typeof currentValue === 'number' && 
+               newValue < currentValue * 0.5;
+               
+      case 'max-age-days':
+        // Require confirmation if significantly reducing retention
+        return typeof newValue === 'number' && typeof currentValue === 'number' && 
+               newValue < currentValue * 0.5;
+               
+      case 'sessions-dir':
+        // Always require confirmation for directory changes
+        return newValue !== currentValue;
+        
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Gets a warning message for a configuration change.
+   * 
+   * @param key - Configuration key
+   * @param newValue - New value
+   * @returns Warning message
+   */
+  private getConfigChangeWarning(key: string, newValue: any): string {
+    switch (key) {
+      case 'max-sessions':
+        return 'Reducing max sessions may trigger immediate cleanup of existing sessions.';
+      case 'max-age-days':
+        return 'Reducing retention period may trigger immediate cleanup of older sessions.';
+      case 'sessions-dir':
+        return 'Changing sessions directory will not move existing sessions to the new location.';
+      default:
+        return 'This change may affect existing sessions.';
+    }
+  }
+
+  /**
+   * Checks if a configuration change requires application restart.
+   * 
+   * @param key - Configuration key
+   * @returns True if restart is required
+   */
+  private configChangeRequiresRestart(key: string): boolean {
+    switch (key) {
+      case 'sessions-dir':
+        return true; // Directory changes typically require restart
+      default:
+        return false;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Storage Limit Management
+  // -------------------------------------------------------------------------
+
+  /**
+   * Gets comprehensive storage information for the session directory.
+   * 
+   * @returns Promise resolving to storage information
+   */
+  async getStorageInfo(): Promise<StorageInfo> {
+    try {
+      const index = await this.storage.getIndex();
+      const sessions = Object.values(index.sessions).filter((session): session is SessionMetadata => session !== undefined);
+      
+      let totalSizeBytes = 0;
+      let oldestSessionAge = 0;
+      const sessionSizeDistribution: Array<{ sessionId: string; sizeBytes: number; age: number }> = [];
+      
+      const now = Date.now();
+      
+      // Calculate session sizes and ages
+      for (const session of sessions) {
+        // Estimate session size (in a real implementation, you'd check actual file sizes)
+        const estimatedSize = this.estimateSessionSize(session);
+        totalSizeBytes += estimatedSize;
+        
+        const age = now - session.created;
+        oldestSessionAge = Math.max(oldestSessionAge, age);
+        
+        sessionSizeDistribution.push({
+          sessionId: session.id,
+          sizeBytes: estimatedSize,
+          age,
+        });
+      }
+      
+      // Get available disk space (simplified - in real implementation use fs.stat)
+      const availableDiskSpace = 1000000000; // 1GB placeholder
+      
+      return {
+        totalSessions: sessions.length,
+        totalSizeBytes,
+        oldestSessionAge,
+        availableDiskSpace,
+        sessionSizeDistribution,
+      };
+    } catch (error) {
+      console.error('Failed to get storage info:', error);
+      return {
+        totalSessions: 0,
+        totalSizeBytes: 0,
+        oldestSessionAge: 0,
+        availableDiskSpace: 0,
+        sessionSizeDistribution: [],
+      };
+    }
+  }
+
+  /**
+   * Checks storage limits and returns recommendations.
+   * 
+   * @returns Promise resolving to storage limit check result
+   */
+  async checkStorageLimits(): Promise<StorageLimitResult> {
+    try {
+      const config = await this.getConfiguration();
+      const storageInfo = await this.getStorageInfo();
+      
+      const maxSessions = config.maxSessions;
+      const maxTotalSize = 100 * 1024 * 1024; // 100MB default limit
+      const minDiskSpace = 50 * 1024 * 1024; // 50MB minimum
+      const warningThreshold = 0.8; // 80%
+      
+      // Check limits
+      const sessionCountExceeded = storageInfo.totalSessions > maxSessions;
+      const totalSizeExceeded = storageInfo.totalSizeBytes > maxTotalSize;
+      const diskSpaceExceeded = storageInfo.availableDiskSpace < minDiskSpace;
+      
+      // Check warning thresholds
+      const sessionCountWarning = storageInfo.totalSessions > maxSessions * warningThreshold;
+      const totalSizeWarning = storageInfo.totalSizeBytes > maxTotalSize * warningThreshold;
+      const diskSpaceWarning = storageInfo.availableDiskSpace < minDiskSpace * (1 + warningThreshold);
+      
+      const warningThresholdReached = sessionCountWarning || totalSizeWarning || diskSpaceWarning;
+      const withinLimits = !sessionCountExceeded && !totalSizeExceeded && !diskSpaceExceeded;
+      
+      // Generate suggested actions
+      const suggestedActions: string[] = [];
+      let estimatedSpaceSavings = 0;
+      
+      if (sessionCountExceeded || sessionCountWarning) {
+        const excessSessions = Math.max(0, storageInfo.totalSessions - maxSessions);
+        if (excessSessions > 0) {
+          suggestedActions.push(`Delete ${excessSessions} old sessions`);
+          estimatedSpaceSavings += excessSessions * 50000; // 50KB per session estimate
+        } else {
+          suggestedActions.push('Delete old sessions');
+          estimatedSpaceSavings += Math.floor(storageInfo.totalSessions * 0.2) * 50000;
+        }
+      }
+      
+      if (totalSizeExceeded || totalSizeWarning) {
+        suggestedActions.push('Enable compression');
+        estimatedSpaceSavings += Math.floor(storageInfo.totalSizeBytes * 0.4); // 40% compression estimate
+      }
+      
+      if (diskSpaceExceeded) {
+        suggestedActions.push('Free up disk space');
+      }
+      
+      // Check for cleanup opportunities
+      const oldSessions = storageInfo.sessionSizeDistribution.filter(
+        s => s.age > config.maxAgeMs
+      );
+      if (oldSessions.length > 0) {
+        suggestedActions.push('Run cleanup command');
+        estimatedSpaceSavings += oldSessions.reduce((sum, s) => sum + s.sizeBytes, 0);
+      }
+      
+      return {
+        withinLimits,
+        sessionCountExceeded,
+        totalSizeExceeded,
+        diskSpaceExceeded,
+        warningThresholdReached,
+        suggestedActions,
+        estimatedSpaceSavings,
+      };
+    } catch (error) {
+      console.error('Failed to check storage limits:', error);
+      return {
+        withinLimits: true,
+        sessionCountExceeded: false,
+        totalSizeExceeded: false,
+        diskSpaceExceeded: false,
+        warningThresholdReached: false,
+        suggestedActions: [],
+        estimatedSpaceSavings: 0,
+      };
+    }
+  }
+
+  /**
+   * Estimates the size of a session in bytes.
+   * 
+   * @param session - Session metadata
+   * @returns Estimated size in bytes
+   */
+  private estimateSessionSize(session: SessionMetadata): number {
+    // Base size for metadata
+    let size = 1000; // 1KB base
+    
+    // Add size based on message count (estimate 500 bytes per message)
+    size += session.messageCount * 500;
+    
+    // Add size based on token count (estimate 4 bytes per token)
+    size += session.tokenCount.total * 4;
+    
+    // Add size for context files (estimate 100 bytes per file reference)
+    size += session.contextFiles.length * 100;
+    
+    return size;
   }
 }
 

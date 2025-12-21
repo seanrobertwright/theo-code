@@ -19,6 +19,7 @@ import { createFileSystemTools } from './features/tools/filesystem/index.js';
 import { ConfirmDialog, SessionRestoration, SessionDetectionLoading, SessionDetectionError } from './shared/components/index.js';
 import { createSessionManager } from './features/session/index.js';
 import { detectAvailableSessions, restoreSessionOnStartup } from './features/session/startup.js';
+import { createDefaultCommandRegistry } from './features/commands/index.js';
 import type { ModelConfig } from './shared/types/models.js';
 import type { SessionMetadata, SessionId } from './shared/types/index.js';
 
@@ -410,23 +411,41 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
   const handleCommand = useCallback((command: string): void => {
     const [cmd, ...args] = command.slice(1).split(' ');
 
+    // Create command context
+    const commandContext = {
+      addMessage,
+      setError,
+      showConfirmation: useAppStore.getState().showConfirmation,
+      workspaceRoot: useAppStore.getState().workspaceRoot,
+      currentModel: useAppStore.getState().currentModel,
+      sessionActions: {
+        createNewSession: useAppStore.getState().createNewSession,
+        restoreSession: useAppStore.getState().restoreSession,
+        saveCurrentSession: useAppStore.getState().saveCurrentSession,
+        getSessionManager: useAppStore.getState().getSessionManager,
+      },
+    };
+
+    // Try to execute command using registry
+    const registry = createDefaultCommandRegistry();
+    
+    if (registry.has(cmd?.toLowerCase() || '')) {
+      registry.execute(cmd?.toLowerCase() || '', args, commandContext).catch((error) => {
+        const errorMessage = error instanceof Error ? error.message : 'Command execution failed';
+        setError(errorMessage);
+        setTimeout(() => {
+          setError(null);
+        }, 5000);
+      });
+      return;
+    }
+
+    // Fallback to built-in commands
     switch (cmd?.toLowerCase()) {
       case 'help':
         addMessage({
           role: 'assistant',
-          content: `**Available Commands:**
-
-/help - Show this help message
-/new - Start a new session
-/add @path - Add file/directory to context
-/drop @path - Remove file from context
-/map [depth] - Show directory tree
-/model - Switch model (coming soon)
-/exit - Exit the application
-
-**Tips:**
-- Type your message and press Enter to chat
-- Use Ctrl+C to exit at any time`,
+          content: registry.generateHelp(),
         });
         break;
 

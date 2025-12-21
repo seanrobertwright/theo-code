@@ -3,5 +3,40 @@
  * @module features/commands
  */
 
-// Export types and schemas when implemented
-export {};
+export type {
+  CommandContext,
+  CommandHandler,
+  CommandDefinition,
+  CommandResult,
+  SessionRestoreResult,
+  SessionListResult,
+  SessionSearchResult,
+  SessionListDisplayOptions,
+  SessionSearchDisplayOptions,
+  SessionFilterDisplayOptions,
+} from './types.js';
+
+export {
+  CommandRegistry,
+  createDefaultCommandRegistry,
+} from './registry.js';
+
+export {
+  resumeCommandHandler,
+} from './handlers/resume.js';
+
+export {
+  sessionsCommandHandler,
+} from './handlers/sessions.js';
+
+export {
+  formatSessionList,
+  formatSingleSession,
+  formatSessionPreview,
+  formatSearchResults,
+  formatFilterResults,
+  formatTokenCount,
+  highlightSearchTerms,
+  formatFileSize,
+  formatDuration,
+} from './utils/formatting.js';

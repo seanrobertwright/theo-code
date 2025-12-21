@@ -20,7 +20,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "type-check": "tsc --noEmit",
     "validate": "npm run type-check && npm run lint && npm run test:coverage",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "cleanup:backups": "node scripts/cleanup-migration-backups.js"
   },
   "keywords": [
     "cli",

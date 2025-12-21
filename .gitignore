@@ -55,3 +55,6 @@ playwright-report/
 .theo-code/
 sessions/
 audit.log
+
+# Migration backup files
+*.migration-backup.*.json
