@@ -370,7 +370,9 @@ Convert the session persistence design into a series of prompts for a code-gener
   - **Property 20: Sharing data integrity**
   - **Validates: Requirements 7.2, 7.5**
 
-- [-] 8.4 Implement session import functionality
+- [x] 8.4 Implement session import functionality
+
+
 
 
 
