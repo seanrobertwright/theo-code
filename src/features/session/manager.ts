@@ -19,6 +19,7 @@ import type {
 import { createSessionId, createMessageId, SessionSchema } from '../../shared/types/index.js';
 import { SessionStorage, type ISessionStorage } from './storage.js';
 import { loadConfig, getSessionsDir } from '../../config/index.js';
+import { getAuditLogger, logOperation, type AuditLoggerConfig } from './audit.js';
 
 // =============================================================================
 // INTERFACES
@@ -519,35 +520,46 @@ export class SessionManager implements ISessionManager {
    * @throws {Error} If session creation fails
    */
   async createSession(options: CreateSessionOptions): Promise<Session> {
-    const now = Date.now();
-    const sessionId = createSessionId();
-    
-    const session: Session = {
-      id: sessionId,
-      version: '1.0.0',
-      created: now,
-      lastModified: now,
-      model: options.model,
-      workspaceRoot: options.workspaceRoot,
-      tokenCount: { total: 0, input: 0, output: 0 },
-      filesAccessed: [],
-      messages: [],
-      contextFiles: [],
-      title: options.title ?? null,
-      tags: options.tags ?? [],
-      notes: options.notes ?? null,
-    };
-    
-    // Validate session data
-    const validatedSession = SessionSchema.parse(session);
-    
-    // Save to storage
-    await this.storage.writeSession(sessionId, validatedSession);
-    
-    // Set as current session
-    this.currentSession = validatedSession;
-    
-    return validatedSession;
+    return await logOperation(
+      'session.create',
+      async () => {
+        const now = Date.now();
+        const sessionId = createSessionId();
+        
+        const session: Session = {
+          id: sessionId,
+          version: '1.0.0',
+          created: now,
+          lastModified: now,
+          model: options.model,
+          workspaceRoot: options.workspaceRoot,
+          tokenCount: { total: 0, input: 0, output: 0 },
+          filesAccessed: [],
+          messages: [],
+          contextFiles: [],
+          title: options.title ?? null,
+          tags: options.tags ?? [],
+          notes: options.notes ?? null,
+        };
+        
+        // Validate session data
+        const validatedSession = SessionSchema.parse(session);
+        
+        // Save to storage
+        await this.storage.writeSession(sessionId, validatedSession);
+        
+        // Set as current session
+        this.currentSession = validatedSession;
+        
+        return validatedSession;
+      },
+      undefined, // No sessionId yet
+      {
+        model: options.model,
+        workspaceRoot: options.workspaceRoot,
+        title: options.title,
+      }
+    );
   }
   
   /**
@@ -559,22 +571,32 @@ export class SessionManager implements ISessionManager {
    * @throws {Error} If save operation fails
    */
   async saveSession(session: Session): Promise<void> {
-    // Update lastModified timestamp
-    const updatedSession: Session = {
-      ...session,
-      lastModified: Date.now(),
-    };
-    
-    // Validate session data
-    const validatedSession = SessionSchema.parse(updatedSession);
-    
-    // Save to storage
-    await this.storage.writeSession(session.id, validatedSession);
-    
-    // Update current session if it matches
-    if (this.currentSession?.id === session.id) {
-      this.currentSession = validatedSession;
-    }
+    await logOperation(
+      'session.save',
+      async () => {
+        // Update lastModified timestamp
+        const updatedSession: Session = {
+          ...session,
+          lastModified: Date.now(),
+        };
+        
+        // Validate session data
+        const validatedSession = SessionSchema.parse(updatedSession);
+        
+        // Save to storage
+        await this.storage.writeSession(session.id, validatedSession);
+        
+        // Update current session if it matches
+        if (this.currentSession?.id === session.id) {
+          this.currentSession = validatedSession;
+        }
+      },
+      session.id,
+      {
+        messageCount: session.messages.length,
+        tokenCount: session.tokenCount.total,
+      }
+    );
   }
   
   /**
@@ -589,29 +611,39 @@ export class SessionManager implements ISessionManager {
     sessionId: SessionId, 
     options: LoadSessionOptions = {}
   ): Promise<Session> {
-    const { validateIntegrity = true, updateTimestamp = false } = options;
-    
-    // Load from storage
-    const session = await this.storage.readSession(sessionId);
-    
-    // Validate integrity if requested
-    if (validateIntegrity) {
-      this.validateSessionIntegrityInternal(session);
-    }
-    
-    // Update timestamp if requested
-    let finalSession = session;
-    if (updateTimestamp) {
-      finalSession = {
-        ...session,
-        lastModified: Date.now(),
-      };
-      
-      // Save updated timestamp
-      await this.storage.writeSession(sessionId, finalSession);
-    }
-    
-    return finalSession;
+    return await logOperation(
+      'session.load',
+      async () => {
+        const { validateIntegrity = true, updateTimestamp = false } = options;
+        
+        // Load from storage
+        const session = await this.storage.readSession(sessionId);
+        
+        // Validate integrity if requested
+        if (validateIntegrity) {
+          this.validateSessionIntegrityInternal(session);
+        }
+        
+        // Update timestamp if requested
+        let finalSession = session;
+        if (updateTimestamp) {
+          finalSession = {
+            ...session,
+            lastModified: Date.now(),
+          };
+          
+          // Save updated timestamp
+          await this.storage.writeSession(sessionId, finalSession);
+        }
+        
+        return finalSession;
+      },
+      sessionId,
+      {
+        validateIntegrity: options.validateIntegrity,
+        updateTimestamp: options.updateTimestamp,
+      }
+    );
   }
   
   /**
@@ -621,13 +653,19 @@ export class SessionManager implements ISessionManager {
    * @throws {Error} If deletion fails
    */
   async deleteSession(sessionId: SessionId): Promise<void> {
-    // Clear current session if it matches
-    if (this.currentSession?.id === sessionId) {
-      this.currentSession = null;
-    }
-    
-    // Delete from storage
-    await this.storage.deleteSession(sessionId);
+    await logOperation(
+      'session.delete',
+      async () => {
+        // Clear current session if it matches
+        if (this.currentSession?.id === sessionId) {
+          this.currentSession = null;
+        }
+        
+        // Delete from storage
+        await this.storage.deleteSession(sessionId);
+      },
+      sessionId
+    );
   }
   
   // -------------------------------------------------------------------------
@@ -2221,6 +2259,10 @@ export class SessionManager implements ISessionManager {
     const config = loadConfig(process.cwd());
     const sessionConfig = config.global.session;
     
+    // Get audit logging configuration from the audit logger
+    const auditLogger = getAuditLogger();
+    const auditConfig = auditLogger.getConfig();
+    
     return {
       sessionsDir: getSessionsDir(),
       maxSessions: sessionConfig?.maxSessions ?? 50,
@@ -2229,7 +2271,7 @@ export class SessionManager implements ISessionManager {
       autoSaveEnabled: this.isAutoSaveEnabled(),
       autoSaveInterval: this.autoSaveConfig?.intervalMs ?? sessionConfig?.autoSaveInterval ?? 30000,
       sanitizeExports: true, // Default enabled
-      auditLogging: false, // Default disabled
+      auditLogging: auditConfig.enabled,
       indexCaching: true, // Default enabled
       backgroundCleanup: true, // Default enabled
     };
@@ -2243,58 +2285,76 @@ export class SessionManager implements ISessionManager {
    * @throws {Error} If configuration update fails
    */
   async setConfiguration(key: string, value: string): Promise<void> {
-    // Parse and validate the value based on the key
-    const parsedValue = this.parseConfigurationValue(key, value);
-    
-    // Apply the configuration change
-    switch (key) {
-      case 'max-sessions':
-        // This would typically update the global config file
-        // For now, we'll just validate and accept it
-        if (typeof parsedValue !== 'number' || parsedValue < 1) {
-          throw new Error('max-sessions must be a positive number');
-        }
-        break;
+    await logOperation(
+      'session.config.set',
+      async () => {
+        // Parse and validate the value based on the key
+        const parsedValue = this.parseConfigurationValue(key, value);
         
-      case 'max-age-days':
-        if (typeof parsedValue !== 'number' || parsedValue < 1) {
-          throw new Error('max-age-days must be a positive number');
+        // Apply the configuration change
+        switch (key) {
+          case 'max-sessions':
+            // This would typically update the global config file
+            // For now, we'll just validate and accept it
+            if (typeof parsedValue !== 'number' || parsedValue < 1) {
+              throw new Error('max-sessions must be a positive number');
+            }
+            break;
+            
+          case 'max-age-days':
+            if (typeof parsedValue !== 'number' || parsedValue < 1) {
+              throw new Error('max-age-days must be a positive number');
+            }
+            break;
+            
+          case 'auto-save-interval':
+            if (typeof parsedValue !== 'number' || parsedValue < 5 || parsedValue > 300) {
+              throw new Error('auto-save-interval must be between 5 and 300 seconds');
+            }
+            // Update auto-save configuration
+            if (this.autoSaveConfig) {
+              this.enableAutoSave({
+                ...this.autoSaveConfig,
+                intervalMs: parsedValue * 1000,
+              });
+            }
+            break;
+            
+          case 'compression':
+          case 'sanitize-exports':
+            if (typeof parsedValue !== 'boolean') {
+              throw new Error(`${key} must be true or false`);
+            }
+            break;
+            
+          case 'audit-logging':
+            if (typeof parsedValue !== 'boolean') {
+              throw new Error('audit-logging must be true or false');
+            }
+            // Update audit logger configuration
+            const auditLogger = getAuditLogger();
+            auditLogger.updateConfig({ enabled: parsedValue });
+            break;
+            
+          case 'sessions-dir':
+            if (typeof parsedValue !== 'string' || parsedValue.trim().length === 0) {
+              throw new Error('sessions-dir must be a non-empty string');
+            }
+            break;
+            
+          default:
+            throw new Error(`Unknown configuration key: ${key}`);
         }
-        break;
         
-      case 'auto-save-interval':
-        if (typeof parsedValue !== 'number' || parsedValue < 5 || parsedValue > 300) {
-          throw new Error('auto-save-interval must be between 5 and 300 seconds');
-        }
-        // Update auto-save configuration
-        if (this.autoSaveConfig) {
-          this.enableAutoSave({
-            ...this.autoSaveConfig,
-            intervalMs: parsedValue * 1000,
-          });
-        }
-        break;
-        
-      case 'compression':
-      case 'sanitize-exports':
-      case 'audit-logging':
-        if (typeof parsedValue !== 'boolean') {
-          throw new Error(`${key} must be true or false`);
-        }
-        break;
-        
-      case 'sessions-dir':
-        if (typeof parsedValue !== 'string' || parsedValue.trim().length === 0) {
-          throw new Error('sessions-dir must be a non-empty string');
-        }
-        break;
-        
-      default:
-        throw new Error(`Unknown configuration key: ${key}`);
-    }
-    
-    // In a real implementation, you would persist this to the config file
-    console.log(`Configuration updated: ${key} = ${value}`);
+        // In a real implementation, you would persist this to the config file
+        console.log(`Configuration updated: ${key} = ${value}`);
+      },
+      undefined,
+      {
+        configKey: key,
+        configValue: value,
+      }
+    );
   }
 
   /**
@@ -2783,9 +2843,9 @@ export class SessionManager implements ISessionManager {
       const diskSpaceExceeded = storageInfo.availableDiskSpace < minDiskSpace;
       
       // Check warning thresholds
-      const sessionCountWarning = storageInfo.totalSessions > maxSessions * warningThreshold;
-      const totalSizeWarning = storageInfo.totalSizeBytes > maxTotalSize * warningThreshold;
-      const diskSpaceWarning = storageInfo.availableDiskSpace < minDiskSpace * (1 + warningThreshold);
+      const sessionCountWarning = storageInfo.totalSessions > maxSessions * warningThreshold && !sessionCountExceeded;
+      const totalSizeWarning = storageInfo.totalSizeBytes > maxTotalSize * warningThreshold && !totalSizeExceeded;
+      const diskSpaceWarning = storageInfo.availableDiskSpace < minDiskSpace * (1 + warningThreshold) && !diskSpaceExceeded;
       
       const warningThresholdReached = sessionCountWarning || totalSizeWarning || diskSpaceWarning;
       const withinLimits = !sessionCountExceeded && !totalSizeExceeded && !diskSpaceExceeded;

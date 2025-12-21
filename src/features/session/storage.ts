@@ -40,6 +40,7 @@ import {
   type MigrationResult,
   type IMigrationFramework,
 } from './migration.js';
+import { getAuditLogger, logOperation } from './audit.js';
 
 // =============================================================================
 // INTERFACES
@@ -134,58 +135,70 @@ export class SessionStorage implements ISessionStorage {
    * @throws {Error} If write operation fails
    */
   async writeSession(sessionId: SessionId, session: Session): Promise<void> {
-    await ensureSessionsDirectory();
-    
-    // Validate session data
-    const validatedSession = SessionSchema.parse(session);
-    
-    // Serialize session data
-    const sessionData = JSON.stringify(validatedSession, null, 2);
-    
-    // Prepare versioned session format
-    let finalData = sessionData;
-    let compressed = false;
-    let checksum: string | undefined;
-    
-    // Apply compression if enabled
-    if (this.options.enableCompression) {
-      const compressedData = await compressData(sessionData);
-      // Only use compression if it actually reduces size
-      if (compressedData.length < sessionData.length) {
-        finalData = compressedData;
-        compressed = true;
+    await logOperation(
+      'storage.write',
+      async () => {
+        await ensureSessionsDirectory();
+        
+        // Validate session data
+        const validatedSession = SessionSchema.parse(session);
+        
+        // Serialize session data
+        const sessionData = JSON.stringify(validatedSession, null, 2);
+        
+        // Prepare versioned session format
+        let finalData = sessionData;
+        let compressed = false;
+        let checksum: string | undefined;
+        
+        // Apply compression if enabled
+        if (this.options.enableCompression) {
+          const compressedData = await compressData(sessionData);
+          // Only use compression if it actually reduces size
+          if (compressedData.length < sessionData.length) {
+            finalData = compressedData;
+            compressed = true;
+          }
+        }
+        
+        // Calculate checksum if enabled
+        if (this.options.enableChecksum) {
+          checksum = calculateChecksum(sessionData); // Always checksum original data
+        }
+        
+        // Create versioned session wrapper
+        const versionedSession: VersionedSession = {
+          version: '1.0.0',
+          compressed,
+          checksum,
+          data: compressed ? finalData : validatedSession, // Store compressed string or original object
+        };
+        
+        const finalContent = JSON.stringify(versionedSession, null, 2);
+        
+        // Check file size limit
+        if (finalContent.length > this.options.maxFileSize) {
+          throw new Error(`Session data too large: ${finalContent.length} bytes (max: ${this.options.maxFileSize})`);
+        }
+        
+        // Write to file atomically
+        const filePath = getSessionFilePath(sessionId);
+        await atomicWriteFile(filePath, finalContent, {
+          createBackup: this.options.createBackups,
+        });
+        
+        // Update index
+        const metadata = this.createSessionMetadata(validatedSession);
+        await this.updateIndex(metadata);
+      },
+      sessionId,
+      {
+        compressed: this.options.enableCompression,
+        checksum: this.options.enableChecksum,
+        messageCount: session.messages.length,
+        tokenCount: session.tokenCount.total,
       }
-    }
-    
-    // Calculate checksum if enabled
-    if (this.options.enableChecksum) {
-      checksum = calculateChecksum(sessionData); // Always checksum original data
-    }
-    
-    // Create versioned session wrapper
-    const versionedSession: VersionedSession = {
-      version: '1.0.0',
-      compressed,
-      checksum,
-      data: compressed ? finalData : validatedSession, // Store compressed string or original object
-    };
-    
-    const finalContent = JSON.stringify(versionedSession, null, 2);
-    
-    // Check file size limit
-    if (finalContent.length > this.options.maxFileSize) {
-      throw new Error(`Session data too large: ${finalContent.length} bytes (max: ${this.options.maxFileSize})`);
-    }
-    
-    // Write to file atomically
-    const filePath = getSessionFilePath(sessionId);
-    await atomicWriteFile(filePath, finalContent, {
-      createBackup: this.options.createBackups,
-    });
-    
-    // Update index
-    const metadata = this.createSessionMetadata(validatedSession);
-    await this.updateIndex(metadata);
+    );
   }
   
   /**
@@ -288,18 +301,24 @@ export class SessionStorage implements ISessionStorage {
    * @throws {Error} If deletion fails
    */
   async deleteSession(sessionId: SessionId): Promise<void> {
-    const filePath = getSessionFilePath(sessionId);
-    
-    // Create backup before deletion if enabled
-    if (this.options.createBackups && await fileExists(filePath)) {
-      await this.createBackup(sessionId);
-    }
-    
-    // Delete session file
-    await safeDeleteFile(filePath);
-    
-    // Remove from index
-    await this.removeFromIndex(sessionId);
+    await logOperation(
+      'storage.delete',
+      async () => {
+        const filePath = getSessionFilePath(sessionId);
+        
+        // Create backup before deletion if enabled
+        if (this.options.createBackups && await fileExists(filePath)) {
+          await this.createBackup(sessionId);
+        }
+        
+        // Delete session file
+        await safeDeleteFile(filePath);
+        
+        // Remove from index
+        await this.removeFromIndex(sessionId);
+      },
+      sessionId
+    );
   }
   
   /**

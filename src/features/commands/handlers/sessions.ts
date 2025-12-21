@@ -1137,7 +1137,7 @@ function formatStorageLimitNotification(limitResult: any): string {
   
   let message = '';
   
-  // Error level notifications
+  // Error level notifications (limits exceeded)
   if (!limitResult.withinLimits) {
     if (limitResult.sessionCountExceeded) {
       message += '❌ **Session limit exceeded** - Too many sessions stored\n';
@@ -1150,7 +1150,7 @@ function formatStorageLimitNotification(limitResult: any): string {
     }
   }
   
-  // Warning level notifications
+  // Warning level notifications (approaching limits but not exceeded)
   if (limitResult.warningThresholdReached && limitResult.withinLimits) {
     message += '⚠️ **Warning** - Approaching storage limits\n';
   }

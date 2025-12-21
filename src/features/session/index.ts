@@ -23,6 +23,18 @@ export {
   type ISessionStorage,
 } from './storage.js';
 
+// Export audit logging functionality
+export {
+  AuditLogger,
+  getAuditLogger,
+  resetAuditLogger,
+  logOperation,
+  type AuditLogLevel,
+  type AuditLogDestination,
+  type AuditLogEntry,
+  type AuditLoggerConfig,
+} from './audit.js';
+
 // Re-export session types from shared
 export type {
   Session,

@@ -341,37 +341,42 @@ Convert the session persistence design into a series of prompts for a code-gener
   - **Validates: Requirements 8.1, 8.2**
 
 - [x] 9.7 Write property test for storage limit notification
+
   - **Property 25: Storage limit notification**
   - **Validates: Requirements 8.5**
 
-- [ ] 10. Add security and data protection
+
+- [-] 10. Add security and data protection
   - Implement sensitive data filtering
   - Add file permission management
   - Create audit logging for session operations
   - _Requirements: 4.3, 4.5_
 
-- [ ] 10.1 Implement sensitive data filtering
+- [x] 10.1 Implement sensitive data filtering
   - Create data sanitization for API keys and credentials
   - Add configurable sensitive data patterns
   - Implement filtering for both storage and sharing
   - _Requirements: 4.3_
 
-- [ ] 10.2 Write property test for sensitive data exclusion
+- [x] 10.2 Write property test for sensitive data exclusion
   - **Property 11: Sensitive data exclusion**
   - **Validates: Requirements 4.3**
 
-- [ ] 10.3 Add file permission management
+- [x] 10.3 Add file permission management
   - Implement secure file creation with proper permissions
   - Add permission validation and error handling
   - Create permission repair functionality
   - _Requirements: 4.5_
 
-- [ ] 10.4 Write unit tests for file permissions
+- [x] 10.4 Write unit tests for file permissions
   - Test secure file creation and permission validation
   - Verify permission error handling and repair
   - _Requirements: 4.5_
 
-- [ ] 10.5 Create audit logging system
+- [-] 10.5 Create audit logging system
+
+
+
   - Implement optional audit logging for all session operations
   - Add configurable logging levels and destinations
   - Create log rotation and cleanup functionality
