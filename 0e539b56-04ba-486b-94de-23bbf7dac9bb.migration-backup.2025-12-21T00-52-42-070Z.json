@@ -1,0 +1,20 @@
+{
+  "id": "0e539b56-04ba-486b-94de-23bbf7dac9bb",
+  "version": "0.7.0",
+  "created": 1766191962070,
+  "lastModified": 1766278362070,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 100,
+    "input": 50,
+    "output": 50
+  },
+  "messages": [
+    {
+      "id": "8c008734-c96a-45bd-9238-815add3ef082",
+      "role": "user",
+      "content": ")",
+      "timestamp": 1766278362070
+    }
+  ]
+}

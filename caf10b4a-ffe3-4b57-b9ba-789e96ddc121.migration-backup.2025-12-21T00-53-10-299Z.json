@@ -1,0 +1,49 @@
+{
+  "id": "445b9fa8-8858-4f91-809a-af800f99af2c",
+  "created": 1188144738805,
+  "lastModified": 1608400569060,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 8644,
+    "input": 32977,
+    "output": 9043
+  },
+  "messages": [
+    {
+      "id": "db0fffac-0cf6-45f4-907c-90da4ba718d0",
+      "role": "assistant",
+      "content": "aE2d%,",
+      "timestamp": 1313308163024
+    },
+    {
+      "id": "cef35f13-88c6-48de-b0bf-b5409cd6c218",
+      "role": "assistant",
+      "content": "-~e|D4YTdJ",
+      "timestamp": 1195769017498
+    },
+    {
+      "id": "5252d705-7b94-4576-b4fe-42b904be94fa",
+      "role": "user",
+      "content": "+l)E2",
+      "timestamp": 1353035370646
+    },
+    {
+      "id": "2b3b8c60-f916-48df-932e-c83ad8df90c5",
+      "role": "system",
+      "content": "Py&_An>U<",
+      "timestamp": 1684821206410
+    },
+    {
+      "id": "0073e13c-07b6-4d75-b1aa-0c2f633b2d37",
+      "role": "system",
+      "content": "rohVLn",
+      "timestamp": 1492525652918
+    },
+    {
+      "id": "601db775-8539-4fb7-9fb2-91aa7ee558f1",
+      "role": "assistant",
+      "content": "JtP#6%a(DX~e",
+      "timestamp": 1070942708733
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "id": "62b1667d-8b77-450b-97e7-5deb8249ec52",
+  "created": 1474339819496,
+  "lastModified": 1626744686119,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 64726,
+    "input": 10735,
+    "output": 43026
+  },
+  "messages": [
+    {
+      "id": "4c978758-f45f-48ea-9d4b-7d1c57fe3bb4",
+      "role": "assistant",
+      "content": "Rjg",
+      "timestamp": 1160342865633
+    },
+    {
+      "id": "524dcb42-9c0b-4752-9200-8dc936844340",
+      "role": "assistant",
+      "content": "M.r[WNOuOU\\",
+      "timestamp": 1353371054809
+    },
+    {
+      "id": "9843a4f1-0338-4f13-9cb0-0696bfb4b7e7",
+      "role": "assistant",
+      "content": "&?iJN",
+      "timestamp": 1049276669800
+    },
+    {
+      "id": "5c41ebd2-7d37-49f5-b7b1-d167feb0e241",
+      "role": "assistant",
+      "content": "\"^",
+      "timestamp": 1148391071491
+    },
+    {
+      "id": "09522d4c-d638-4397-acc0-bd20d419272d",
+      "role": "assistant",
+      "content": "_H<coo",
+      "timestamp": 1516004177597
+    },
+    {
+      "id": "669c332d-c3a0-4f2a-8d39-e82ec5fb5931",
+      "role": "system",
+      "content": "=aoz#XdM#_`",
+      "timestamp": 1215477438617
+    },
+    {
+      "id": "4b12af99-804c-4ba4-91ee-bf210d4a98e4",
+      "role": "user",
+      "content": "sM$=sa",
+      "timestamp": 1426118458651
+    },
+    {
+      "id": "63194de7-b6b4-4190-9a55-9ef9b879cd16",
+      "role": "user",
+      "content": "7/",
+      "timestamp": 1251140062232
+    },
+    {
+      "id": "97d02fcb-3362-4431-aa45-0b1d08b5116a",
+      "role": "user",
+      "content": "Zx-xgqtFs dE",
+      "timestamp": 1245368210027
+    },
+    {
+      "id": "0f6d1387-d7b6-49e3-ada7-7980da6f0e78",
+      "role": "system",
+      "content": "~+8_'^iah*sk",
+      "timestamp": 1123452262747
+    }
+  ],
+  "version": "0.9.0",
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [
+    "/test/file1.ts",
+    "/test/file2.ts"
+  ],
+  "tags": [
+    "test",
+    "migration"
+  ]
+}

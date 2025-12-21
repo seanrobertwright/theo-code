@@ -1,0 +1,19 @@
+{
+  "id": "24d315f1-b1c2-47a3-b570-7067d34cf20c",
+  "created": 1543484828394,
+  "lastModified": 1000000000010,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 99035,
+    "input": 50000,
+    "output": 37581
+  },
+  "messages": [
+    {
+      "id": "f042f76d-5081-4401-a34d-cdef1eef4704",
+      "role": "system",
+      "content": "24v",
+      "timestamp": 1442378546092
+    }
+  ]
+}

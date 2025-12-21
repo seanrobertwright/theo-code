@@ -1,0 +1,14 @@
+{
+  "id": "33635382-7752-4d20-83bb-adadff9a60cd",
+  "created": 1271402687834,
+  "lastModified": 1186620422316,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 10005,
+    "input": 3,
+    "output": 49989
+  },
+  "messages": [],
+  "version": "0.8.0",
+  "workspaceRoot": "/test/workspace"
+}

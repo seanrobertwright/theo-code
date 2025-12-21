@@ -1,0 +1,53 @@
+{
+  "id": "3cedce0a-920e-45ef-a237-02b85bdf5a41",
+  "created": 1214935204713,
+  "lastModified": 1195338663223,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 55610,
+    "input": 650,
+    "output": 17138
+  },
+  "messages": [
+    {
+      "id": "f7ec67f6-f64c-44dc-bff6-46b4c673bf10",
+      "role": "assistant",
+      "content": "N",
+      "timestamp": 1009044999318
+    },
+    {
+      "id": "d964a3bd-3e53-4f07-9814-3d62f62409e9",
+      "role": "system",
+      "content": "$A#\"5",
+      "timestamp": 1682937088677
+    },
+    {
+      "id": "65c03bdf-8645-4d02-9d7e-ba2e81e19610",
+      "role": "assistant",
+      "content": ">$} .",
+      "timestamp": 1305610099013
+    },
+    {
+      "id": "76437b2d-35e2-44bf-9e5e-f7c574e7f2f1",
+      "role": "user",
+      "content": "~Ff3e",
+      "timestamp": 1307354508087
+    },
+    {
+      "id": "fb3785d5-8e54-48ec-8121-c18e620c670d",
+      "role": "system",
+      "content": "XFhy#",
+      "timestamp": 1513338138857
+    }
+  ],
+  "version": "0.9.0",
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [
+    "/test/file1.ts",
+    "/test/file2.ts"
+  ],
+  "tags": [
+    "test",
+    "migration"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "e30e38c4-d316-4f51-9853-17a8ea895ca7",
+  "created": 1766278148518,
+  "lastModified": 1000000000015,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 78564,
+    "input": 9406,
+    "output": 49993
+  },
+  "messages": [
+    {
+      "id": "294a68b8-ff60-4eb3-a92a-33ea9cebbbcd",
+      "role": "assistant",
+      "content": "szQ;NH ",
+      "timestamp": 1241030018804
+    },
+    {
+      "id": "de89a33b-f68f-47f7-85ef-34faf788d8aa",
+      "role": "assistant",
+      "content": "|}",
+      "timestamp": 1451134217459
+    }
+  ]
+}

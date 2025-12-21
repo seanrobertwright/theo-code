@@ -1,0 +1,19 @@
+{
+  "id": "d2a14887-3250-4f8b-8d91-289fc107a94d",
+  "created": 1040972988836,
+  "lastModified": 1678239469577,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 29355,
+    "input": 47956,
+    "output": 26747
+  },
+  "messages": [
+    {
+      "id": "6ba6ffcb-ff07-4ec4-b257-1a70e05a806c",
+      "role": "user",
+      "content": "fRL",
+      "timestamp": 1400037546431
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "ff595854-8353-4cd6-919e-c37c033f3fff",
+  "created": 1000000000009,
+  "lastModified": 1014743610634,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 10,
+    "input": 8702,
+    "output": 11716
+  },
+  "messages": [],
+  "version": "0.9.0",
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [
+    "/test/file1.ts",
+    "/test/file2.ts"
+  ],
+  "tags": [
+    "test",
+    "migration"
+  ]
+}

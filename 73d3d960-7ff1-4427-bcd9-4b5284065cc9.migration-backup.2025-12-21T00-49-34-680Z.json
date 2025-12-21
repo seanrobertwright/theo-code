@@ -1,0 +1,39 @@
+{
+  "id": "fde4dc84-16d6-458e-81bc-16c46438c744",
+  "created": 1000000000025,
+  "lastModified": 1766278174574,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 65830,
+    "input": 2124,
+    "output": 1308
+  },
+  "messages": [
+    {
+      "id": "0ae171cc-ef97-40b2-966b-0b7ad435c09b",
+      "role": "system",
+      "content": "a\\",
+      "timestamp": 1000000000028
+    },
+    {
+      "id": "e48d18da-6f82-4470-ba34-c3a19359d9e1",
+      "role": "system",
+      "content": "%g $)",
+      "timestamp": 1000000000039
+    },
+    {
+      "id": "b12a243a-ffcc-4bf4-a3e9-dda3dd1c1628",
+      "role": "assistant",
+      "content": "i'R[`%6dY]",
+      "timestamp": 1000000000025
+    },
+    {
+      "id": "6602250f-967d-4c79-8597-58c4b8143e4b",
+      "role": "assistant",
+      "content": "1 J$ztfZ$R(",
+      "timestamp": 1453301266079
+    }
+  ],
+  "version": "0.8.0",
+  "workspaceRoot": "/test/workspace"
+}

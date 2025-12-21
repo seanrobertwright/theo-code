@@ -1,0 +1,41 @@
+{
+  "id": "4b28f44f-1d0a-40fd-b282-4d68ad8de701",
+  "created": 1000000000000,
+  "lastModified": 1654363610042,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 15,
+    "input": 29570,
+    "output": 6808
+  },
+  "messages": [
+    {
+      "id": "a9bfe0ef-e878-4595-abb4-0392fa00a9aa",
+      "role": "system",
+      "content": "LXGK",
+      "timestamp": 1086443028648
+    },
+    {
+      "id": "73121191-759f-4308-bc59-9f4a291705a2",
+      "role": "user",
+      "content": ";",
+      "timestamp": 1347931725066
+    },
+    {
+      "id": "85009622-50a6-44c3-ac88-9dd7e062e8a8",
+      "role": "user",
+      "content": "V##b_@",
+      "timestamp": 1325997495594
+    }
+  ],
+  "version": "0.9.0",
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [
+    "/test/file1.ts",
+    "/test/file2.ts"
+  ],
+  "tags": [
+    "test",
+    "migration"
+  ]
+}

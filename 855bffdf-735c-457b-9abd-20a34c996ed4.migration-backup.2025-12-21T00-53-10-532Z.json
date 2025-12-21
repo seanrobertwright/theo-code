@@ -1,0 +1,25 @@
+{
+  "id": "0fdedd39-369a-4fb2-b243-331f69a7abc7",
+  "created": 1584234800362,
+  "lastModified": 1000000000035,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 0,
+    "input": 1,
+    "output": 11
+  },
+  "messages": [
+    {
+      "id": "93823d54-8e15-4705-ac0e-d4acd56ff474",
+      "role": "system",
+      "content": "D2Xi<D$",
+      "timestamp": 1064777646374
+    },
+    {
+      "id": "df7cc58f-9b1e-44f4-9052-dcf618f05333",
+      "role": "system",
+      "content": "\"H@ni",
+      "timestamp": 1066550408641
+    }
+  ]
+}

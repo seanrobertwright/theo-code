@@ -1,0 +1,53 @@
+{
+  "id": "936299e5-0c10-477f-96b4-4f19144c92d8",
+  "created": 1000000000023,
+  "lastModified": 1622838064830,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 94885,
+    "input": 9098,
+    "output": 5210
+  },
+  "messages": [
+    {
+      "id": "d15a6011-bbde-454b-b495-0dfae4fcd474",
+      "role": "user",
+      "content": "!2b6?L",
+      "timestamp": 1147594749848
+    },
+    {
+      "id": "9499dc93-c9b3-4fd4-be06-d38fc9891fe4",
+      "role": "system",
+      "content": "43!Iw\\?",
+      "timestamp": 1235459715510
+    },
+    {
+      "id": "73c50b75-d8a3-4b8d-8689-0a719e771721",
+      "role": "user",
+      "content": "zuq",
+      "timestamp": 1704792931773
+    },
+    {
+      "id": "baea0572-5392-48d2-af8b-2e2f0383ecd2",
+      "role": "assistant",
+      "content": "~zHBWo=",
+      "timestamp": 1470206367668
+    },
+    {
+      "id": "c21c8ec8-82da-4fbe-a298-626b538f95a8",
+      "role": "assistant",
+      "content": " p8^]",
+      "timestamp": 1665245491696
+    }
+  ],
+  "version": "0.9.0",
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [
+    "/test/file1.ts",
+    "/test/file2.ts"
+  ],
+  "tags": [
+    "test",
+    "migration"
+  ]
+}

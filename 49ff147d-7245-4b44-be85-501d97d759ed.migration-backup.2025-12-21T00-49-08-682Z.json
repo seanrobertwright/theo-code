@@ -1,0 +1,29 @@
+{
+  "id": "1b436c44-a593-4a61-9bc0-05593efdb410",
+  "created": 1490213688592,
+  "lastModified": 1296245611266,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 86300,
+    "input": 30378,
+    "output": 3533
+  },
+  "messages": [
+    {
+      "id": "043949df-196c-46df-8e13-bc980038fddd",
+      "role": "system",
+      "content": "E",
+      "timestamp": 1398906845496
+    }
+  ],
+  "version": "0.9.0",
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [
+    "/test/file1.ts",
+    "/test/file2.ts"
+  ],
+  "tags": [
+    "test",
+    "migration"
+  ]
+}

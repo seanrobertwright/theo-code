@@ -1,0 +1,49 @@
+{
+  "id": "a4a60a6b-97c9-452e-a1eb-cba2fe11b227",
+  "created": 1690461078023,
+  "lastModified": 1248421170453,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 99997,
+    "input": 49990,
+    "output": 5
+  },
+  "messages": [
+    {
+      "id": "df90c62a-7f6e-43b6-9114-d0421c80c063",
+      "role": "system",
+      "content": "R_A, ",
+      "timestamp": 1566139653587
+    },
+    {
+      "id": "45514b9e-6c13-4ffc-aa73-1e77bb2e4bbd",
+      "role": "assistant",
+      "content": "5 TL.I-;",
+      "timestamp": 1671283223260
+    },
+    {
+      "id": "9dad7686-5107-4e38-be31-050ac503554e",
+      "role": "user",
+      "content": "Z(z/%",
+      "timestamp": 1026975657745
+    },
+    {
+      "id": "355d2314-b095-4fe9-91bd-5c3c472f835f",
+      "role": "assistant",
+      "content": "iuBVlR",
+      "timestamp": 1281685811608
+    },
+    {
+      "id": "239d6b7c-700c-4e6a-9041-2a199b842487",
+      "role": "user",
+      "content": "k1F",
+      "timestamp": 1233830285799
+    },
+    {
+      "id": "6445407d-d067-4037-954b-ca454bd0efca",
+      "role": "user",
+      "content": "em@}M'nO4q",
+      "timestamp": 1647028082461
+    }
+  ]
+}

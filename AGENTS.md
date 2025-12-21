@@ -1,3 +1,5 @@
 You have access to skills in .claude/skills. When you should read each SKILL.md is determined by the skill descriptions below:
 
 .claude/skills/ast-grep/SKILL.md - Guide for writing ast-grep rules to perform structural code search and analysis. Use when users need to search codebases using Abstract Syntax Tree (AST) patterns, find specific code structures, or perform complex code queries that go beyond simple text search. This skill should be used when users ask to search for code patterns, find specific language constructs, or locate code with particular structural characteristics.
+**MUST run tests using the appropriate npx command** - executing 'run test' always requires the user to press 'q' so the agent can continue.  Use npx vitest run instead.
+**MUST USE Archon MCP server** for task management.  As tasks are completed, update their status in Archon.  If Kiro is running a task, make sure it was moved into the Doing column in Archon.  If Kiro has finished a task, update it to the Completed column.  Follow your internal Kiro process for managing tasks as well.

@@ -184,8 +184,8 @@ export const MessageSchema = z.object({
   role: MessageRoleSchema,
   content: z.union([z.string(), z.array(ContentBlockSchema)]),
   timestamp: z.number().int().positive(),
-  model: z.string().optional(),
-  tokens: TokenUsageSchema.optional(),
+  model: z.string().optional().nullable(),
+  tokens: TokenUsageSchema.optional().nullable(),
   toolCalls: z.array(ToolCallSchema).optional(),
   toolResults: z.array(ToolResultSchema).optional(),
 });
@@ -213,33 +213,60 @@ export type SessionTokenCount = z.infer<typeof SessionTokenCountSchema>;
  */
 export const SessionSchema = z.object({
   id: SessionIdSchema,
+  version: z.string().default('1.0.0'),
   created: z.number().int().positive(),
   lastModified: z.number().int().positive(),
   model: z.string(),
+  workspaceRoot: z.string(),
   tokenCount: SessionTokenCountSchema,
   filesAccessed: z.array(z.string()),
   messages: z.array(MessageSchema),
   contextFiles: z.array(z.string()),
-  workspaceRoot: z.string().optional(),
-  title: z.string().optional(),
+  title: z.string().optional().nullable(),
+  tags: z.array(z.string()).default([]),
+  notes: z.string().optional().nullable(),
 });
 export type Session = z.infer<typeof SessionSchema>;
 
 /**
  * Session metadata for listing (without full message history).
  */
-export const SessionMetadataSchema = SessionSchema.pick({
-  id: true,
-  created: true,
-  lastModified: true,
-  model: true,
-  tokenCount: true,
-  title: true,
-}).extend({
+export const SessionMetadataSchema = z.object({
+  id: SessionIdSchema,
+  created: z.number().int().positive(),
+  lastModified: z.number().int().positive(),
+  model: z.string(),
+  tokenCount: SessionTokenCountSchema,
+  title: z.string().optional().nullable(),
+  workspaceRoot: z.string().optional().nullable(),
   messageCount: z.number().int().nonnegative(),
-  lastMessage: z.string().optional(),
+  lastMessage: z.string().optional().nullable(),
+  contextFiles: z.array(z.string()),
+  tags: z.array(z.string()).default([]),
+  preview: z.string().optional().nullable(),
 });
 export type SessionMetadata = z.infer<typeof SessionMetadataSchema>;
+
+/**
+ * Session index schema for fast metadata access.
+ */
+export const SessionIndexSchema = z.object({
+  version: z.string().default('1.0.0'),
+  lastUpdated: z.number().int().positive(),
+  sessions: z.record(SessionIdSchema, SessionMetadataSchema),
+});
+export type SessionIndex = z.infer<typeof SessionIndexSchema>;
+
+/**
+ * Versioned session storage format.
+ */
+export const VersionedSessionSchema = z.object({
+  version: z.string().default('1.0.0'),
+  compressed: z.boolean().default(false),
+  checksum: z.string().optional(),
+  data: z.union([SessionSchema, z.string()]), // Can be Session object or compressed string
+});
+export type VersionedSession = z.infer<typeof VersionedSessionSchema>;
 
 // =============================================================================
 // HELPER FUNCTIONS

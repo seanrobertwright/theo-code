@@ -1,0 +1,55 @@
+{
+  "id": "f6b268d0-394e-49a6-83dd-1236bcf5cd2f",
+  "created": 1573245715675,
+  "lastModified": 1284685264185,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 4917,
+    "input": 10,
+    "output": 22624
+  },
+  "messages": [
+    {
+      "id": "5a4f1072-193f-4c86-bbc1-a18632603b01",
+      "role": "assistant",
+      "content": "h$8`o3i~3^=",
+      "timestamp": 1666061197501
+    },
+    {
+      "id": "3eb3fcb2-c474-4e0c-8f82-a4fd2485ce64",
+      "role": "assistant",
+      "content": "j",
+      "timestamp": 1185289603777
+    },
+    {
+      "id": "574b8213-fdd5-4185-80be-bb6bdeba39ce",
+      "role": "user",
+      "content": "bM-Xj",
+      "timestamp": 1061855278717
+    },
+    {
+      "id": "ea136c1a-b3f9-4dec-8c26-eca2ba313dbe",
+      "role": "assistant",
+      "content": "<oT7H:",
+      "timestamp": 1176179622665
+    },
+    {
+      "id": "9e026449-9b86-4ac9-85f6-9250ca1722b9",
+      "role": "system",
+      "content": "<.GWKNGu",
+      "timestamp": 1004906728312
+    },
+    {
+      "id": "0382fd00-b218-45b7-95a3-b189339e9e23",
+      "role": "assistant",
+      "content": "E{eN",
+      "timestamp": 1290336277007
+    },
+    {
+      "id": "f1a036ff-318f-462f-9df9-204e60378733",
+      "role": "assistant",
+      "content": "y^]IEJR",
+      "timestamp": 1735032730467
+    }
+  ]
+}

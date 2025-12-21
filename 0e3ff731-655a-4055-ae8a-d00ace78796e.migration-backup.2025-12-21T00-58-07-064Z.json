@@ -1,0 +1,21 @@
+{
+  "id": "0e3ff731-655a-4055-ae8a-d00ace78796e",
+  "version": "0.8.0",
+  "created": 1766192287064,
+  "lastModified": 1766278687064,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 100,
+    "input": 50,
+    "output": 50
+  },
+  "messages": [
+    {
+      "id": "e56af424-4c0e-4cd4-a2cf-c98f7732328f",
+      "role": "user",
+      "content": "{_zP\"",
+      "timestamp": 1766278687064
+    }
+  ],
+  "workspaceRoot": "/test/workspace"
+}

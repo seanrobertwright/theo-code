@@ -1,0 +1,20 @@
+{
+  "id": "313cfaaa-0452-4121-ac97-f62b9fb1d2c4",
+  "version": "0.7.0",
+  "created": 1766192060313,
+  "lastModified": 1766278460313,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 100,
+    "input": 50,
+    "output": 50
+  },
+  "messages": [
+    {
+      "id": "713f0de0-6b37-48e6-8fc8-095743520832",
+      "role": "user",
+      "content": ",CbC&}O5[OsF",
+      "timestamp": 1766278460313
+    }
+  ]
+}

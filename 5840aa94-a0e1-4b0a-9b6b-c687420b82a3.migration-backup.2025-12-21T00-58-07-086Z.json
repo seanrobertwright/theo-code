@@ -1,0 +1,33 @@
+{
+  "id": "ab18c012-ea2a-46c3-ad8b-39ecd973902c",
+  "created": 1118167993894,
+  "lastModified": 1000000000015,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 58579,
+    "input": 5,
+    "output": 14
+  },
+  "messages": [
+    {
+      "id": "8cf47e93-7067-47ba-afdb-e3baa9da05f9",
+      "role": "system",
+      "content": "$",
+      "timestamp": 1286842139217
+    },
+    {
+      "id": "1d33dfc5-e0c8-4ded-b862-dde279fda155",
+      "role": "system",
+      "content": "m}TP(9RY!",
+      "timestamp": 1297766501666
+    },
+    {
+      "id": "59dd50c1-a224-44c6-80c7-dee945a4e28c",
+      "role": "user",
+      "content": "{dbk",
+      "timestamp": 1368406794699
+    }
+  ],
+  "version": "0.8.0",
+  "workspaceRoot": "/test/workspace"
+}

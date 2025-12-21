@@ -1,0 +1,45 @@
+{
+  "id": "43bafbc8-0b26-4c15-8785-b22412023148",
+  "created": 1701052244590,
+  "lastModified": 1078377785839,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 4,
+    "input": 29104,
+    "output": 23510
+  },
+  "messages": [
+    {
+      "id": "56ecd022-8444-497c-9915-4760addd0b52",
+      "role": "assistant",
+      "content": "=3 {1^eMKH",
+      "timestamp": 1457053387730
+    },
+    {
+      "id": "54d5ffa3-84f8-472a-b77b-1b95dbef75ab",
+      "role": "system",
+      "content": "%TLFR{rI:aN]",
+      "timestamp": 1006208120235
+    },
+    {
+      "id": "204ba8c2-f4ff-4af7-882a-7a7b6302f41b",
+      "role": "user",
+      "content": "-ZYUQ",
+      "timestamp": 1625179940330
+    },
+    {
+      "id": "51d88f00-6483-47e8-89b0-21685ade0840",
+      "role": "user",
+      "content": ",)z5=7VM-S",
+      "timestamp": 1243672931382
+    },
+    {
+      "id": "ed7ef553-6129-4dcc-ab70-74f633ef4223",
+      "role": "user",
+      "content": ".%<QG",
+      "timestamp": 1578559702911
+    }
+  ],
+  "version": "0.8.0",
+  "workspaceRoot": "/test/workspace"
+}

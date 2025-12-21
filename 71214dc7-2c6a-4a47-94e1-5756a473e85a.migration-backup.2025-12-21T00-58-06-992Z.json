@@ -1,0 +1,29 @@
+{
+  "id": "8a77cfc0-2b8d-4fa4-9e0b-e677e8f4550e",
+  "created": 1564289615245,
+  "lastModified": 1000000000010,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 15,
+    "input": 6,
+    "output": 2276
+  },
+  "messages": [
+    {
+      "id": "25e4ea13-265b-48d8-9fb0-aefd4bac4c12",
+      "role": "system",
+      "content": "CE\"",
+      "timestamp": 1412319576565
+    }
+  ],
+  "version": "0.9.0",
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [
+    "/test/file1.ts",
+    "/test/file2.ts"
+  ],
+  "tags": [
+    "test",
+    "migration"
+  ]
+}

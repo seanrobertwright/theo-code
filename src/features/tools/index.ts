@@ -11,4 +11,4 @@ export type {
   ToolContext,
   ToolExecutionResult,
   ToolRegistryEntry,
-} from '../shared/types/tools.js';
+} from '../../shared/types/tools.js';

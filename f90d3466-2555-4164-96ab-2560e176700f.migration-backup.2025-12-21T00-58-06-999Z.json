@@ -1,0 +1,16 @@
+{
+  "id": "f90d3466-2555-4164-96ab-2560e176700f",
+  "version": "0.9.0",
+  "created": 1766278686999,
+  "lastModified": 1766278686999,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 0,
+    "input": 0,
+    "output": 0
+  },
+  "messages": [],
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [],
+  "tags": []
+}

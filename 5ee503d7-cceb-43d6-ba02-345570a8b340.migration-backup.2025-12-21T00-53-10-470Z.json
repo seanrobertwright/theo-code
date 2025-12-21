@@ -1,0 +1,25 @@
+{
+  "id": "3e1ee4bb-c009-43de-9f0d-23f61668d790",
+  "created": 1766278389993,
+  "lastModified": 1634682275602,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 54861,
+    "input": 49994,
+    "output": 24214
+  },
+  "messages": [
+    {
+      "id": "729fe47b-2a30-4759-bcab-b1407675d511",
+      "role": "system",
+      "content": "uisProt",
+      "timestamp": 1000000000033
+    },
+    {
+      "id": "2c0c5cc9-3b50-42d8-9707-740b68b5ce0d",
+      "role": "user",
+      "content": "v3n^Rf",
+      "timestamp": 1079348724472
+    }
+  ]
+}

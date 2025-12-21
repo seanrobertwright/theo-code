@@ -1,0 +1,19 @@
+{
+  "id": "1e31d822-8745-4a3a-afad-68f1b59347c1",
+  "created": 1761293281377,
+  "lastModified": 1100343627188,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 99995,
+    "input": 11,
+    "output": 24773
+  },
+  "messages": [
+    {
+      "id": "a8c4ed90-af49-47c2-a6f4-7f34db722363",
+      "role": "system",
+      "content": ".rPq;",
+      "timestamp": 1550978913052
+    }
+  ]
+}

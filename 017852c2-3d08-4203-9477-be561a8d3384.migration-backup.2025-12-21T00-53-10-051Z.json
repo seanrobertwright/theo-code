@@ -1,0 +1,21 @@
+{
+  "id": "ff04f141-dd1c-4898-9eaa-715888eb570f",
+  "created": 1440041991499,
+  "lastModified": 1748737400556,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 12,
+    "input": 5309,
+    "output": 36444
+  },
+  "messages": [
+    {
+      "id": "fd9348b9-89ba-4dfc-af9a-c70d9dcb28a1",
+      "role": "system",
+      "content": "cmZbC",
+      "timestamp": 1321991478433
+    }
+  ],
+  "version": "0.8.0",
+  "workspaceRoot": "/test/workspace"
+}

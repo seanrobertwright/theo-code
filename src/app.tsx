@@ -16,8 +16,11 @@ import { formatTokenCount } from './shared/utils/index.js';
 import { AgentLoop } from './features/agent/index.js';
 import { toolRegistry } from './features/tools/framework.js';
 import { createFileSystemTools } from './features/tools/filesystem/index.js';
-import { ConfirmDialog } from './shared/components/ConfirmDialog/index.js';
+import { ConfirmDialog, SessionRestoration, SessionDetectionLoading, SessionDetectionError } from './shared/components/index.js';
+import { createSessionManager } from './features/session/index.js';
+import { detectAvailableSessions, restoreSessionOnStartup } from './features/session/startup.js';
 import type { ModelConfig } from './shared/types/models.js';
+import type { SessionMetadata, SessionId } from './shared/types/index.js';
 
 // =============================================================================
 // PROPS
@@ -218,8 +221,18 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
   // Local state for input
   const [inputValue, setInputValue] = useState('');
 
+  // Session restoration state
+  const [sessionRestoreState, setSessionRestoreState] = useState<
+    'detecting' | 'prompting' | 'restoring' | 'error' | 'complete'
+  >('detecting');
+  const [availableSessions, setAvailableSessions] = useState<SessionMetadata[]>([]);
+  const [sessionRestoreError, setSessionRestoreError] = useState<string | null>(null);
+
   // Agent loop ref
   const agentRef = useRef<AgentLoop | null>(null);
+  
+  // Session manager ref
+  const sessionManagerRef = useRef(createSessionManager(workspaceRoot));
 
   // Store actions
   const setWorkspaceRoot = useAppStore((state) => state.setWorkspaceRoot);
@@ -255,8 +268,37 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
     }
   }, [createModelConfig]);
 
-  // Initialize store on mount
+  // Session detection on startup
   useEffect(() => {
+    const detectSessions = async () => {
+      try {
+        setSessionRestoreState('detecting');
+        
+        const detectionResult = await detectAvailableSessions(sessionManagerRef.current, {
+          maxRecentSessions: 10,
+          recentThresholdMs: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+        
+        if (detectionResult.hasAvailableSessions) {
+          setAvailableSessions(detectionResult.recentSessions);
+          setSessionRestoreState('prompting');
+        } else {
+          // No sessions found, proceed with normal startup
+          setSessionRestoreState('complete');
+          initializeNewSession();
+        }
+      } catch (error) {
+        console.error('Session detection failed:', error);
+        setSessionRestoreError(error instanceof Error ? error.message : 'Unknown error');
+        setSessionRestoreState('error');
+      }
+    };
+    
+    void detectSessions();
+  }, []);
+
+  // Initialize new session
+  const initializeNewSession = useCallback(() => {
     setWorkspaceRoot(workspaceRoot);
     setCurrentModel(initialModel);
     createNewSession(initialModel);
@@ -275,6 +317,87 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
       });
     }
   }, [workspaceRoot, initialModel, config, setWorkspaceRoot, setCurrentModel, createNewSession, addMessage]);
+
+  // Handle session restoration
+  const handleSessionSelected = useCallback(async (sessionId: string) => {
+    try {
+      setSessionRestoreState('restoring');
+      
+      const result = await restoreSessionOnStartup(sessionManagerRef.current, sessionId as SessionId);
+      
+      if (result.success) {
+        // Update store with restored session
+        setWorkspaceRoot(result.session.workspaceRoot);
+        setCurrentModel(result.session.model);
+        
+        // Use the session manager's restoreSessionWithContext to update the store
+        const storeRestoreSession = (useAppStore.getState() as any).restoreSession;
+        if (storeRestoreSession) {
+          await storeRestoreSession(sessionId);
+        }
+        
+        // Register filesystem tools
+        const fileSystemTools = createFileSystemTools();
+        for (const tool of fileSystemTools) {
+          toolRegistry.register(tool);
+        }
+        
+        // Show restoration success message
+        addMessage({
+          role: 'assistant',
+          content: `✓ Session restored successfully!\n\nModel: ${result.session.model}\nMessages: ${result.session.messages.length}\nTokens: ${result.session.tokenCount.total.toLocaleString()}${
+            result.contextFilesMissing.length > 0
+              ? `\n\n⚠️ Warning: ${result.contextFilesMissing.length} context file(s) are no longer available.`
+              : ''
+          }`,
+        });
+        
+        setSessionRestoreState('complete');
+      } else {
+        throw new Error(result.error ?? 'Failed to restore session');
+      }
+    } catch (error) {
+      console.error('Session restoration failed:', error);
+      setSessionRestoreError(error instanceof Error ? error.message : 'Unknown error');
+      setSessionRestoreState('error');
+    }
+  }, [setWorkspaceRoot, setCurrentModel, addMessage]);
+
+  // Handle new session selection
+  const handleNewSession = useCallback(() => {
+    setSessionRestoreState('complete');
+    initializeNewSession();
+  }, [initializeNewSession]);
+
+  // Handle session detection error retry
+  const handleRetryDetection = useCallback(() => {
+    setSessionRestoreError(null);
+    setSessionRestoreState('detecting');
+    
+    // Re-run detection
+    const detectSessions = async () => {
+      try {
+        const detectionResult = await detectAvailableSessions(sessionManagerRef.current, {
+          maxRecentSessions: 10,
+          recentThresholdMs: 7 * 24 * 60 * 60 * 1000,
+        });
+        
+        if (detectionResult.hasAvailableSessions) {
+          setAvailableSessions(detectionResult.recentSessions);
+          setSessionRestoreState('prompting');
+        } else {
+          setSessionRestoreState('complete');
+          initializeNewSession();
+        }
+      } catch (error) {
+        console.error('Session detection failed:', error);
+        setSessionRestoreError(error instanceof Error ? error.message : 'Unknown error');
+        setSessionRestoreState('error');
+      }
+    };
+    
+    void detectSessions();
+  }, [initializeNewSession]);
 
   // Handle Ctrl+C to exit
   useInput((input, key) => {
@@ -397,6 +520,39 @@ Then restart theo-code.`,
   const inputHeight = 3;
   const statusHeight = 1;
   const messageListHeight = terminalHeight - headerHeight - inputHeight - statusHeight - 2;
+
+  // Show session restoration UI if not complete
+  if (sessionRestoreState !== 'complete') {
+    return (
+      <Box flexDirection="column" height={terminalHeight} justifyContent="center">
+        {sessionRestoreState === 'detecting' && <SessionDetectionLoading />}
+        
+        {sessionRestoreState === 'prompting' && (
+          <SessionRestoration
+            sessions={availableSessions}
+            onSessionSelected={handleSessionSelected}
+            onNewSession={handleNewSession}
+            showDetails={false}
+            maxDisplaySessions={8}
+          />
+        )}
+        
+        {sessionRestoreState === 'restoring' && (
+          <Box flexDirection="column" padding={1}>
+            <Text color="cyan">Restoring session...</Text>
+          </Box>
+        )}
+        
+        {sessionRestoreState === 'error' && (
+          <SessionDetectionError
+            error={sessionRestoreError ?? 'Unknown error'}
+            onRetry={handleRetryDetection}
+            onContinue={handleNewSession}
+          />
+        )}
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" height={terminalHeight}>

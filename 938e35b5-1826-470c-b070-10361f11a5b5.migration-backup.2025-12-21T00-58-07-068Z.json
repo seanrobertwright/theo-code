@@ -1,0 +1,20 @@
+{
+  "id": "938e35b5-1826-470c-b070-10361f11a5b5",
+  "version": "0.7.0",
+  "created": 1766192287068,
+  "lastModified": 1766278687068,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 100,
+    "input": 50,
+    "output": 50
+  },
+  "messages": [
+    {
+      "id": "3aec6534-1fbd-41ff-af0b-9486f3fdb563",
+      "role": "user",
+      "content": "t 2>{hUyP82E[X",
+      "timestamp": 1766278687068
+    }
+  ]
+}

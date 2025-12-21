@@ -20,15 +20,22 @@ import type {
   SessionTokenCount,
 } from '../types/index.js';
 import { createMessageId, createSessionId, MessageSchema } from '../types/index.js';
+import { 
+  createSessionPersistenceActions,
+  createDebouncedSave,
+  createDefaultSessionManager,
+  type SessionPersistenceActions 
+} from './session-integration.js';
+import { loadConfig } from '../../config/index.js';
 
 // =============================================================================
 // STATE INTERFACE
 // =============================================================================
 
 /**
- * Application state interface.
+ * Application state interface with session persistence.
  */
-export interface AppState {
+export interface AppState extends SessionPersistenceActions {
   // -------------------------------------------------------------------------
   // Session State
   // -------------------------------------------------------------------------
@@ -142,7 +149,17 @@ const initialState: Omit<
   | 'setWorkspaceRoot'
   | 'setCurrentModel'
   | 'setError'
+  | 'showConfirmation'
+  | 'hideConfirmation'
   | 'reset'
+  | 'saveCurrentSession'
+  | 'loadSession'
+  | 'restoreSession'
+  | 'deletePersistedSession'
+  | 'enableAutoSave'
+  | 'disableAutoSave'
+  | 'isAutoSaveEnabled'
+  | 'getSessionManager'
 > = {
   session: null,
   messages: [],
@@ -153,8 +170,6 @@ const initialState: Omit<
   confirmationDialog: {
     isVisible: false,
     message: '',
-    details: undefined,
-    resolve: undefined,
   },
   contextFiles: new Map(),
   workspaceRoot: process.cwd(),
@@ -165,8 +180,11 @@ const initialState: Omit<
 // STORE CREATION
 // =============================================================================
 
+// Create a single SessionManager instance to be shared across the store
+const globalSessionManager = createDefaultSessionManager();
+
 /**
- * Main application store.
+ * Main application store with session persistence.
  *
  * @example
  * ```typescript
@@ -176,10 +194,35 @@ const initialState: Omit<
  *
  * // Add a user message
  * addMessage({ role: 'user', content: 'Hello!' });
+ *
+ * // Save current session
+ * const saveSession = useAppStore((state) => state.saveCurrentSession);
+ * await saveSession();
  * ```
  */
 export const useAppStore = create<AppState>()(
-  subscribeWithSelector((set, get) => ({
+  subscribeWithSelector((set, get) => {
+    // Use the global SessionManager instance
+    const sessionManager = globalSessionManager;
+    
+    // Create debounced save function
+    const debouncedSave = createDebouncedSave(sessionManager, 1000);
+    
+    // Create session persistence actions
+    const persistenceActions = createSessionPersistenceActions(sessionManager)(set, get);
+    
+    // Initialize auto-save if enabled
+    const config = loadConfig(process.cwd());
+    const sessionConfig = config.global.session;
+    if (sessionConfig?.autoSaveInterval) {
+      sessionManager.enableAutoSave({
+        enabled: true,
+        intervalMs: sessionConfig.autoSaveInterval,
+        maxRetries: 3,
+      });
+    }
+    
+    return {
     ...initialState,
 
     // -------------------------------------------------------------------------
@@ -188,22 +231,40 @@ export const useAppStore = create<AppState>()(
 
     setSession: (session): void => {
       set({ session });
+      sessionManager.setCurrentSession(session);
+      if (session) {
+        // Trigger immediate save for session changes to ensure crash recovery
+        debouncedSave(session, (error) => {
+          get().setError(`Failed to save session: ${error.message}`);
+        });
+      }
     },
 
     createNewSession: (model): Session => {
       const now = Date.now();
       const session: Session = {
         id: createSessionId(),
+        version: '1.0.0',
         created: now,
         lastModified: now,
         model,
+        workspaceRoot: get().workspaceRoot,
         tokenCount: { total: 0, input: 0, output: 0 },
         filesAccessed: [],
         messages: [],
         contextFiles: [],
-        workspaceRoot: get().workspaceRoot,
+        tags: [],
       };
       set({ session, messages: [], contextFiles: new Map() });
+      
+      // Ensure SessionManager is synchronized with the new session
+      sessionManager.setCurrentSession(session);
+      
+      // Trigger save for crash recovery
+      debouncedSave(session, (error) => {
+        get().setError(`Failed to save session: ${error.message}`);
+      });
+      
       return session;
     },
 
@@ -219,12 +280,16 @@ export const useAppStore = create<AppState>()(
         output: tokens.output ?? session.tokenCount.output,
       };
 
-      set({
-        session: {
-          ...session,
-          tokenCount: updatedTokenCount,
-          lastModified: Date.now(),
-        },
+      const updatedSession = {
+        ...session,
+        tokenCount: updatedTokenCount,
+        lastModified: Date.now(),
+      };
+
+      set({ session: updatedSession });
+      sessionManager.setCurrentSession(updatedSession);
+      debouncedSave(updatedSession, (error) => {
+        get().setError(`Failed to save session: ${error.message}`);
       });
     },
 
@@ -239,61 +304,109 @@ export const useAppStore = create<AppState>()(
         timestamp: Date.now(),
       });
 
-      set((state) => ({
-        messages: [...state.messages, message],
-        session: state.session
-          ? {
-              ...state.session,
-              messages: [...state.session.messages, message],
-              lastModified: Date.now(),
-            }
-          : null,
-      }));
+      const updatedMessages = [...get().messages, message];
+      const currentSession = get().session;
+      const updatedSession = currentSession ? {
+        ...currentSession,
+        messages: updatedMessages,
+        lastModified: Date.now(),
+      } : null;
+
+      set({
+        messages: updatedMessages,
+        session: updatedSession,
+      });
+
+      if (updatedSession) {
+        sessionManager.setCurrentSession(updatedSession);
+        debouncedSave(updatedSession, (error) => {
+          get().setError(`Failed to save session: ${error.message}`);
+        });
+      }
 
       return message;
     },
 
     updateMessage: (id, updates): void => {
-      set((state) => ({
-        messages: state.messages.map((msg) =>
+      set((state) => {
+        const updatedMessages = state.messages.map((msg) =>
           msg.id === id ? { ...msg, ...updates } : msg
-        ),
-        session: state.session
+        );
+        const updatedSession = state.session
           ? {
               ...state.session,
-              messages: state.session.messages.map((msg) =>
-                msg.id === id ? { ...msg, ...updates } : msg
-              ),
+              messages: updatedMessages,
               lastModified: Date.now(),
             }
-          : null,
-      }));
+          : null;
+
+        return {
+          messages: updatedMessages,
+          session: updatedSession,
+        };
+      });
+
+      // Trigger auto-save for message updates to ensure crash recovery
+      const state = get();
+      if (state.session) {
+        sessionManager.setCurrentSession(state.session);
+        debouncedSave(state.session, (error) => {
+          get().setError(`Failed to save session: ${error.message}`);
+        });
+      }
     },
 
     deleteMessage: (id): void => {
-      set((state) => ({
-        messages: state.messages.filter((msg) => msg.id !== id),
-        session: state.session
+      set((state) => {
+        const updatedMessages = state.messages.filter((msg) => msg.id !== id);
+        const updatedSession = state.session
           ? {
               ...state.session,
-              messages: state.session.messages.filter((msg) => msg.id !== id),
+              messages: updatedMessages,
               lastModified: Date.now(),
             }
-          : null,
-      }));
+          : null;
+
+        return {
+          messages: updatedMessages,
+          session: updatedSession,
+        };
+      });
+
+      // Trigger auto-save for message deletions to ensure crash recovery
+      const state = get();
+      if (state.session) {
+        sessionManager.setCurrentSession(state.session);
+        debouncedSave(state.session, (error) => {
+          get().setError(`Failed to save session: ${error.message}`);
+        });
+      }
     },
 
     clearMessages: (): void => {
-      set((state) => ({
-        messages: [],
-        session: state.session
+      set((state) => {
+        const updatedSession = state.session
           ? {
               ...state.session,
               messages: [],
               lastModified: Date.now(),
             }
-          : null,
-      }));
+          : null;
+
+        return {
+          messages: [],
+          session: updatedSession,
+        };
+      });
+
+      // Trigger auto-save for message clearing to ensure crash recovery
+      const state = get();
+      if (state.session) {
+        sessionManager.setCurrentSession(state.session);
+        debouncedSave(state.session, (error) => {
+          get().setError(`Failed to save session: ${error.message}`);
+        });
+      }
     },
 
     // -------------------------------------------------------------------------
@@ -344,21 +457,31 @@ export const useAppStore = create<AppState>()(
         newContextFiles.set(path, content);
 
         const contextFilesList = Array.from(newContextFiles.keys());
+        const updatedSession = state.session
+          ? {
+              ...state.session,
+              contextFiles: contextFilesList,
+              filesAccessed: [
+                ...new Set([...state.session.filesAccessed, path]),
+              ],
+              lastModified: Date.now(),
+            }
+          : null;
 
         return {
           contextFiles: newContextFiles,
-          session: state.session
-            ? {
-                ...state.session,
-                contextFiles: contextFilesList,
-                filesAccessed: [
-                  ...new Set([...state.session.filesAccessed, path]),
-                ],
-                lastModified: Date.now(),
-              }
-            : null,
+          session: updatedSession,
         };
       });
+
+      // Trigger auto-save for context file changes to ensure crash recovery
+      const state = get();
+      if (state.session) {
+        sessionManager.setCurrentSession(state.session);
+        debouncedSave(state.session, (error) => {
+          get().setError(`Failed to save session: ${error.message}`);
+        });
+      }
     },
 
     removeContextFile: (path): void => {
@@ -366,30 +489,54 @@ export const useAppStore = create<AppState>()(
         const newContextFiles = new Map(state.contextFiles);
         newContextFiles.delete(path);
 
+        const updatedSession = state.session
+          ? {
+              ...state.session,
+              contextFiles: Array.from(newContextFiles.keys()),
+              lastModified: Date.now(),
+            }
+          : null;
+
         return {
           contextFiles: newContextFiles,
-          session: state.session
-            ? {
-                ...state.session,
-                contextFiles: Array.from(newContextFiles.keys()),
-                lastModified: Date.now(),
-              }
-            : null,
+          session: updatedSession,
         };
       });
+
+      // Trigger auto-save for context file changes to ensure crash recovery
+      const state = get();
+      if (state.session) {
+        sessionManager.setCurrentSession(state.session);
+        debouncedSave(state.session, (error) => {
+          get().setError(`Failed to save session: ${error.message}`);
+        });
+      }
     },
 
     clearContextFiles: (): void => {
-      set((state) => ({
-        contextFiles: new Map(),
-        session: state.session
+      set((state) => {
+        const updatedSession = state.session
           ? {
               ...state.session,
               contextFiles: [],
               lastModified: Date.now(),
             }
-          : null,
-      }));
+          : null;
+
+        return {
+          contextFiles: new Map(),
+          session: updatedSession,
+        };
+      });
+
+      // Trigger auto-save for context file changes to ensure crash recovery
+      const state = get();
+      if (state.session) {
+        sessionManager.setCurrentSession(state.session);
+        debouncedSave(state.session, (error) => {
+          get().setError(`Failed to save session: ${error.message}`);
+        });
+      }
     },
 
     // -------------------------------------------------------------------------
@@ -401,16 +548,29 @@ export const useAppStore = create<AppState>()(
     },
 
     setCurrentModel: (model): void => {
-      set((state) => ({
-        currentModel: model,
-        session: state.session
+      set((state) => {
+        const updatedSession = state.session
           ? {
               ...state.session,
               model,
               lastModified: Date.now(),
             }
-          : null,
-      }));
+          : null;
+
+        return {
+          currentModel: model,
+          session: updatedSession,
+        };
+      });
+
+      // Trigger auto-save for model changes to ensure crash recovery
+      const state = get();
+      if (state.session) {
+        sessionManager.setCurrentSession(state.session);
+        debouncedSave(state.session, (error) => {
+          get().setError(`Failed to save session: ${error.message}`);
+        });
+      }
     },
 
     setError: (error): void => {
@@ -427,7 +587,7 @@ export const useAppStore = create<AppState>()(
           confirmationDialog: {
             isVisible: true,
             message,
-            details,
+            ...(details && { details }),
             resolve: (approved: boolean) => {
               resolve(approved);
             },
@@ -441,8 +601,6 @@ export const useAppStore = create<AppState>()(
         confirmationDialog: {
           isVisible: false,
           message: '',
-          details: undefined,
-          resolve: undefined,
         },
       });
     },
@@ -452,8 +610,16 @@ export const useAppStore = create<AppState>()(
         ...initialState,
         contextFiles: new Map(),
       });
+      sessionManager.setCurrentSession(null);
     },
-  }))
+
+    // -------------------------------------------------------------------------
+    // Session Persistence Actions
+    // -------------------------------------------------------------------------
+    
+    ...persistenceActions,
+  };
+  })
 );
 
 // =============================================================================

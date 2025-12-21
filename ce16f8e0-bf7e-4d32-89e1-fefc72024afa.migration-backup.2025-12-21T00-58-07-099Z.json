@@ -1,0 +1,77 @@
+{
+  "id": "7486ced0-1e2c-4b7f-8973-772611f2a13d",
+  "created": 1504112877716,
+  "lastModified": 1369582701475,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 76458,
+    "input": 22814,
+    "output": 12
+  },
+  "messages": [
+    {
+      "id": "b269dfa4-72ca-49c5-8116-0cf333866255",
+      "role": "system",
+      "content": "C0nP KQA1hLb",
+      "timestamp": 1476821411010
+    },
+    {
+      "id": "21991dc1-c3d5-4d51-840a-9776d52c2fe2",
+      "role": "system",
+      "content": "gR",
+      "timestamp": 1319895068108
+    },
+    {
+      "id": "1718eed4-9865-4bc8-ad74-3009234c2654",
+      "role": "user",
+      "content": "SR9ED`H=",
+      "timestamp": 1655451651127
+    },
+    {
+      "id": "6aa1c93e-c549-42ea-b916-62ed2515951c",
+      "role": "system",
+      "content": "gYk}sE?Yc)W",
+      "timestamp": 1530154363338
+    },
+    {
+      "id": "1832be7a-77ea-4aaf-9550-98e69cb2cd8a",
+      "role": "user",
+      "content": "YV6uD%U~",
+      "timestamp": 1688008395796
+    },
+    {
+      "id": "83f20580-6868-4fa0-b94d-7b8ef6e5bcd4",
+      "role": "assistant",
+      "content": "B[(#gOEFp*HQ",
+      "timestamp": 1288167113370
+    },
+    {
+      "id": "4cf6d0c7-6f04-42c9-abc9-ad0ec2c2e774",
+      "role": "assistant",
+      "content": "YoiF5R:{",
+      "timestamp": 1278137044638
+    },
+    {
+      "id": "0f73e16a-875b-46f2-9020-35cbef456cec",
+      "role": "assistant",
+      "content": ">:w=E@,$",
+      "timestamp": 1696390529852
+    },
+    {
+      "id": "8dc63e99-89e1-4e54-a57d-1a2ca90545a6",
+      "role": "user",
+      "content": "rO@",
+      "timestamp": 1618035200053
+    }
+  ],
+  "version": "0.9.0",
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [
+    "/test/file1.ts",
+    "/test/file2.ts"
+  ],
+  "tags": [
+    "test",
+    "migration"
+  ]
+}

@@ -207,13 +207,16 @@ describe('SessionSchema', () => {
   it('should accept valid session', () => {
     const session = {
       id: '550e8400-e29b-41d4-a716-446655440000',
+      version: '1.0.0',
       created: Date.now(),
       lastModified: Date.now(),
       model: 'gpt-4o',
+      workspaceRoot: '/path/to/workspace',
       tokenCount: { total: 100, input: 80, output: 20 },
       filesAccessed: ['/src/file.ts'],
       messages: [],
       contextFiles: [],
+      tags: [],
     };
     const result = SessionSchema.safeParse(session);
     expect(result.success).toBe(true);

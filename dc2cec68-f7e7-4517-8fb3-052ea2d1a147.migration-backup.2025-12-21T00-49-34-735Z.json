@@ -1,0 +1,29 @@
+{
+  "id": "4843e0d9-caad-4a5c-9c64-2f93c5d46662",
+  "created": 1766278174589,
+  "lastModified": 1690280893879,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 99811,
+    "input": 3560,
+    "output": 49329
+  },
+  "messages": [
+    {
+      "id": "c0460f15-77cb-45e5-a43d-251bc92a6d99",
+      "role": "system",
+      "content": "#*gfz26~",
+      "timestamp": 1644415327906
+    }
+  ],
+  "version": "0.9.0",
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [
+    "/test/file1.ts",
+    "/test/file2.ts"
+  ],
+  "tags": [
+    "test",
+    "migration"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "e7d91044-8948-4d80-a8fc-2c41c9b92534",
+  "created": 1185282781092,
+  "lastModified": 1626718234407,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 7,
+    "input": 2,
+    "output": 13
+  },
+  "messages": [
+    {
+      "id": "dcf99f6d-3be7-4b69-8571-f88ef73e5e49",
+      "role": "system",
+      "content": "EFpeyhasO",
+      "timestamp": 1766278389990
+    }
+  ]
+}

@@ -49,10 +49,14 @@ export {
   SessionTokenCountSchema,
   SessionSchema,
   SessionMetadataSchema,
+  SessionIndexSchema,
+  VersionedSessionSchema,
   // Session types
   type SessionTokenCount,
   type Session,
   type SessionMetadata,
+  type SessionIndex,
+  type VersionedSession,
   // Helper functions
   createMessageId,
   createSessionId,

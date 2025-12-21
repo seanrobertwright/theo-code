@@ -878,6 +878,11 @@ export default defineConfig({
 9. **MUST use semantic commits** - feat:, fix:, docs:, refactor:, test:
 10. **MUST write complete JSDoc** - ALL exports must be documented
 11. **MUST pass ALL automated checks** - Before ANY merge
+12. **MUST use Archon MCP server** for task management alongside Kiro task management.  Create a project in Archon for the project if it has not already been created.
+13. **MUST use Archon for RAG** - use Archon for research and RAG first, before conducting any web searched.
+
+14. **MUST run tests using the appropriate npx command** - executing 'run test' always requires the user to press 'q' so the agent can continue.
+
 
 ## 📦 npm Scripts
 

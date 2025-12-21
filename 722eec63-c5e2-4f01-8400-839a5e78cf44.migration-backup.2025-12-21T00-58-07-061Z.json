@@ -1,0 +1,33 @@
+{
+  "id": "cd21f7b7-0716-4798-9524-ff05f9760840",
+  "created": 1000000000038,
+  "lastModified": 1387782837842,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 27117,
+    "input": 40289,
+    "output": 47493
+  },
+  "messages": [
+    {
+      "id": "606439a3-a813-433f-86ff-8025725d9056",
+      "role": "user",
+      "content": "loku",
+      "timestamp": 1118704842547
+    },
+    {
+      "id": "d036708a-d37a-45e5-a2ea-92b1ac970e39",
+      "role": "system",
+      "content": ")~^",
+      "timestamp": 1192577553002
+    },
+    {
+      "id": "a992f77e-cc63-4dee-9ce9-12de12f96d78",
+      "role": "user",
+      "content": "7x#a",
+      "timestamp": 1766278686969
+    }
+  ],
+  "version": "0.8.0",
+  "workspaceRoot": "/test/workspace"
+}

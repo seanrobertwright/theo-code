@@ -1,0 +1,12 @@
+{
+  "id": "1adcbb0c-8f3e-4423-8720-19600400b5c4",
+  "created": 1000000000006,
+  "lastModified": 1600549715416,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 99985,
+    "input": 31410,
+    "output": 14
+  },
+  "messages": []
+}

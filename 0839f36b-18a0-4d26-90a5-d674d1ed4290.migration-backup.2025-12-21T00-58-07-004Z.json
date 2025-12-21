@@ -1,0 +1,75 @@
+{
+  "id": "964c8f2a-c21c-49d6-bd48-c42c57c24f24",
+  "created": 1095240446689,
+  "lastModified": 1569696223220,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 50308,
+    "input": 19303,
+    "output": 30590
+  },
+  "messages": [
+    {
+      "id": "4371319a-e49a-4427-b642-e71de8f7dfc4",
+      "role": "user",
+      "content": "P.kjA",
+      "timestamp": 1457710998114
+    },
+    {
+      "id": "b7d95c4c-f9a4-47b5-86f8-9fc6eec0638f",
+      "role": "assistant",
+      "content": "=DwH#(ptc{v?",
+      "timestamp": 1000000000006
+    },
+    {
+      "id": "94874976-7cb6-4566-876e-615077094807",
+      "role": "system",
+      "content": "#`^~$'Xd0|Rm",
+      "timestamp": 1368695123551
+    },
+    {
+      "id": "0f0bc227-43ca-4c7f-9f22-afd2ef1e01db",
+      "role": "user",
+      "content": "z2mRKM$gK",
+      "timestamp": 1717225458161
+    },
+    {
+      "id": "ba97af87-cf31-41d9-a858-3271a39b1caa",
+      "role": "system",
+      "content": "e]nl",
+      "timestamp": 1000000000032
+    },
+    {
+      "id": "172a634c-85b9-4798-9bef-edd4ff4ee02a",
+      "role": "user",
+      "content": "{I@%",
+      "timestamp": 1312884689693
+    },
+    {
+      "id": "a7751c5b-daa4-4701-8ed0-066ad2751448",
+      "role": "assistant",
+      "content": " _1eu!}\"Uq0\\",
+      "timestamp": 1000000000036
+    },
+    {
+      "id": "abdc1c51-9099-432c-81a6-abd7c3f4e5ea",
+      "role": "user",
+      "content": " &",
+      "timestamp": 1000000000006
+    },
+    {
+      "id": "27650f10-e6f2-4300-a5ed-91e3fb78d7ae",
+      "role": "user",
+      "content": "\"",
+      "timestamp": 1525360362911
+    },
+    {
+      "id": "d100312f-e204-43a3-91c4-76e7afb07948",
+      "role": "system",
+      "content": "W>,0",
+      "timestamp": 1000000000022
+    }
+  ],
+  "version": "0.8.0",
+  "workspaceRoot": "/test/workspace"
+}

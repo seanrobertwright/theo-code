@@ -1,0 +1,63 @@
+{
+  "id": "f5d2b2dc-8e3c-4ea2-bc60-221b786a597e",
+  "created": 1146898338421,
+  "lastModified": 1766278686966,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 86379,
+    "input": 14,
+    "output": 0
+  },
+  "messages": [
+    {
+      "id": "0e271a81-1a7b-4e42-9b2b-9276d11cfccb",
+      "role": "system",
+      "content": "mn9",
+      "timestamp": 1284133172816
+    },
+    {
+      "id": "e39262b5-4a6f-4f0e-a495-6ff753888e01",
+      "role": "user",
+      "content": "AW{Wo",
+      "timestamp": 1228199410586
+    },
+    {
+      "id": "6f1209ee-7849-4e15-aa13-e2b88e4f1bf2",
+      "role": "assistant",
+      "content": "ox{I*#yC@#T",
+      "timestamp": 1513930589757
+    },
+    {
+      "id": "5102d2dd-0276-4e2a-ba9e-abfa9e3b9fdb",
+      "role": "user",
+      "content": "&n",
+      "timestamp": 1570988125464
+    },
+    {
+      "id": "513be2c9-47dd-4335-a1f7-8b2493949223",
+      "role": "user",
+      "content": "\\\"plQW?W",
+      "timestamp": 1300874211605
+    },
+    {
+      "id": "46c3849a-30c6-4547-8de0-83a2ac1d01b6",
+      "role": "user",
+      "content": "{Fii>[OG",
+      "timestamp": 1225437436840
+    },
+    {
+      "id": "5f9e5d85-4c5e-4792-ad75-2640e9ce39d6",
+      "role": "system",
+      "content": "'VlFwd]Wm",
+      "timestamp": 1711131403886
+    },
+    {
+      "id": "74d2b0cd-aa38-42ea-afa5-9ed8f5d1bb57",
+      "role": "assistant",
+      "content": "tB+5",
+      "timestamp": 1268878851529
+    }
+  ],
+  "version": "0.8.0",
+  "workspaceRoot": "/test/workspace"
+}

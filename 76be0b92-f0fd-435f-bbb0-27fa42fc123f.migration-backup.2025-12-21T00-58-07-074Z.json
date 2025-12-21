@@ -1,0 +1,23 @@
+{
+  "id": "76be0b92-f0fd-435f-bbb0-27fa42fc123f",
+  "version": "0.9.0",
+  "created": 1766192287074,
+  "lastModified": 1766278687074,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 100,
+    "input": 50,
+    "output": 50
+  },
+  "messages": [
+    {
+      "id": "ac09e216-dfea-44eb-b2d7-fd59225bab7c",
+      "role": "user",
+      "content": "y%~Tx$%I;Q",
+      "timestamp": 1766278687074
+    }
+  ],
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [],
+  "tags": []
+}

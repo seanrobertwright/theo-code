@@ -1,0 +1,19 @@
+{
+  "id": "d03b889a-c266-493a-850a-366c6d6bf2b9",
+  "created": 1766278148494,
+  "lastModified": 1220184077701,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 23962,
+    "input": 27487,
+    "output": 13137
+  },
+  "messages": [
+    {
+      "id": "1c238702-f2ad-495c-a34a-bdf2188050e5",
+      "role": "system",
+      "content": "J+A;l4xy.",
+      "timestamp": 1094887448615
+    }
+  ]
+}

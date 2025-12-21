@@ -1,0 +1,23 @@
+{
+  "id": "3c43de64-0317-4ed9-93c8-52c2c72b7905",
+  "version": "0.9.0",
+  "created": 1766192287049,
+  "lastModified": 1766278687049,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 100,
+    "input": 50,
+    "output": 50
+  },
+  "messages": [
+    {
+      "id": "e4782cd8-4544-4a11-b63f-0f9d5bc007e5",
+      "role": "user",
+      "content": "T*K!l^_lS_,fa",
+      "timestamp": 1766278687049
+    }
+  ],
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [],
+  "tags": []
+}
