@@ -42,22 +42,22 @@ export interface AuditLogEntry {
   operation: string;
   
   /** Session ID if applicable */
-  sessionId?: SessionId;
+  sessionId?: SessionId | undefined;
   
   /** User or system identifier */
   actor: string;
   
   /** Additional context data */
-  context?: Record<string, any>;
+  context?: Record<string, any> | undefined;
   
   /** Error message if applicable */
-  error?: string;
+  error?: string | undefined;
   
   /** Operation result (success/failure) */
   result: 'success' | 'failure';
   
   /** Duration in milliseconds */
-  duration?: number;
+  duration?: number | undefined;
 }
 
 /**
@@ -548,7 +548,7 @@ export class AuditLogger {
    */
   private extractTimestampFromFilename(filename: string): number {
     const match = filename.match(/audit-(\d+)\.log/);
-    return match ? parseInt(match[1], 10) : 0;
+    return match && match[1] ? parseInt(match[1], 10) : 0;
   }
   
   /**

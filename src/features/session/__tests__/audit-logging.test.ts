@@ -5,15 +5,11 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
 import { 
   AuditLogger, 
   getAuditLogger, 
   resetAuditLogger, 
   logOperation,
-  type AuditLogLevel,
-  type AuditLogDestination,
-  type AuditLogEntry,
   type AuditLoggerConfig 
 } from '../audit.js';
 import type { SessionId } from '../../../shared/types/index.js';
@@ -217,13 +213,8 @@ describe('AuditLogger', () => {
 
     it('should clean up old log files beyond maxFiles limit', async () => {
       // Mock directory with old log files
-      mockFs.readdir.mockResolvedValue([
-        'audit-1000.log',
-        'audit-2000.log',
-        'audit-3000.log',
-        'audit-4000.log', // This should be deleted
-        'other-file.txt', // This should be ignored
-      ]);
+      const mockFiles = ['audit-1000.log', 'audit-2000.log', 'audit-3000.log', 'audit-4000.log', 'other-file.txt'];
+      mockFs.readdir.mockResolvedValue(mockFiles as any);
       
       // Mock file size to trigger rotation
       mockFs.stat.mockResolvedValue({ size: 2 * 1024 * 1024 } as any);
@@ -279,11 +270,8 @@ describe('AuditLogger', () => {
 
   describe('Log Cleanup', () => {
     it('should clear all log files', async () => {
-      mockFs.readdir.mockResolvedValue([
-        'audit-1000.log',
-        'audit-2000.log',
-        'other-file.txt',
-      ]);
+      const mockFiles = ['audit-1000.log', 'audit-2000.log', 'other-file.txt'];
+      mockFs.readdir.mockResolvedValue(mockFiles as any);
       
       const deletedCount = await auditLogger.clearLogs();
       
@@ -292,7 +280,8 @@ describe('AuditLogger', () => {
     });
 
     it('should handle cleanup errors gracefully', async () => {
-      mockFs.readdir.mockResolvedValue(['audit-1000.log']);
+      const mockFiles = ['audit-1000.log'];
+      mockFs.readdir.mockResolvedValue(mockFiles as any);
       mockFs.unlink.mockRejectedValue(new Error('Permission denied'));
       
       const deletedCount = await auditLogger.clearLogs();
@@ -315,12 +304,12 @@ describe('AuditLogger', () => {
     });
 
     it('should handle invalid JSON in log files', async () => {
-      mockFs.readFile.mockResolvedValue('invalid json\n{"valid":"json"}');
+      mockFs.readFile.mockResolvedValue('invalid json\n{"timestamp":"2024-01-01T00:00:00.000Z","level":"info","operation":"test","result":"success","actor":"system"}');
       
       const logs = await auditLogger.getRecentLogs(10);
       
       expect(logs).toHaveLength(1);
-      expect(logs[0].valid).toBe('json');
+      expect(logs[0].operation).toBe('test');
     });
   });
 });

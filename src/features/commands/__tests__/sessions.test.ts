@@ -61,6 +61,7 @@ const createMockSessionManager = () => ({
   searchSessions: vi.fn(),
   filterSessions: vi.fn(),
   cleanupOldSessions: vi.fn(),
+  checkStorageLimits: vi.fn(),
 });
 
 const createMockContext = (sessionManager = createMockSessionManager()): CommandContext => ({
@@ -88,6 +89,17 @@ describe('Sessions Command Handler', () => {
   beforeEach(() => {
     mockSessionManager = createMockSessionManager();
     mockContext = createMockContext(mockSessionManager);
+    
+    // Set up default mock for checkStorageLimits
+    mockSessionManager.checkStorageLimits.mockResolvedValue({
+      withinLimits: true,
+      sessionCountExceeded: false,
+      totalSizeExceeded: false,
+      diskSpaceExceeded: false,
+      warningThresholdReached: false,
+      suggestedActions: [],
+      estimatedSpaceSavings: 0,
+    });
   });
 
   describe('Sessions List Command', () => {

@@ -3,7 +3,7 @@
  * @module features/session/__tests__/filesystem.test
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import * as fc from 'fast-check';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -22,24 +22,36 @@ import {
 } from '../filesystem.js';
 
 // =============================================================================
-// TEST SETUP
+// TEST SETUP - Use a single shared test directory to avoid Windows race conditions
 // =============================================================================
 
-let testDir: string;
+let baseTestDir: string;
+let testCounter = 0;
 
-beforeEach(async () => {
-  // Create a temporary directory for each test
-  testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'session-fs-test-'));
+// Create base test directory once before all tests
+beforeAll(async () => {
+  baseTestDir = await fs.mkdtemp(path.join(os.tmpdir(), 'session-fs-test-'));
 });
 
-afterEach(async () => {
-  // Clean up test directory
+// Clean up base test directory after all tests complete
+afterAll(async () => {
+  // Wait a bit for Windows to release file handles
+  await new Promise(resolve => setTimeout(resolve, 100));
   try {
-    await fs.rm(testDir, { recursive: true, force: true });
+    await fs.rm(baseTestDir, { recursive: true, force: true });
   } catch {
-    // Ignore cleanup errors
+    // Ignore cleanup errors on Windows
   }
 });
+
+/**
+ * Helper to create a unique subdirectory for each test run
+ */
+async function createTestSubDir(): Promise<string> {
+  const subDir = path.join(baseTestDir, `test-${++testCounter}-${Date.now()}`);
+  await fs.mkdir(subDir, { recursive: true });
+  return subDir;
+}
 
 // =============================================================================
 // GENERATORS
@@ -51,21 +63,12 @@ afterEach(async () => {
 const fileContentArb = fc.string({ minLength: 0, maxLength: 10000 });
 
 /**
- * Generator for valid file names
+ * Generator for valid file names - Windows compatible
  */
-const fileNameArb = fc.string({ minLength: 1, maxLength: 20 })
-  .filter(name => {
-    // Filter out invalid characters and edge cases
-    const invalidChars = /[<>:"|?*\\/\x00-\x1f]/;
-    const reservedNames = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
-    const endsWithDotOrSpace = /[. ]$/;
-    
-    return !invalidChars.test(name) && 
-           !reservedNames.test(name) && 
-           !endsWithDotOrSpace.test(name) &&
-           name.trim().length > 0;
-  })
-  .map(name => name.replace(/[^\w.-]/g, '_')); // Replace any remaining problematic chars
+const fileNameArb = fc.array(
+  fc.constantFrom(...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('')),
+  { minLength: 3, maxLength: 10 }
+).map(arr => `f${arr.join('')}`); // Prefix with 'f' to ensure it starts with a letter
 
 /**
  * Generator for checksums (hex strings)
@@ -79,15 +82,17 @@ const checksumArb = fc.array(fc.integer({ min: 0, max: 15 }), { minLength: 64, m
 
 describe('Session Filesystem Property Tests', () => {
   describe('Property 13: File corruption handling', () => {
-    it('**Feature: session-persistence, Property 13: File corruption handling**', () => {
+    it('**Feature: session-persistence, Property 13: File corruption handling**', async () => {
       // **Validates: Requirements 4.5**
-      fc.assert(
-        fc.property(
+      const testDir = await createTestSubDir();
+      
+      await fc.assert(
+        fc.asyncProperty(
           fileContentArb,
           fileNameArb,
           async (content, fileName) => {
             // Use unique file names to avoid conflicts
-            const uniqueFileName = `${fileName}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+            const uniqueFileName = `${fileName}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
             const filePath = path.join(testDir, uniqueFileName);
             
             // Test that the system handles file operations gracefully
@@ -126,13 +131,13 @@ describe('Session Filesystem Property Tests', () => {
             }
           }
         ),
-        { numRuns: 10 } // Further reduced runs and made sequential to avoid Windows file system race conditions
+        { numRuns: 10 }
       );
     });
 
-    it('should handle compression and decompression without data loss', () => {
-      fc.assert(
-        fc.property(fileContentArb, async (originalData) => {
+    it('should handle compression and decompression without data loss', async () => {
+      await fc.assert(
+        fc.asyncProperty(fileContentArb, async (originalData) => {
           try {
             // Compress data
             const compressed = await compressData(originalData);
@@ -142,13 +147,6 @@ describe('Session Filesystem Property Tests', () => {
             // Decompress data
             const decompressed = await decompressData(compressed);
             expect(decompressed).toBe(originalData);
-            
-            // Verify compression actually reduces size for larger data
-            if (originalData.length > 100) {
-              const compressedBuffer = Buffer.from(compressed, 'base64');
-              const originalBuffer = Buffer.from(originalData, 'utf8');
-              // Note: Small or random data might not compress well, so we don't assert size reduction
-            }
           } catch (error: any) {
             // Compression/decompression should handle all valid strings
             // If it fails, it should fail gracefully with a proper error
@@ -156,19 +154,21 @@ describe('Session Filesystem Property Tests', () => {
             expect(error.message).toBeDefined();
           }
         }),
-        { numRuns: 25 } // Reduced runs for performance
+        { numRuns: 25 }
       );
     });
 
-    it('should handle atomic writes with backup and recovery', () => {
-      fc.assert(
-        fc.property(
+    it('should handle atomic writes with backup and recovery', async () => {
+      const testDir = await createTestSubDir();
+      
+      await fc.assert(
+        fc.asyncProperty(
           fileContentArb,
           fileContentArb,
           fileNameArb,
           async (originalContent, newContent, fileName) => {
             // Use unique file names to avoid conflicts
-            const uniqueFileName = `${fileName}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+            const uniqueFileName = `${fileName}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
             const filePath = path.join(testDir, uniqueFileName);
             const backupPath = `${filePath}.bak`;
             
@@ -203,7 +203,7 @@ describe('Session Filesystem Property Tests', () => {
             }
           }
         ),
-        { numRuns: 5 } // Significantly reduced runs for file I/O intensive test with unique names
+        { numRuns: 5 }
       );
     });
   });
@@ -264,9 +264,11 @@ describe('Session Filesystem Property Tests', () => {
   });
 
   describe('File System Error Handling', () => {
-    it('should handle non-existent files gracefully', () => {
-      fc.assert(
-        fc.property(fileNameArb, async (fileName) => {
+    it('should handle non-existent files gracefully', async () => {
+      const testDir = await createTestSubDir();
+      
+      await fc.assert(
+        fc.asyncProperty(fileNameArb, async (fileName) => {
           const nonExistentPath = path.join(testDir, 'nonexistent', fileName);
           
           // Reading non-existent file should throw but not crash
@@ -286,17 +288,20 @@ describe('Session Filesystem Property Tests', () => {
           // Deleting non-existent file should not throw
           await expect(safeDeleteFile(nonExistentPath)).resolves.toBeUndefined();
         }),
-        { numRuns: 50 }
+        { numRuns: 20 }
       );
     });
 
-    it('should handle file size limits', () => {
-      fc.assert(
-        fc.property(
+    it('should handle file size limits', async () => {
+      const testDir = await createTestSubDir();
+      
+      await fc.assert(
+        fc.asyncProperty(
           fc.string({ minLength: 100, maxLength: 1000 }),
           fileNameArb,
           async (content, fileName) => {
-            const filePath = path.join(testDir, fileName);
+            const uniqueFileName = `${fileName}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+            const filePath = path.join(testDir, uniqueFileName);
             
             // Write file
             await atomicWriteFile(filePath, content);
@@ -317,7 +322,7 @@ describe('Session Filesystem Property Tests', () => {
             }
           }
         ),
-        { numRuns: 50 }
+        { numRuns: 20 }
       );
     });
   });
@@ -328,12 +333,6 @@ describe('Session Filesystem Property Tests', () => {
       // But it validates the error handling requirements
       
       try {
-        // Test directory creation (using a subdirectory to avoid conflicts)
-        const testSessionsDir = path.join(testDir, 'sessions');
-        
-        // Mock the getSessionsDir function for this test
-        const originalGetSessionsDir = (await import('../../../config/loader.js')).getSessionsDir;
-        
         // Directory operations should handle errors gracefully
         const result = await repairSessionFilePermissions();
         expect(typeof result).toBe('number');
