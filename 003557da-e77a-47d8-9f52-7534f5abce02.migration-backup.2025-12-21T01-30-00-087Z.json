@@ -1,0 +1,23 @@
+{
+  "id": "003557da-e77a-47d8-9f52-7534f5abce02",
+  "version": "0.9.0",
+  "created": 1766194200087,
+  "lastModified": 1766280600087,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 100,
+    "input": 50,
+    "output": 50
+  },
+  "messages": [
+    {
+      "id": "9935d1e9-19cd-4ff0-b089-de98a9ac05fa",
+      "role": "user",
+      "content": "po3>ON]=T&=x#}w0#*PO",
+      "timestamp": 1766280600087
+    }
+  ],
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [],
+  "tags": []
+}

@@ -1,0 +1,14 @@
+{
+  "id": "890130e4-7739-4432-ac89-5fe282fd12cf",
+  "version": "0.8.0",
+  "created": 1766280600035,
+  "lastModified": 1766280600035,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 0,
+    "input": 0,
+    "output": 0
+  },
+  "messages": [],
+  "workspaceRoot": "/test/workspace"
+}

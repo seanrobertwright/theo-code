@@ -1,0 +1,22 @@
+{
+  "id": "0708e0f9-cb4a-40af-a843-8ddd2c7eafbe",
+  "created": 1017590762842,
+  "lastModified": 1766280599967,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 42676,
+    "input": 12,
+    "output": 21216
+  },
+  "messages": [],
+  "version": "0.9.0",
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [
+    "/test/file1.ts",
+    "/test/file2.ts"
+  ],
+  "tags": [
+    "test",
+    "migration"
+  ]
+}

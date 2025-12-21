@@ -1,0 +1,71 @@
+{
+  "id": "13f06639-06c2-484c-baa4-14d6b842a41c",
+  "created": 1290045400666,
+  "lastModified": 1469841980442,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 9,
+    "input": 40311,
+    "output": 28830
+  },
+  "messages": [
+    {
+      "id": "a9eb6069-96ab-486c-b6a4-fe205d30bda4",
+      "role": "user",
+      "content": "`~pi~G9_K]Q",
+      "timestamp": 1524034397264
+    },
+    {
+      "id": "baaff864-0bb7-4a1d-84f0-a1c80b499386",
+      "role": "assistant",
+      "content": "i8&kX\\,%",
+      "timestamp": 1505591106560
+    },
+    {
+      "id": "2c9d956c-4965-44c1-ba93-2f9c1d3ac08d",
+      "role": "assistant",
+      "content": ">",
+      "timestamp": 1229906406743
+    },
+    {
+      "id": "3504a2a6-9f9d-4d76-aeba-f3c1dd846775",
+      "role": "system",
+      "content": "i",
+      "timestamp": 1760154492997
+    },
+    {
+      "id": "aa9c6438-d972-4574-af7d-c28b936545cc",
+      "role": "assistant",
+      "content": "5BL!uv&Xt",
+      "timestamp": 1333555786126
+    },
+    {
+      "id": "bad91bf8-6382-4b30-a3bf-06f1106d6457",
+      "role": "system",
+      "content": "i1hmKk$Q3",
+      "timestamp": 1409412517974
+    },
+    {
+      "id": "fa7e8a99-e7f8-49db-bc2e-2fa313179922",
+      "role": "user",
+      "content": "x~'T6e AL{*,",
+      "timestamp": 1383738617448
+    },
+    {
+      "id": "7bf7cf37-7e57-4253-a4b5-fd169e8f5577",
+      "role": "user",
+      "content": "^\"a&",
+      "timestamp": 1264286031994
+    }
+  ],
+  "version": "0.9.0",
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [
+    "/test/file1.ts",
+    "/test/file2.ts"
+  ],
+  "tags": [
+    "test",
+    "migration"
+  ]
+}

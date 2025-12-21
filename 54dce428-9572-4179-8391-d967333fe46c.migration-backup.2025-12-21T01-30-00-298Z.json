@@ -1,0 +1,19 @@
+{
+  "id": "d79009fb-3033-4e15-938b-668a40a0f33c",
+  "created": 1482103471905,
+  "lastModified": 1606256005759,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 11646,
+    "input": 49987,
+    "output": 44175
+  },
+  "messages": [
+    {
+      "id": "1eb64d10-0253-4319-9d86-899f9f5c1fe2",
+      "role": "assistant",
+      "content": "JRG~i;X",
+      "timestamp": 1253768242654
+    }
+  ]
+}

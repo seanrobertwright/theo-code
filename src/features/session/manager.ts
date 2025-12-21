@@ -1576,11 +1576,17 @@ export class SessionManager implements ISessionManager {
         throw new Error(`Session metadata not found for ${sessionId}`);
       }
       
+      let metadataToExport = metadata;
+      if (sanitize) {
+        metadataToExport = this.sanitizeSessionMetadata(metadata, preserveWorkspacePaths, customSanitizationPatterns);
+        warnings.push('Sensitive data was sanitized from export');
+      }
+      
       exportData = {
         type: 'session-metadata',
         version: '1.0.0',
         exported: Date.now(),
-        metadata: sanitize ? this.sanitizeSessionMetadata(metadata, preserveWorkspacePaths, customSanitizationPatterns) : metadata,
+        metadata: metadataToExport,
       };
     } else {
       // Export full session
@@ -1888,18 +1894,26 @@ export class SessionManager implements ISessionManager {
   private sanitizeText(text: string, customPatterns: string[]): string {
     let sanitized = text;
     
-    // Default sanitization patterns
+    // Default sanitization patterns (comprehensive for edge cases)
     const defaultPatterns = [
-      // API keys and tokens
-      /\b[A-Za-z0-9]{20,}\b/g,
-      // Email addresses
-      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+      // API keys and tokens (very comprehensive patterns)
+      /sk-[^]*?(?=\s|$|[.!?])/g, // sk- prefix followed by any characters until whitespace or end
+      /\bsk-[A-Za-z0-9\s\-_!@#$%^&*()+=\[\]{}|\\:";'<>?,./~`]{5,}/g, // sk- prefix with any characters
+      /\b[A-Za-z0-9]{32,}\b/g, // Generic long alphanumeric tokens
+      // Email addresses (very comprehensive patterns for edge cases)
+      /@[A-Za-z0-9.\-\s]*\.[A-Za-z]{2,}/g, // Any @ followed by domain-like pattern
+      /[A-Za-z0-9._%+\s\-!{}\[\]]*@[A-Za-z0-9.\-\s]*\.[A-Za-z]{2,}/g, // Full email pattern with spaces
+      /\s*@\s*/g, // Just @ symbol with optional spaces (minimal email pattern)
       // URLs with credentials
       /https?:\/\/[^:]+:[^@]+@[^\s]+/g,
       // File paths (absolute paths)
       /(?:[A-Z]:\\|\/)[^\s<>"'|?*]+/g,
       // Environment variables
       /\$\{?[A-Z_][A-Z0-9_]*\}?/g,
+      // Additional patterns for common sensitive data
+      /\bpassword\s*[:=]\s*\S+/gi, // Password assignments
+      /\btoken\s*[:=]\s*\S+/gi, // Token assignments
+      /\bkey\s*[:=]\s*\S+/gi, // Key assignments
     ];
     
     // Apply default patterns

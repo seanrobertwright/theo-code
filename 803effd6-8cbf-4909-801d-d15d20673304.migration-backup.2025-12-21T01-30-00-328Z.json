@@ -1,0 +1,49 @@
+{
+  "id": "edb623c2-6673-4c6f-b438-d8ebe0778ae8",
+  "created": 1445137107903,
+  "lastModified": 1000000000015,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 2,
+    "input": 28063,
+    "output": 49993
+  },
+  "messages": [
+    {
+      "id": "4ef536dc-b72c-41dc-b3a0-f17ba25af7f6",
+      "role": "system",
+      "content": ";Iy+YVl1}_4\\",
+      "timestamp": 1253248410151
+    },
+    {
+      "id": "fa1fdbd8-22b2-4dfb-9c09-a66864d16bfa",
+      "role": "system",
+      "content": "+0-H9*wt",
+      "timestamp": 1328927500134
+    },
+    {
+      "id": "36a6d040-0a57-447d-ba79-136689819438",
+      "role": "assistant",
+      "content": "YgGAGY] ",
+      "timestamp": 1252832880103
+    },
+    {
+      "id": "b3912c09-ab05-4976-b108-e29adc2df905",
+      "role": "user",
+      "content": "W;",
+      "timestamp": 1334494097196
+    },
+    {
+      "id": "bdfa0770-883a-418a-9e96-c1b414c87bbf",
+      "role": "system",
+      "content": "vKr",
+      "timestamp": 1121595723071
+    },
+    {
+      "id": "97433a6c-b3b0-430b-9b90-76869395eacf",
+      "role": "assistant",
+      "content": "cxHvyW+v8v,",
+      "timestamp": 1281116819283
+    }
+  ]
+}

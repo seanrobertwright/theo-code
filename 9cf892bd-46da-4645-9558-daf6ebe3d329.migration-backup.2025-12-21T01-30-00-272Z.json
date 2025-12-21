@@ -1,0 +1,43 @@
+{
+  "id": "78f2fcff-35e5-4771-8650-6359d2426cf4",
+  "created": 1467597319387,
+  "lastModified": 1503539050266,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 62460,
+    "input": 3,
+    "output": 14
+  },
+  "messages": [
+    {
+      "id": "ef6eb684-c806-43a9-8d25-345de18b4d75",
+      "role": "user",
+      "content": "jnI",
+      "timestamp": 1493179447164
+    },
+    {
+      "id": "25527dd8-1aed-4fbd-80c8-12f36b6cbef8",
+      "role": "assistant",
+      "content": ">",
+      "timestamp": 1138848354465
+    },
+    {
+      "id": "236d03c4-4f0f-4bd9-a532-0e4e86f344b8",
+      "role": "system",
+      "content": "8]",
+      "timestamp": 1240367279457
+    },
+    {
+      "id": "70951e0f-dc33-4364-ac56-5235b7d14421",
+      "role": "user",
+      "content": "fC*HdTk",
+      "timestamp": 1046765103050
+    },
+    {
+      "id": "58ad89ae-292c-4df6-8453-883f09add999",
+      "role": "user",
+      "content": "?2",
+      "timestamp": 1496417153104
+    }
+  ]
+}

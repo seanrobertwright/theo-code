@@ -347,22 +347,33 @@ Convert the session persistence design into a series of prompts for a code-gener
   - Create shareable session format
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [-] 8.1 Implement session export functionality
+- [x] 8.1 Implement session export functionality
+
 
   - Create exportSession with multiple format support
   - Add data sanitization for sensitive information removal
   - Implement metadata preservation for sharing
   - _Requirements: 3.4, 7.1, 7.2, 7.5_
 
-- [ ] 8.2 Write property test for export format consistency
+
+
+- [x] 8.2 Write property test for export format consistency
+
+
   - **Property 8: Session export format consistency**
+
   - **Validates: Requirements 3.4**
 
-- [ ] 8.3 Write property test for sharing data integrity
+- [x] 8.3 Write property test for sharing data integrity
+
+
   - **Property 20: Sharing data integrity**
   - **Validates: Requirements 7.2, 7.5**
 
-- [ ] 8.4 Implement session import functionality
+- [-] 8.4 Implement session import functionality
+
+
+
   - Create importSession with format validation
   - Add unique ID generation for imported sessions
   - Implement import validation and warning system

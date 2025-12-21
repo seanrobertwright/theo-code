@@ -1,0 +1,65 @@
+{
+  "id": "29fb4623-8627-4320-b20e-d325fd529ab0",
+  "created": 1078564731263,
+  "lastModified": 1000000000028,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 23467,
+    "input": 4,
+    "output": 17933
+  },
+  "messages": [
+    {
+      "id": "59deca4f-3b45-4fde-bb45-f7e87f23574d",
+      "role": "system",
+      "content": "*yo6Ke",
+      "timestamp": 1272771135619
+    },
+    {
+      "id": "d083ba8c-8413-4478-97cd-e1072db7ee10",
+      "role": "user",
+      "content": "(TB?\"0!",
+      "timestamp": 1607162819283
+    },
+    {
+      "id": "443d08a7-616e-4306-ba63-10892bb212a6",
+      "role": "user",
+      "content": "v",
+      "timestamp": 1032700943841
+    },
+    {
+      "id": "287f491f-01f5-4793-929b-b2d6bc364631",
+      "role": "system",
+      "content": "4ld&i6M^.",
+      "timestamp": 1019996471553
+    },
+    {
+      "id": "b5ae1a32-a229-4f64-b371-7f42b1313dcb",
+      "role": "assistant",
+      "content": "/",
+      "timestamp": 1719942948233
+    },
+    {
+      "id": "733a32ce-4ca9-4839-a75e-fac00adc827c",
+      "role": "system",
+      "content": "JY[5%B",
+      "timestamp": 1281488845508
+    },
+    {
+      "id": "ef2a149d-9a32-4293-8215-c5e9f46206f0",
+      "role": "user",
+      "content": "m<b[B",
+      "timestamp": 1696950381262
+    }
+  ],
+  "version": "0.9.0",
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [
+    "/test/file1.ts",
+    "/test/file2.ts"
+  ],
+  "tags": [
+    "test",
+    "migration"
+  ]
+}

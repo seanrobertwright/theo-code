@@ -1,0 +1,25 @@
+{
+  "id": "66cd5378-2b7d-497d-a62c-b8662909a3b4",
+  "created": 1000000000010,
+  "lastModified": 1443590351894,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 95519,
+    "input": 17906,
+    "output": 23272
+  },
+  "messages": [
+    {
+      "id": "b2e8ee7c-3f58-4a10-862d-f8e334db7a25",
+      "role": "assistant",
+      "content": "o(u\"}[PN<_",
+      "timestamp": 1212569352905
+    },
+    {
+      "id": "6600905b-dffb-4dd7-9703-9c10863d0b7a",
+      "role": "user",
+      "content": "rmfBfge",
+      "timestamp": 1739061197279
+    }
+  ]
+}

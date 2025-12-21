@@ -1,0 +1,21 @@
+{
+  "id": "ef01540c-7643-417e-868e-d5ad23d988ec",
+  "created": 1000000000021,
+  "lastModified": 1766280599936,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 11826,
+    "input": 7044,
+    "output": 15
+  },
+  "messages": [
+    {
+      "id": "466d9f52-23ce-4340-b6a8-44809d9eeddc",
+      "role": "assistant",
+      "content": "N:SWJ2yZ",
+      "timestamp": 1635175055630
+    }
+  ],
+  "version": "0.8.0",
+  "workspaceRoot": "/test/workspace"
+}

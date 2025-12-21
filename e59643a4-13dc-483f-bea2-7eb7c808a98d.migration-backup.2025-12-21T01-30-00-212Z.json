@@ -1,0 +1,33 @@
+{
+  "id": "d4c088ca-1b83-4f2e-8206-1915b2718ca8",
+  "created": 1492630710837,
+  "lastModified": 1541734433960,
+  "model": "gpt-4o",
+  "tokenCount": {
+    "total": 76852,
+    "input": 48762,
+    "output": 18313
+  },
+  "messages": [
+    {
+      "id": "0da064e1-42ba-4c41-848f-58cadc1c485b",
+      "role": "assistant",
+      "content": "richwbTsO,L",
+      "timestamp": 1101212881762
+    },
+    {
+      "id": "a168c9d8-2283-4d56-9ebb-f47c76901f3f",
+      "role": "assistant",
+      "content": "=8aop{ y}QG",
+      "timestamp": 1099672095537
+    },
+    {
+      "id": "9bde2777-3e66-46ab-a315-35b1b579b17c",
+      "role": "user",
+      "content": "[:)@IkJw",
+      "timestamp": 1015954371423
+    }
+  ],
+  "version": "0.8.0",
+  "workspaceRoot": "/test/workspace"
+}

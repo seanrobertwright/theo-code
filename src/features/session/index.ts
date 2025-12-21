@@ -11,6 +11,10 @@ export {
   type CreateSessionOptions,
   type LoadSessionOptions,
   type AutoSaveConfig,
+  type ExportSessionOptions,
+  type ImportSessionOptions,
+  type ExportResult,
+  type ImportResult,
 } from './manager.js';
 
 // Export SessionStorage and related types

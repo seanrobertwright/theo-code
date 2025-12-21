@@ -1,0 +1,19 @@
+{
+  "id": "36b5db48-6a2b-40cd-b2ed-4ea4d4ffd826",
+  "created": 1516771740747,
+  "lastModified": 1457339601622,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 78358,
+    "input": 3660,
+    "output": 42371
+  },
+  "messages": [
+    {
+      "id": "84f43441-4821-4b5e-8a22-369da63010b7",
+      "role": "user",
+      "content": "VDYn{AzLR",
+      "timestamp": 1498269099977
+    }
+  ]
+}

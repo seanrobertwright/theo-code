@@ -1,0 +1,21 @@
+{
+  "id": "b17855ef-e63d-4e10-a8c3-d6c7cb903ad8",
+  "version": "0.8.0",
+  "created": 1766194200106,
+  "lastModified": 1766280600106,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 100,
+    "input": 50,
+    "output": 50
+  },
+  "messages": [
+    {
+      "id": "04a8093d-2ef3-4174-980c-208ed585246d",
+      "role": "user",
+      "content": "E\\oxX4>",
+      "timestamp": 1766280600106
+    }
+  ],
+  "workspaceRoot": "/test/workspace"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "4bd807b1-0b73-4164-9ae1-02573cf656bd",
+  "version": "0.9.0",
+  "created": 1766194200126,
+  "lastModified": 1766280600126,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 100,
+    "input": 50,
+    "output": 50
+  },
+  "messages": [
+    {
+      "id": "446892e5-f21e-400e-bae9-dc53f213839d",
+      "role": "user",
+      "content": "D&QqD \"~}Lq<|#H&T",
+      "timestamp": 1766280600126
+    }
+  ],
+  "workspaceRoot": "/test/workspace",
+  "contextFiles": [],
+  "tags": []
+}

@@ -1,0 +1,21 @@
+{
+  "id": "340b0fa8-238b-4e1f-80b6-f294c5983ef5",
+  "version": "0.8.0",
+  "created": 1766194200084,
+  "lastModified": 1766280600084,
+  "model": "gpt-4",
+  "tokenCount": {
+    "total": 100,
+    "input": 50,
+    "output": 50
+  },
+  "messages": [
+    {
+      "id": "eb759ff4-b95c-44c3-97e8-d0f69ff9ed42",
+      "role": "user",
+      "content": "l*myxy+WM`*",
+      "timestamp": 1766280600084
+    }
+  ],
+  "workspaceRoot": "/test/workspace"
+}

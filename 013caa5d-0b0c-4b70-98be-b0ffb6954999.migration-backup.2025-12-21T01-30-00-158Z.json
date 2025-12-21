@@ -1,0 +1,19 @@
+{
+  "id": "b6046cf4-34ba-41d6-883a-4eb6453065f2",
+  "created": 1059063676818,
+  "lastModified": 1181812222504,
+  "model": "claude-3-sonnet",
+  "tokenCount": {
+    "total": 99987,
+    "input": 9682,
+    "output": 49998
+  },
+  "messages": [
+    {
+      "id": "94934c12-d13a-4355-8d57-62bdc5e6a282",
+      "role": "assistant",
+      "content": "v+K^<E",
+      "timestamp": 1594997814013
+    }
+  ]
+}
