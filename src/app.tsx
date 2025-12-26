@@ -15,7 +15,14 @@ import { useAppStore } from './shared/store/index.js';
 import { formatTokenCount } from './shared/utils/index.js';
 import { AgentLoop } from './features/agent/index.js';
 import { toolRegistry } from './features/tools/framework.js';
-import { createFileSystemTools } from './features/tools/filesystem/index.js';
+import { 
+  createFileSystemTools,
+  createAstGrepTool,
+  createAstGrepRewriteTool,
+  createLSPTools,
+  createGitTools
+} from './features/tools/index.js';
+import { registerAllTools } from './registerTools.js';
 import { ConfirmDialog, SessionRestoration, SessionDetectionLoading, SessionDetectionError } from './shared/components/index.js';
 import { createSessionManager } from './features/session/index.js';
 import { detectAvailableSessions, restoreSessionOnStartup } from './features/session/startup.js';
