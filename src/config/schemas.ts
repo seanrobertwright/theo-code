@@ -25,7 +25,12 @@ export const GlobalConfigSchema = z.object({
     .object({
       openai: z.string().optional(),
       anthropic: z.string().optional(),
-      gemini: z.string().optional(),
+      google: z.string().optional(),
+      openrouter: z.string().optional(),
+      cohere: z.string().optional(),
+      mistral: z.string().optional(),
+      together: z.string().optional(),
+      perplexity: z.string().optional(),
     })
     .optional(),
 
@@ -34,6 +39,21 @@ export const GlobalConfigSchema = z.object({
     .object({
       baseUrl: z.string().url().default('http://localhost:11434'),
       defaultModel: z.string().default('llama3'),
+    })
+    .optional(),
+
+  /** Provider configurations */
+  providers: z
+    .object({
+      fallbackChain: z.array(ModelProviderSchema).optional(),
+      defaultRateLimit: z
+        .object({
+          requestsPerMinute: z.number().int().positive().default(60),
+          tokensPerMinute: z.number().int().positive().default(100000),
+          concurrentRequests: z.number().int().positive().default(5),
+        })
+        .optional(),
+      healthCheckInterval: z.number().int().positive().default(300000), // 5 minutes
     })
     .optional(),
 

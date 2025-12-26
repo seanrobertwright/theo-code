@@ -1,24 +1,38 @@
-// Debug test for regex patterns
-const text = "Project with API key sk-                    ";
-const apiKey = "sk-                    ";
+// Debug test for buildProviderChain method
+import { ProviderManager } from './src/features/model/provider-manager.js';
 
-console.log("Original text:", JSON.stringify(text));
-console.log("API key to match:", JSON.stringify(apiKey));
+const manager = new ProviderManager({ enableHealthChecking: false });
 
-const patterns = [
-  /sk-[^\n\r]*/g,
-  /sk-\s+/g,
-];
+// Set fallback chain that includes both enabled and disabled providers
+manager.setFallbackChain(['openai', 'together']);
 
-for (let i = 0; i < patterns.length; i++) {
-  const pattern = patterns[i];
-  console.log(`\nPattern ${i + 1}: ${pattern}`);
-  
-  const matches = text.match(pattern);
-  console.log("Matches:", matches);
-  
-  const replaced = text.replace(pattern, '[REDACTED]');
-  console.log("After replacement:", JSON.stringify(replaced));
-  
-  console.log("Still contains API key:", replaced.includes(apiKey));
-}
+// Register only the enabled provider
+manager.registerProvider({
+  provider: 'openai',
+  model: 'test-model',
+  contextLimit: 4000,
+  maxOutputTokens: 1000,
+  enabled: true,
+  priority: 50,
+});
+
+// Create test config
+const testConfig = {
+  provider: 'openai',
+  model: 'test-model',
+  contextLimit: 4000,
+  maxOutputTokens: 1000,
+  enabled: true,
+  priority: 50,
+};
+
+// Access private method using reflection
+const buildProviderChain = manager.buildProviderChain.bind(manager);
+const chain = buildProviderChain(testConfig);
+
+console.log('Fallback chain:', ['openai', 'together']);
+console.log('Registered providers:', Array.from(manager.providerConfigs.keys()));
+console.log('Result chain:', chain);
+console.log('Should not contain "together":', !chain.includes('together'));
+
+manager.destroy();

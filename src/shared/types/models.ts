@@ -12,8 +12,74 @@ import { z } from 'zod';
 /**
  * Supported LLM provider identifiers.
  */
-export const ModelProviderSchema = z.enum(['openai', 'anthropic', 'gemini', 'ollama']);
+export const ModelProviderSchema = z.enum([
+  'openai',
+  'anthropic', 
+  'google',
+  'openrouter',
+  'cohere',
+  'mistral',
+  'together',
+  'perplexity',
+  'ollama'
+]);
 export type ModelProvider = z.infer<typeof ModelProviderSchema>;
+
+/**
+ * Rate limiting configuration.
+ */
+export const RateLimitConfigSchema = z.object({
+  requestsPerMinute: z.number().int().positive().optional(),
+  tokensPerMinute: z.number().int().positive().optional(),
+  concurrentRequests: z.number().int().positive().default(5),
+});
+export type RateLimitConfig = z.infer<typeof RateLimitConfigSchema>;
+
+/**
+ * Provider-specific configuration options.
+ */
+export const ProviderSpecificConfigSchema = z.object({
+  // Anthropic specific
+  anthropic: z.object({
+    maxTokens: z.number().int().positive().optional(),
+    systemMessage: z.string().optional(),
+  }).optional(),
+  
+  // Google/Gemini specific  
+  google: z.object({
+    thinkingLevel: z.enum(['low', 'medium', 'high']).optional(),
+    mediaResolution: z.enum(['low', 'medium', 'high', 'ultra_high']).optional(),
+    thoughtSignatures: z.boolean().optional(),
+    imageConfig: z.object({
+      aspectRatio: z.string().optional(),
+      imageSize: z.enum(['1K', '2K', '4K']).optional(),
+    }).optional(),
+  }).optional(),
+  
+  // OpenRouter specific
+  openrouter: z.object({
+    models: z.array(z.string()).optional(),
+    trackCredits: z.boolean().default(true),
+  }).optional(),
+  
+  // Ollama specific
+  ollama: z.object({
+    keepAlive: z.string().optional(),
+    numCtx: z.number().int().positive().optional(),
+    numGpu: z.number().int().nonnegative().optional(),
+  }).optional(),
+});
+export type ProviderSpecificConfig = z.infer<typeof ProviderSpecificConfigSchema>;
+
+/**
+ * Retry configuration for error handling.
+ */
+export const RetryConfigSchema = z.object({
+  maxRetries: z.number().int().nonnegative().default(3),
+  backoffMs: z.number().int().positive().default(1000),
+  retryableErrors: z.array(z.string()).default(['RATE_LIMITED', 'NETWORK_ERROR', 'TIMEOUT']),
+});
+export type RetryConfig = z.infer<typeof RetryConfigSchema>;
 
 /**
  * Model configuration schema.
@@ -25,6 +91,25 @@ export const ModelConfigSchema = z.object({
   baseUrl: z.string().url().optional(),
   contextLimit: z.number().int().positive().default(128000),
   maxOutputTokens: z.number().int().positive().default(4096),
+  
+  // Enhanced configuration options
+  fallbackProviders: z.array(ModelProviderSchema).optional(),
+  rateLimit: RateLimitConfigSchema.optional(),
+  retryConfig: RetryConfigSchema.optional(),
+  providerConfig: ProviderSpecificConfigSchema.optional(),
+  
+  // Feature flags
+  features: z.object({
+    toolCalling: z.boolean().default(true),
+    streaming: z.boolean().default(true),
+    multimodal: z.boolean().default(false),
+    imageGeneration: z.boolean().default(false),
+    reasoning: z.boolean().default(false),
+  }).optional(),
+  
+  // Priority for provider selection (higher = preferred)
+  priority: z.number().int().nonnegative().default(0),
+  enabled: z.boolean().default(true),
 });
 export type ModelConfig = z.infer<typeof ModelConfigSchema>;
 
