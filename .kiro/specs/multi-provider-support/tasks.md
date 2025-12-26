@@ -91,13 +91,13 @@ Implement support for multiple AI providers (Anthropic Claude, Google Gemini, Op
   - **Property 4: Error code mapping consistency**
   - **Validates: Requirements 1.6**
 
-- [ ] 3. Implement Google Gemini adapter with advanced features
+- [x] 3. Implement Google Gemini adapter with advanced features
   - Build Google Generative AI integration with Gemini 2.0/3.0 support
   - Support latest models: Gemini 3.0 Pro, Flash, 2.0 Flash, 2.0 Flash Thinking
   - Implement advanced features: thinking levels, thought signatures, image generation
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.10_
 
-- [ ] 3.1 Create GoogleAdapter class with Gemini 3.0 support
+- [x] 3.1 Create GoogleAdapter class with Gemini 3.0 support
   - Implement IModelAdapter interface
   - Add Google Generative AI SDK integration
   - Support Gemini 3.0 Pro, Flash, and Image models
@@ -106,7 +106,7 @@ Implement support for multiple AI providers (Anthropic Claude, Google Gemini, Op
   - Configure safety settings and generation parameters
   - _Requirements: 2.1, 2.2_
 
-- [ ] 3.2 Implement Google streaming support with advanced features
+- [x] 3.2 Implement Google streaming support with advanced features
   - Add generateContentStream integration
   - Implement StreamChunk conversion
   - Handle streaming function calls
@@ -114,7 +114,7 @@ Implement support for multiple AI providers (Anthropic Claude, Google Gemini, Op
   - Add error handling for stream failures
   - _Requirements: 2.2_
 
-- [ ] 3.3 Add Google function calling and structured outputs
+- [x] 3.3 Add Google function calling and structured outputs
   - Convert Universal Tool Definitions to Google format
   - Implement function call parsing from responses
   - Handle function call streaming
@@ -122,7 +122,7 @@ Implement support for multiple AI providers (Anthropic Claude, Google Gemini, Op
   - Integrate with built-in tools (Search, Code Execution)
   - _Requirements: 2.3_
 
-- [ ] 3.4 Implement Gemini 3.0 thinking levels and reasoning
+- [x] 3.4 Implement Gemini 3.0 thinking levels and reasoning
   - Add thinking level parameter support (low, medium, high)
   - Implement thought signature handling for reasoning continuity
   - Support multi-turn reasoning with signature preservation
@@ -130,14 +130,14 @@ Implement support for multiple AI providers (Anthropic Claude, Google Gemini, Op
   - Add migration support for conversations from other models
   - _Requirements: 2.5, 2.7_
 
-- [ ] 3.5 Add multimodal and media resolution controls
+- [x] 3.5 Add multimodal and media resolution controls
   - Implement media resolution parameters (low, medium, high, ultra_high)
   - Support image, video, and audio input processing
   - Add optimal resolution recommendations per media type
   - Handle token allocation for different resolution levels
   - _Requirements: 2.6_
 
-- [ ] 3.6 Implement native image generation capabilities
+- [x] 3.6 Implement native image generation capabilities
   - Add support for Gemini 3.0 Pro Image model
   - Implement image generation with text prompts
   - Support conversational image editing
@@ -145,7 +145,7 @@ Implement support for multiple AI providers (Anthropic Claude, Google Gemini, Op
   - Integrate with Google Search grounding for image generation
   - _Requirements: 2.8_
 
-- [ ] 3.7 Implement Google token counting and optimization
+- [x] 3.7 Implement Google token counting and optimization
   - Integrate with Google's countTokens API
   - Add fallback estimation method
   - Handle token counting for multimodal content
@@ -153,7 +153,7 @@ Implement support for multiple AI providers (Anthropic Claude, Google Gemini, Op
   - Handle token counting errors gracefully
   - _Requirements: 2.9_
 
-- [ ] 3.8 Write property test for Google tool conversion and advanced features
+- [x] 3.8 Write property test for Google tool conversion and advanced features
 
   - **Property 2: Tool definition conversion accuracy**
   - Test Universal Tool Definition to Google format conversion
@@ -161,7 +161,7 @@ Implement support for multiple AI providers (Anthropic Claude, Google Gemini, Op
   - Test built-in tool integration (Search, Code Execution)
   - **Validates: Requirements 2.3**
 
-- [ ] 3.9 Write property test for Google error mapping
+- [x] 3.9 Write property test for Google error mapping
 
   - **Property 4: Error code mapping consistency**
   - Test Google API error mapping to standard codes
@@ -169,14 +169,14 @@ Implement support for multiple AI providers (Anthropic Claude, Google Gemini, Op
   - Test multimodal processing errors
   - **Validates: Requirements 2.10**
 
-- [ ] 3.10 Write property test for thinking level consistency
+- [x] 3.10 Write property test for thinking level consistency
 
   - Test thinking level parameter effects on reasoning
   - Test thought signature preservation across turns
   - Test reasoning continuity in multi-turn conversations
   - **Validates: Requirements 2.5, 2.7**
 
-- [ ] 3.11 Write unit tests for Gemini 3.0 advanced features
+- [x] 3.11 Write unit tests for Gemini 3.0 advanced features
 
   - Test thinking level configuration
   - Test thought signature handling
@@ -185,43 +185,43 @@ Implement support for multiple AI providers (Anthropic Claude, Google Gemini, Op
   - Test multimodal input processing
   - _Requirements: 2.5, 2.6, 2.7, 2.8_
 
-- [ ] 4. Implement OpenRouter adapter
+- [x] 4. Implement OpenRouter adapter
   - Build OpenRouter unified API integration
   - Support dynamic model catalog
   - Implement OpenAI-compatible interface
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
 
-- [ ] 4.1 Create OpenRouterAdapter class
+- [x] 4.1 Create OpenRouterAdapter class
   - Implement IModelAdapter interface
   - Add OpenRouter API client integration
   - Implement model catalog discovery
   - Handle credit-based billing tracking
   - _Requirements: 3.1, 3.4_
 
-- [ ] 4.2 Implement OpenRouter streaming support
+- [x] 4.2 Implement OpenRouter streaming support
   - Use OpenAI-compatible streaming format
   - Implement StreamChunk conversion
   - Handle model-specific streaming differences
   - _Requirements: 3.2_
 
-- [ ] 4.3 Add OpenRouter tool calling support
+- [x] 4.3 Add OpenRouter tool calling support
   - Use OpenAI-compatible tool format
   - Handle model-specific tool calling capabilities
   - Implement tool call parsing
   - _Requirements: 3.3_
 
-- [ ] 4.4 Implement OpenRouter token counting
+- [x] 4.4 Implement OpenRouter token counting
   - Use OpenRouter's token counting endpoint
   - Add model-specific token counting
   - Handle rate limits for token counting
   - _Requirements: 3.5_
 
-- [ ] 4.5 Write property test for OpenRouter model catalog
+- [x] 4.5 Write property test for OpenRouter model catalog
 
   - **Property 10: Model capability detection accuracy**
   - **Validates: Requirements 6.1, 6.2, 6.4**
 
-- [ ] 4.6 Write unit tests for OpenRouter integration
+- [x] 4.6 Write unit tests for OpenRouter integration
 
   - Test model catalog loading
   - Test credit tracking

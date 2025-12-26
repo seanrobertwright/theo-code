@@ -179,6 +179,15 @@ export type StreamChunk = z.infer<typeof StreamChunkSchema>;
 // =============================================================================
 
 /**
+ * Response format configuration for structured outputs.
+ */
+export const ResponseFormatSchema = z.object({
+  type: z.enum(['text', 'json_object']),
+  schema: z.any().optional(), // JSON Schema for structured outputs
+});
+export type ResponseFormat = z.infer<typeof ResponseFormatSchema>;
+
+/**
  * Options for text generation.
  */
 export const GenerateOptionsSchema = z.object({
@@ -186,5 +195,7 @@ export const GenerateOptionsSchema = z.object({
   maxTokens: z.number().int().positive().optional(),
   topP: z.number().min(0).max(1).optional(),
   stopSequences: z.array(z.string()).optional(),
+  responseFormat: ResponseFormatSchema.optional(),
+  includeBuiltInTools: z.boolean().default(false), // For Google Search, Code Execution
 });
 export type GenerateOptions = z.infer<typeof GenerateOptionsSchema>;
