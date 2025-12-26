@@ -49,44 +49,44 @@ Implement support for multiple AI providers (Anthropic Claude, Google Gemini, Op
   - **Property 3: Authentication validation completeness**
   - **Validates: Requirements 1.1, 2.1, 3.1, 5.1**
 
-- [ ] 2. Implement Anthropic Claude adapter
+- [x] 2. Implement Anthropic Claude adapter
   - Build Anthropic Messages API integration
   - Support Claude 3.5 Sonnet, Opus, and Haiku models
   - Implement streaming and tool calling
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
 
-- [ ] 2.1 Create AnthropicAdapter class
+- [x] 2.1 Create AnthropicAdapter class
   - Implement IModelAdapter interface
   - Add Anthropic Messages API client integration
   - Implement message format conversion
   - Support system message handling
   - _Requirements: 1.1, 1.2_
 
-- [ ] 2.2 Implement Anthropic streaming support
+- [x] 2.2 Implement Anthropic streaming support
   - Add Server-Sent Events processing
   - Implement StreamChunk conversion
   - Handle streaming tool calls
   - Add error handling for stream interruptions
   - _Requirements: 1.2_
 
-- [ ] 2.3 Add Anthropic tool calling support
+- [x] 2.3 Add Anthropic tool calling support
   - Convert Universal Tool Definitions to Anthropic format
   - Implement tool call parsing from responses
   - Handle tool call streaming accumulation
   - _Requirements: 1.3_
 
-- [ ] 2.4 Implement Anthropic token counting
+- [x] 2.4 Implement Anthropic token counting
   - Integrate with Anthropic's token counting API
   - Add fallback estimation method
   - Cache token counts for performance
   - _Requirements: 1.5_
 
-- [ ] 2.5 Write property test for Anthropic tool conversion
+- [x] 2.5 Write property test for Anthropic tool conversion
 
   - **Property 2: Tool definition conversion accuracy**
   - **Validates: Requirements 1.3**
 
-- [ ] 2.6 Write property test for Anthropic error mapping
+- [x] 2.6 Write property test for Anthropic error mapping
 
   - **Property 4: Error code mapping consistency**
   - **Validates: Requirements 1.6**
