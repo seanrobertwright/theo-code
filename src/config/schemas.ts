@@ -7,8 +7,48 @@ import { z } from 'zod';
 import { ModelProviderSchema, RateLimitConfigSchema, RetryConfigSchema, ProviderSpecificConfigSchema } from '../shared/types/models.js';
 
 // =============================================================================
+// OAUTH CONFIGURATION SCHEMAS
+// =============================================================================
+
+/**
+ * OAuth provider settings schema.
+ */
+export const OAuthProviderSettingsSchema = z.object({
+  /** Whether OAuth is enabled for this provider */
+  enabled: z.boolean().default(false),
+  
+  /** OAuth client ID */
+  clientId: z.string().optional(),
+  
+  /** Preferred authentication method */
+  preferredMethod: z.enum(['oauth', 'api_key']).default('oauth'),
+  
+  /** Whether to automatically refresh tokens */
+  autoRefresh: z.boolean().default(true),
+});
+export type OAuthProviderSettings = z.infer<typeof OAuthProviderSettingsSchema>;
+
+// =============================================================================
 // PROVIDER CONFIGURATION SCHEMAS
 // =============================================================================
+
+/**
+ * OAuth provider settings schema.
+ */
+export const OAuthProviderSettingsSchema = z.object({
+  /** Whether OAuth is enabled for this provider */
+  enabled: z.boolean().default(false),
+  
+  /** OAuth client ID */
+  clientId: z.string().optional(),
+  
+  /** Preferred authentication method */
+  preferredMethod: z.enum(['oauth', 'api_key']).default('oauth'),
+  
+  /** Whether to automatically refresh tokens */
+  autoRefresh: z.boolean().default(true),
+});
+export type OAuthProviderSettings = z.infer<typeof OAuthProviderSettingsSchema>;
 
 /**
  * Individual provider configuration.
@@ -37,6 +77,9 @@ export const ProviderConfigSchema = z.object({
   
   /** Provider-specific configuration */
   providerConfig: ProviderSpecificConfigSchema.optional(),
+  
+  /** OAuth-specific configuration */
+  oauth: OAuthProviderSettingsSchema.optional(),
   
   /** Available models for this provider */
   models: z.array(z.object({
