@@ -7,8 +7,6 @@
  */
 
 import { ConnectionPool, globalConnectionPool, type ConnectionPoolConfig } from './connection-pool.js';
-import { logger } from '../../shared/utils/index.js';
-
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -57,8 +55,8 @@ export interface HttpResponse extends Response {
  * @example
  * ```typescript
  * const client = new HttpClient({
- *   connectionPool: { maxConnectionsPerHost: 5 },
- *   timeoutMs: 30000,
+ *   connectionPool: { _maxConnectionsPerHost: 5 },
+ *   _timeoutMs: 30000,
  * });
  *
  * const response = await client.fetch('https://api.openai.com/v1/chat/completions', {
@@ -75,8 +73,8 @@ export class HttpClient {
 
   constructor(config: HttpClientConfig = {}) {
     this.config = {
-      timeoutMs: 30000,
-      useGlobalPool: true,
+      _timeoutMs: 30000,
+      _useGlobalPool: true,
       ...config,
     };
 
@@ -102,7 +100,7 @@ export class HttpClient {
   /**
    * Makes an HTTP request with connection pooling.
    */
-  async fetch(url: string, options: HttpRequestOptions = {}): Promise<HttpResponse> {
+  async fetch(_url: string, options: HttpRequestOptions = {}): Promise<HttpResponse> {
     const {
       timeoutMs = this.config.timeoutMs,
       useConnectionPool = true,
@@ -165,28 +163,28 @@ export class HttpClient {
   /**
    * Makes a GET request.
    */
-  async get(url: string, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
+  async get(_url: string, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
     return this.fetch(url, { ...options, method: 'GET' });
   }
 
   /**
    * Makes a POST request.
    */
-  async post(url: string, body?: string | ArrayBuffer | Uint8Array | FormData | URLSearchParams | ReadableStream, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
+  async post(_url: string, body?: string | ArrayBuffer | Uint8Array | FormData | URLSearchParams | ReadableStream, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
     return this.fetch(url, { ...options, method: 'POST', ...(body !== undefined && { body }) });
   }
 
   /**
    * Makes a PUT request.
    */
-  async put(url: string, body?: string | ArrayBuffer | Uint8Array | FormData | URLSearchParams | ReadableStream, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
+  async put(_url: string, body?: string | ArrayBuffer | Uint8Array | FormData | URLSearchParams | ReadableStream, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
     return this.fetch(url, { ...options, method: 'PUT', ...(body !== undefined && { body }) });
   }
 
   /**
    * Makes a DELETE request.
    */
-  async delete(url: string, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
+  async delete(_url: string, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
     return this.fetch(url, { ...options, method: 'DELETE' });
   }
 
@@ -197,7 +195,7 @@ export class HttpClient {
   /**
    * Makes a streaming request with connection pooling.
    */
-  async fetchStream(url: string, options: HttpRequestOptions = {}): Promise<{
+  async fetchStream(_url: string, options: HttpRequestOptions = {}): Promise<{
     response: HttpResponse;
     stream: ReadableStream<Uint8Array>;
   }> {
@@ -216,7 +214,7 @@ export class HttpClient {
   /**
    * Creates a Server-Sent Events stream parser.
    */
-  async *parseSSEStream(url: string, options: HttpRequestOptions = {}): AsyncGenerator<string> {
+  async *parseSSEStream(_url: string, options: HttpRequestOptions = {}): AsyncGenerator<string> {
     const { response, stream } = await this.fetchStream(url, options);
     
     if (!response.ok) {
@@ -230,16 +228,22 @@ export class HttpClient {
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+    break;
+  }
 
-        buffer += decoder.decode(value, { stream: true });
+        buffer += decoder.decode(value, { _stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() ?? '';
 
         for (const line of lines) {
           const trimmed = line.trim();
-          if (trimmed === '' || trimmed === 'data: [DONE]') continue;
-          if (!trimmed.startsWith('data: ')) continue;
+          if (trimmed === '' || trimmed === 'data: [DONE]') {
+            continue;
+          }
+          if (!trimmed.startsWith('data: ')) {
+            continue;
+          }
 
           const data = trimmed.slice(6);
           yield data;
@@ -280,7 +284,7 @@ export class HttpClient {
  * Creates an HTTP client configured for a specific AI provider.
  */
 export function createProviderHttpClient(
-  provider: string,
+  _provider: string,
   config: Partial<HttpClientConfig> = {}
 ): HttpClient {
   const providerConfig: HttpClientConfig = {
@@ -297,17 +301,17 @@ export function createProviderHttpClient(
 /**
  * Gets the recommended connection limit for a provider.
  */
-function getProviderConnectionLimit(provider: string): number {
+function getProviderConnectionLimit(_provider: string): number {
   const limits: Record<string, number> = {
-    openai: 10,
-    anthropic: 5,
-    google: 8,
-    openrouter: 15,
-    cohere: 5,
-    mistral: 5,
-    together: 10,
-    perplexity: 5,
-    ollama: 3, // Local, fewer connections needed
+    _openai: 10,
+    _anthropic: 5,
+    _google: 8,
+    _openrouter: 15,
+    _cohere: 5,
+    _mistral: 5,
+    _together: 10,
+    _perplexity: 5,
+    _ollama: 3, // Local, fewer connections needed
   };
 
   return limits[provider] ?? 5;
@@ -316,17 +320,17 @@ function getProviderConnectionLimit(provider: string): number {
 /**
  * Gets the recommended timeout for a provider.
  */
-function getProviderTimeout(provider: string): number {
+function getProviderTimeout(_provider: string): number {
   const timeouts: Record<string, number> = {
-    openai: 60000,     // 1 minute
-    anthropic: 60000,  // 1 minute
-    google: 90000,     // 1.5 minutes (can be slower)
-    openrouter: 60000, // 1 minute
-    cohere: 45000,     // 45 seconds
-    mistral: 45000,    // 45 seconds
-    together: 60000,   // 1 minute
-    perplexity: 45000, // 45 seconds
-    ollama: 120000,    // 2 minutes (local processing)
+    _openai: 60000,     // 1 minute
+    _anthropic: 60000,  // 1 minute
+    _google: 90000,     // 1.5 minutes (can be slower)
+    _openrouter: 60000, // 1 minute
+    _cohere: 45000,     // 45 seconds
+    _mistral: 45000,    // 45 seconds
+    _together: 60000,   // 1 minute
+    _perplexity: 45000, // 45 seconds
+    _ollama: 120000,    // 2 minutes (local processing)
   };
 
   return timeouts[provider] ?? 60000;
@@ -339,4 +343,4 @@ function getProviderTimeout(provider: string): number {
 /**
  * Global HTTP client instance using the global connection pool.
  */
-export const globalHttpClient = new HttpClient({ useGlobalPool: true });
+export const globalHttpClient = new HttpClient({ _useGlobalPool: true });

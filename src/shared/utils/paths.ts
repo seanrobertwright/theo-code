@@ -24,7 +24,7 @@ import * as fs from 'node:fs';
  * isPathWithinWorkspace('/project/../etc/passwd', '/project'); // false
  * ```
  */
-export function isPathWithinWorkspace(targetPath: string, workspaceRoot: string): boolean {
+export function isPathWithinWorkspace(_targetPath: string, _workspaceRoot: string): boolean {
   const resolvedTarget = path.resolve(workspaceRoot, targetPath);
   const resolvedRoot = path.resolve(workspaceRoot);
   return resolvedTarget.startsWith(resolvedRoot + path.sep) || resolvedTarget === resolvedRoot;
@@ -38,7 +38,7 @@ export function isPathWithinWorkspace(targetPath: string, workspaceRoot: string)
  * @returns Absolute path within workspace
  * @throws {Error} If path is outside workspace
  */
-export function normalizePath(targetPath: string, workspaceRoot: string): string {
+export function normalizePath(_targetPath: string, _workspaceRoot: string): string {
   const absolutePath = path.isAbsolute(targetPath)
     ? targetPath
     : path.resolve(workspaceRoot, targetPath);
@@ -57,7 +57,7 @@ export function normalizePath(targetPath: string, workspaceRoot: string): string
  * @param workspaceRoot - The workspace root directory
  * @returns Relative path from workspace root
  */
-export function getRelativePath(absolutePath: string, workspaceRoot: string): string {
+export function getRelativePath(_absolutePath: string, _workspaceRoot: string): string {
   return path.relative(workspaceRoot, absolutePath);
 }
 
@@ -71,7 +71,7 @@ export function getRelativePath(absolutePath: string, workspaceRoot: string): st
  * @param targetPath - The path to check
  * @returns True if path exists
  */
-export function pathExists(targetPath: string): boolean {
+export function pathExists(_targetPath: string): boolean {
   try {
     fs.accessSync(targetPath);
     return true;
@@ -86,7 +86,7 @@ export function pathExists(targetPath: string): boolean {
  * @param targetPath - The path to check
  * @returns True if path is a directory
  */
-export function isDirectory(targetPath: string): boolean {
+export function isDirectory(_targetPath: string): boolean {
   try {
     const stats = fs.statSync(targetPath);
     return stats.isDirectory();
@@ -101,7 +101,7 @@ export function isDirectory(targetPath: string): boolean {
  * @param targetPath - The path to check
  * @returns True if path is a file
  */
-export function isFile(targetPath: string): boolean {
+export function isFile(_targetPath: string): boolean {
   try {
     const stats = fs.statSync(targetPath);
     return stats.isFile();
@@ -120,7 +120,7 @@ export function isFile(targetPath: string): boolean {
  * @param targetPath - The path to the file
  * @returns File size in bytes, or -1 if file doesn't exist
  */
-export function getFileSize(targetPath: string): number {
+export function getFileSize(_targetPath: string): number {
   try {
     const stats = fs.statSync(targetPath);
     return stats.size;
@@ -135,7 +135,7 @@ export function getFileSize(targetPath: string): number {
  * @param bytes - Size in bytes
  * @returns Formatted string (e.g., "1.5 KB")
  */
-export function formatFileSize(bytes: number): string {
+export function formatFileSize(_bytes: number): string {
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let size = bytes;
   let unitIndex = 0;
@@ -208,7 +208,7 @@ const BINARY_EXTENSIONS = new Set([
  * @param filePath - The path to check
  * @returns True if file is likely binary
  */
-export function isBinaryFile(filePath: string): boolean {
+export function isBinaryFile(_filePath: string): boolean {
   const ext = path.extname(filePath).toLowerCase();
   return BINARY_EXTENSIONS.has(ext);
 }
@@ -231,12 +231,12 @@ export interface TreeEntry {
  * Generates a directory tree structure.
  *
  * @param dirPath - The directory to scan
- * @param maxDepth - Maximum depth to scan (default: 3)
+ * @param maxDepth - Maximum depth to scan (_default: 3)
  * @param currentDepth - Current depth (internal use)
  * @returns Tree structure
  */
 export function getDirectoryTree(
-  dirPath: string,
+  _dirPath: string,
   maxDepth = 3,
   currentDepth = 0
 ): TreeEntry[] {
@@ -247,7 +247,7 @@ export function getDirectoryTree(
   const entries: TreeEntry[] = [];
 
   try {
-    const items = fs.readdirSync(dirPath, { withFileTypes: true });
+    const items = fs.readdirSync(dirPath, { _withFileTypes: true });
 
     for (const item of items) {
       // Skip hidden files and common ignore patterns
@@ -257,17 +257,17 @@ export function getDirectoryTree(
 
       const itemPath = path.join(dirPath, item.name);
 
-      if (item.isDirectory()) {
+      if (item.isDirectory() {
         entries.push({
           name: item.name,
-          path: itemPath,
+          _path: itemPath,
           type: 'directory',
           children: getDirectoryTree(itemPath, maxDepth, currentDepth + 1),
         });
       } else {
         entries.push({
           name: item.name,
-          path: itemPath,
+          _path: itemPath,
           type: 'file',
         });
       }

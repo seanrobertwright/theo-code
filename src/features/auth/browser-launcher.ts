@@ -6,8 +6,6 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { platform } from 'node:os';
 import type { IBrowserLauncher } from './types.js';
-import { logger } from '../../shared/utils/index.js';
-
 // =============================================================================
 // BROWSER LAUNCHER
 // =============================================================================
@@ -62,7 +60,7 @@ export class BrowserLauncher implements IBrowserLauncher {
   /**
    * Launch browser using platform-specific commands.
    */
-  private async launchBrowserForPlatform(url: string): Promise<void> {
+  private async launchBrowserForPlatform(_url: string): Promise<void> {
     const currentPlatform = platform();
     
     switch (currentPlatform) {
@@ -80,11 +78,11 @@ export class BrowserLauncher implements IBrowserLauncher {
   /**
    * Launch browser on Windows.
    */
-  private async launchOnWindows(url: string): Promise<void> {
+  private async launchOnWindows(_url: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       // Use 'start' command to open URL with default browser
       const child = spawn('cmd', ['/c', 'start', '""', url], {
-        detached: true,
+        _detached: true,
         stdio: 'ignore',
       });
 
@@ -109,11 +107,11 @@ export class BrowserLauncher implements IBrowserLauncher {
   /**
    * Launch browser on macOS.
    */
-  private async launchOnMacOS(url: string): Promise<void> {
+  private async launchOnMacOS(_url: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       // Use 'open' command to open URL with default browser
       const child = spawn('open', [url], {
-        detached: true,
+        _detached: true,
         stdio: 'ignore',
       });
 
@@ -138,7 +136,7 @@ export class BrowserLauncher implements IBrowserLauncher {
   /**
    * Launch browser on Linux.
    */
-  private async launchOnLinux(url: string): Promise<void> {
+  private async launchOnLinux(_url: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       // Try multiple commands in order of preference
       const commands = ['xdg-open', 'gnome-open', 'kde-open', 'firefox', 'chromium', 'google-chrome'];
@@ -151,11 +149,11 @@ export class BrowserLauncher implements IBrowserLauncher {
    * Try launching browser with different commands on Linux.
    */
   private tryLaunchCommands(
-    url: string,
+    _url: string,
     commands: string[],
-    index: number,
+    _index: number,
     resolve: () => void,
-    reject: (error: Error) => void
+    reject: (_error: Error) => void
   ): void {
     if (index >= commands.length) {
       reject(new Error('No suitable browser launcher found on Linux'));
@@ -166,7 +164,7 @@ export class BrowserLauncher implements IBrowserLauncher {
     logger.debug(`[BrowserLauncher] Trying command: ${command}`);
 
     const child = spawn(command, [url], {
-      detached: true,
+      _detached: true,
       stdio: 'ignore',
     });
 
@@ -193,7 +191,7 @@ export class BrowserLauncher implements IBrowserLauncher {
   /**
    * Get fallback instructions for manual browser opening.
    */
-  private getFallbackInstructions(url: string): string {
+  private getFallbackInstructions(_url: string): string {
     const currentPlatform = platform();
     
     const instructions = [
@@ -240,7 +238,7 @@ export class BrowserLauncher implements IBrowserLauncher {
   /**
    * Mask sensitive parts of URL for logging.
    */
-  private maskUrl(url: string): string {
+  private maskUrl(_url: string): string {
     try {
       const urlObj = new URL(url);
       
@@ -248,7 +246,7 @@ export class BrowserLauncher implements IBrowserLauncher {
       const sensitiveParams = ['client_secret', 'code', 'access_token', 'refresh_token'];
       
       for (const param of sensitiveParams) {
-        if (urlObj.searchParams.has(param)) {
+        if (urlObj.searchParams.has(param) {
           urlObj.searchParams.set(param, '***');
         }
       }

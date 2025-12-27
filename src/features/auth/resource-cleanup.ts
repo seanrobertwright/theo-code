@@ -4,8 +4,6 @@
  */
 
 import type { ModelProvider } from '../../shared/types/models.js';
-import { logger } from '../../shared/utils/index.js';
-
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -136,7 +134,7 @@ export class OAuthResourceCleanupManager {
   /**
    * Unregister a resource (usually after successful completion).
    */
-  unregisterResource(resourceId: string): boolean {
+  unregisterResource(_resourceId: string): boolean {
     const resource = this.managedResources.get(resourceId);
     if (!resource) {
       return false;
@@ -159,10 +157,10 @@ export class OAuthResourceCleanupManager {
    * Register a callback server for cleanup.
    */
   registerCallbackServer(
-    provider: ModelProvider,
-    operation: string,
+    _provider: ModelProvider,
+    _operation: string,
     server: { close: () => Promise<void> },
-    port: number
+    _port: number
   ): string {
     return this.registerResource({
       type: 'callback_server',
@@ -184,8 +182,8 @@ export class OAuthResourceCleanupManager {
    * Register a browser process for cleanup.
    */
   registerBrowserProcess(
-    provider: ModelProvider,
-    operation: string,
+    _provider: ModelProvider,
+    _operation: string,
     process: { kill: () => void },
     pid?: number
   ): string {
@@ -209,16 +207,16 @@ export class OAuthResourceCleanupManager {
    * Register temporary tokens for cleanup.
    */
   registerTemporaryTokens(
-    provider: ModelProvider,
-    operation: string,
+    _provider: ModelProvider,
+    _operation: string,
     clearFunction: () => Promise<void>
   ): string {
     return this.registerResource({
       type: 'temporary_tokens',
       provider,
       operation,
-      cleanup: clearFunction,
-      isCritical: true, // Don't auto-cleanup tokens
+      _cleanup: clearFunction,
+      _isCritical: true, // Don't auto-cleanup tokens
     });
   }
 
@@ -226,15 +224,15 @@ export class OAuthResourceCleanupManager {
    * Register OAuth state for cleanup.
    */
   registerOAuthState(
-    provider: ModelProvider,
-    operation: string,
+    _provider: ModelProvider,
+    _operation: string,
     clearFunction: () => Promise<void>
   ): string {
     return this.registerResource({
       type: 'oauth_state',
       provider,
       operation,
-      cleanup: clearFunction,
+      _cleanup: clearFunction,
     });
   }
 
@@ -242,8 +240,8 @@ export class OAuthResourceCleanupManager {
    * Register network connections for cleanup.
    */
   registerNetworkConnection(
-    provider: ModelProvider,
-    operation: string,
+    _provider: ModelProvider,
+    _operation: string,
     connection: { destroy: () => void }
   ): string {
     return this.registerResource({
@@ -265,8 +263,8 @@ export class OAuthResourceCleanupManager {
    * Register timers for cleanup.
    */
   registerTimer(
-    provider: ModelProvider,
-    operation: string,
+    _provider: ModelProvider,
+    _operation: string,
     timer: NodeJS.Timeout
   ): string {
     return this.registerResource({
@@ -292,8 +290,8 @@ export class OAuthResourceCleanupManager {
    * Clean up all resources for a specific provider and operation.
    */
   async cleanupOperation(
-    provider: ModelProvider,
-    operation: string,
+    _provider: ModelProvider,
+    _operation: string,
     context?: Partial<CleanupContext>
   ): Promise<CleanupResult[]> {
     const resources = Array.from(this.managedResources.values())
@@ -325,7 +323,7 @@ export class OAuthResourceCleanupManager {
    * Clean up all resources for a specific provider.
    */
   async cleanupProvider(
-    provider: ModelProvider,
+    _provider: ModelProvider,
     context?: Partial<CleanupContext>
   ): Promise<CleanupResult[]> {
     const resources = Array.from(this.managedResources.values())
@@ -357,7 +355,7 @@ export class OAuthResourceCleanupManager {
    * Clean up resources by type.
    */
   async cleanupByType(
-    resourceType: CleanupResourceType,
+    _resourceType: CleanupResourceType,
     context?: Partial<CleanupContext>
   ): Promise<CleanupResult[]> {
     const resources = Array.from(this.managedResources.values())
@@ -419,7 +417,7 @@ export class OAuthResourceCleanupManager {
   /**
    * Clean up a single resource with timeout.
    */
-  private async cleanupResource(resource: ManagedResource, timeoutMs: number): Promise<CleanupResult> {
+  private async cleanupResource(_resource: ManagedResource, _timeoutMs: number): Promise<CleanupResult> {
     const startTime = Date.now();
     
     try {
@@ -438,7 +436,7 @@ export class OAuthResourceCleanupManager {
       
       return {
         resourceType: resource.type,
-        success: true,
+        _success: true,
         details: `Cleaned up in ${duration}ms`,
       };
     } catch (error) {
@@ -449,8 +447,8 @@ export class OAuthResourceCleanupManager {
       
       return {
         resourceType: resource.type,
-        success: false,
-        error: errorMessage,
+        _success: false,
+        _error: errorMessage,
         details: `Failed after ${duration}ms`,
       };
     }
@@ -463,7 +461,7 @@ export class OAuthResourceCleanupManager {
   /**
    * Schedule automatic cleanup for a resource.
    */
-  private scheduleAutoCleanup(resourceId: string, delayMs: number): void {
+  private scheduleAutoCleanup(_resourceId: string, _delayMs: number): void {
     const timeout = setTimeout(async () => {
       const resource = this.managedResources.get(resourceId);
       if (resource) {
@@ -492,7 +490,7 @@ export class OAuthResourceCleanupManager {
     totalResources: number;
     resourcesByType: Record<CleanupResourceType, number>;
     resourcesByProvider: Record<string, number>;
-    oldestResource?: { id: string; type: CleanupResourceType; ageMs: number };
+    oldestResource?: { id: string; type: CleanupResourceType; _ageMs: number };
   } {
     const resources = Array.from(this.managedResources.values());
     const now = Date.now();
@@ -501,7 +499,7 @@ export class OAuthResourceCleanupManager {
       totalResources: resources.length,
       resourcesByType: {} as Record<CleanupResourceType, number>,
       resourcesByProvider: {} as Record<string, number>,
-      oldestResource: undefined as { id: string; type: CleanupResourceType; ageMs: number } | undefined,
+      oldestResource: undefined as { id: string; type: CleanupResourceType; _ageMs: number } | undefined,
     };
 
     let oldestAge = 0;
@@ -520,7 +518,7 @@ export class OAuthResourceCleanupManager {
         info.oldestResource = {
           id: resource.id,
           type: resource.type,
-          ageMs: age,
+          _ageMs: age,
         };
       }
     }
@@ -531,7 +529,7 @@ export class OAuthResourceCleanupManager {
   /**
    * Generate a unique resource ID.
    */
-  private generateResourceId(type: CleanupResourceType, provider: ModelProvider, operation: string): string {
+  private generateResourceId(_type: CleanupResourceType, _provider: ModelProvider, _operation: string): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
     return `${type}-${provider}-${operation}-${timestamp}-${random}`;
@@ -541,8 +539,10 @@ export class OAuthResourceCleanupManager {
    * Set up process exit handlers for emergency cleanup.
    */
   private setupExitHandlers(): void {
-    const exitHandler = async (signal: string) => {
-      if (this.isDestroyed) return;
+    const exitHandler = async (_signal: string) => {
+      if (this.isDestroyed) {
+    return;
+  }
       
       logger.warn(`[ResourceCleanup] Process ${signal} received, performing emergency cleanup`);
       
@@ -575,7 +575,9 @@ export class OAuthResourceCleanupManager {
    * Destroy the cleanup manager and clean up all resources.
    */
   async destroy(): Promise<void> {
-    if (this.isDestroyed) return;
+    if (this.isDestroyed) {
+    return;
+  }
     
     logger.info('[ResourceCleanup] Destroying cleanup manager');
     this.isDestroyed = true;

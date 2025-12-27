@@ -29,8 +29,6 @@ import {
   registerAdapter,
 } from './types.js';
 import type { AuthenticationManager } from '../../auth/authentication-manager.js';
-import { logger } from '../../../shared/utils/index.js';
-
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -83,7 +81,7 @@ interface ToolCallAccumulator {
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(message: Message): string {
+function getMessageContent(_message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -110,15 +108,15 @@ function convertMessages(messages: Message[]): { messages: MessageParam[]; syste
     } else if (message.role === 'user') {
       anthropicMessages.push({
         role: 'user',
-        content: [{ type: 'text', text: content }],
+        content: [{ type: 'text', _text: content }],
       });
     } else if (message.role === 'assistant') {
       if (message.toolCalls !== undefined && message.toolCalls.length > 0) {
         // Assistant message with tool calls
-        const contentBlocks: Array<{ type: 'text'; text: string } | { type: 'tool_use'; id: string; name: string; input: any }> = [];
+        const contentBlocks: Array<{ type: 'text'; _text: string } | { type: 'tool_use'; id: string; name: string; _input: any }> = [];
         
         if (content.length > 0) {
-          contentBlocks.push({ type: 'text', text: content });
+          contentBlocks.push({ type: 'text', _text: content });
         }
         
         for (const toolCall of message.toolCalls) {
@@ -132,13 +130,13 @@ function convertMessages(messages: Message[]): { messages: MessageParam[]; syste
         
         anthropicMessages.push({
           role: 'assistant',
-          content: contentBlocks,
+          _content: contentBlocks,
         });
       } else {
         // Regular assistant message
         anthropicMessages.push({
           role: 'assistant',
-          content: [{ type: 'text', text: content }],
+          content: [{ type: 'text', _text: content }],
         });
       }
     } else if (message.role === 'tool') {
@@ -160,7 +158,7 @@ function convertMessages(messages: Message[]): { messages: MessageParam[]; syste
     }
   }
 
-  const result: { messages: MessageParam[]; system?: string } = { messages: anthropicMessages };
+  const result: { messages: MessageParam[]; system?: string } = { _messages: anthropicMessages };
   if (systemMessage !== undefined) {
     result.system = systemMessage;
   }
@@ -196,7 +194,7 @@ function convertTools(tools: UniversalToolDefinition[]): Tool[] {
 /**
  * Validates and parses tool call arguments.
  */
-function parseToolCallArguments(argumentsJson: string, toolName: string): any {
+function parseToolCallArguments(_argumentsJson: string, _toolName: string): any {
   if (!argumentsJson.trim()) {
     return {};
   }
@@ -206,7 +204,7 @@ function parseToolCallArguments(argumentsJson: string, toolName: string): any {
   } catch (error) {
     logger.warn(`[Anthropic] Failed to parse tool call arguments for ${toolName}:`, error);
     // Return the raw string if JSON parsing fails
-    return { raw_input: argumentsJson };
+    return { _raw_input: argumentsJson };
   }
 }
 
@@ -217,7 +215,7 @@ function parseToolCallArguments(argumentsJson: string, toolName: string): any {
 /**
  * Maps Anthropic API errors to StreamChunk error format.
  */
-function handleApiError(error: unknown): StreamChunk {
+function handleApiError(_error: unknown): StreamChunk {
   if (error instanceof Anthropic.APIError) {
     // Use status or error code from the API error
     const errorType = (error as any).type || error.status?.toString() || 'unknown_error';
@@ -321,7 +319,7 @@ async function countTokensWithAPI(_client: Anthropic, messages: Message[], _mode
  * }, authManager);
  *
  * for await (const chunk of adapter.generateStream(messages, tools)) {
- *   console.log(chunk);
+ *   console.warn(chunk);
  * }
  * ```
  */
@@ -338,7 +336,7 @@ export class AnthropicAdapter implements IModelAdapter {
   /**
    * Creates a new Anthropic adapter.
    */
-  constructor(config: ModelConfig, authManager?: AuthenticationManager) {
+  constructor(_config: ModelConfig, authManager?: AuthenticationManager) {
     this.config = config;
     this.model = config.model;
     this.contextLimit = config.contextLimit ?? MODEL_CONTEXT_LIMITS[config.model] ?? 200000;
@@ -418,7 +416,7 @@ export class AnthropicAdapter implements IModelAdapter {
     tools?: UniversalToolDefinition[],
     options?: GenerateOptions
   ): AsyncGenerator<StreamChunk> {
-    const { messages: anthropicMessages, system } = convertMessages(messages);
+    const { _messages: anthropicMessages, system } = convertMessages(messages);
     const anthropicTools = this.shouldIncludeTools(tools) ? convertTools(tools) : undefined;
 
     try {
@@ -477,7 +475,7 @@ export class AnthropicAdapter implements IModelAdapter {
    * Creates the Anthropic streaming request.
    */
   private async createStream(
-    client: Anthropic,
+    _client: Anthropic,
     messages: MessageParam[],
     system: string | undefined,
     tools: Tool[] | undefined,
@@ -494,7 +492,7 @@ export class AnthropicAdapter implements IModelAdapter {
     const requestParams: Anthropic.Messages.MessageCreateParamsStreaming = {
       model: this.model,
       messages,
-      stream: true,
+      _stream: true,
       max_tokens: options?.maxTokens ?? this.config.maxOutputTokens ?? 4096,
       temperature: options?.temperature ?? 0.7,
       ...(system !== undefined ? { system } : {}),
@@ -612,7 +610,9 @@ export class AnthropicAdapter implements IModelAdapter {
             yield { type: 'done' };
             hasFinished = true;
           }
-        } else if ((event as any).type === 'error') {
+        } else if ((event as any){
+    .type === 'error') {
+  }
           const errorEvent = event as any;
           logger.error('[Anthropic] Stream error:', errorEvent.error);
           yield {
@@ -660,7 +660,7 @@ export class AnthropicAdapter implements IModelAdapter {
 /**
  * Creates an Anthropic adapter from configuration.
  */
-function createAnthropicAdapter(config: ModelConfig, authManager?: AuthenticationManager): IModelAdapter {
+function createAnthropicAdapter(_config: ModelConfig, authManager?: AuthenticationManager): IModelAdapter {
   return new AnthropicAdapter(config, authManager);
 }
 

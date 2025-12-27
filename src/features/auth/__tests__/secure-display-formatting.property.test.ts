@@ -24,24 +24,24 @@ import type { ProviderConfig } from '../../../config/schemas.js';
  */
 const sensitiveStringArb = fc.oneof(
   // API keys
-  fc.string({ minLength: 32, maxLength: 64 }).map(s => `sk-${s}`),
-  fc.string({ minLength: 32, maxLength: 64 }).map(s => `sk-ant-${s}`),
+  fc.string({ _minLength: 32, _maxLength: 64 }).map(s => `sk-${s}`),
+  fc.string({ _minLength: 32, _maxLength: 64 }).map(s => `sk-ant-${s}`),
   // Tokens
-  fc.string({ minLength: 100, maxLength: 500 }).map(s => `eyJ${s}`), // JWT-like
+  fc.string({ _minLength: 100, _maxLength: 500 }).map(s => `eyJ${s}`), // JWT-like
   // Secrets
-  fc.string({ minLength: 32, maxLength: 128 }).map(s => `secret_${s}`),
+  fc.string({ _minLength: 32, _maxLength: 128 }).map(s => `secret_${s}`),
   // Client secrets
-  fc.string({ minLength: 32, maxLength: 64 }).map(s => `cs_${s}`),
+  fc.string({ _minLength: 32, _maxLength: 64 }).map(s => `cs_${s}`),
   // Edge case: repeated characters (like the failing counter-example)
   fc.constantFrom('A', 'B', '1', '0').chain(char => 
-    fc.integer({ min: 16, max: 128 }).map(length => char.repeat(length))
+    fc.integer({ _min: 16, _max: 128 }).map(length => char.repeat(length))
   ),
   // Edge case: tokens with special characters (but not just whitespace)
-  fc.string({ minLength: 16, maxLength: 64 }).filter(s => s.trim().length > 0).map(s => s.replace(/[a-zA-Z0-9]/g, c => 
+  fc.string({ _minLength: 16, _maxLength: 64 }).filter(s => s.trim().length > 0).map(s => s.replace(/[a-zA-Z0-9]/g, c => 
     Math.random() > 0.5 ? c : ['$', '#', ':', ',', 'w'][Math.floor(Math.random() * 5)]
   )),
   // Realistic token patterns
-  fc.string({ minLength: 16, maxLength: 128 }).filter(s => s.trim().length >= 16),
+  fc.string({ _minLength: 16, _maxLength: 128 }).filter(s => s.trim().length >= 16),
 );
 
 /**
@@ -49,7 +49,7 @@ const sensitiveStringArb = fc.oneof(
  */
 const nonSensitiveStringArb = fc.oneof(
   fc.constantFrom('google', 'anthropic', 'openai', 'openrouter'),
-  fc.string({ minLength: 1, maxLength: 50 }).filter(s => !s.includes('secret') && !s.includes('key')),
+  fc.string({ _minLength: 1, _maxLength: 50 }).filter(s => !s.includes('secret') && !s.includes('key')),
   fc.webUrl(),
 );
 
@@ -57,11 +57,11 @@ const nonSensitiveStringArb = fc.oneof(
  * Generator for TokenSet objects.
  */
 const tokenSetArb = fc.record({
-  accessToken: sensitiveStringArb,
+  _accessToken: sensitiveStringArb,
   refreshToken: fc.option(sensitiveStringArb),
   expiresAt: fc.date({ min: new Date(Date.now() - 86400000), max: new Date(Date.now() + 86400000) }),
   tokenType: fc.constant('Bearer' as const),
-  scope: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
+  scope: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
 });
 
 /**
@@ -80,11 +80,11 @@ const authStatusArb = fc.record({
  */
 const oauthConfigArb = fc.record({
   provider: fc.constantFrom('google', 'anthropic', 'openai', 'openrouter'),
-  clientId: sensitiveStringArb,
+  _clientId: sensitiveStringArb,
   clientSecret: fc.option(sensitiveStringArb),
   authorizationEndpoint: fc.webUrl(),
   tokenEndpoint: fc.webUrl(),
-  scopes: fc.array(fc.string({ minLength: 1, maxLength: 50 }), { minLength: 1, maxLength: 5 }),
+  scopes: fc.array(fc.string({ _minLength: 1, _maxLength: 50 }), { _minLength: 1, _maxLength: 5 }),
   redirectUri: fc.constant('http://localhost:8080/callback'),
   additionalParams: fc.option(fc.record({
     client_secret: fc.option(sensitiveStringArb),
@@ -99,7 +99,7 @@ const oauthConfigArb = fc.record({
 const providerConfigArb = fc.record({
   name: fc.constantFrom('google', 'anthropic', 'openai', 'openrouter'),
   enabled: fc.boolean(),
-  priority: fc.integer({ min: 0, max: 100 }),
+  priority: fc.integer({ _min: 0, _max: 100 }),
   baseUrl: fc.option(fc.webUrl()),
   apiKey: fc.option(sensitiveStringArb),
   oauth: fc.option(fc.record({
@@ -117,7 +117,7 @@ const providerConfigArb = fc.record({
 /**
  * Check if a string contains sensitive data patterns.
  */
-function containsSensitiveData(text: string): boolean {
+function containsSensitiveData(_text: string): boolean {
   const sensitivePatterns = [
     /sk-[a-zA-Z0-9]{32,}/,     // OpenAI API keys
     /sk-ant-[a-zA-Z0-9]{32,}/, // Anthropic API keys
@@ -147,7 +147,7 @@ function containsSensitiveData(text: string): boolean {
 /**
  * Check if text contains masked sensitive data (safe for display).
  */
-function containsMaskedSensitiveData(text: string): boolean {
+function containsMaskedSensitiveData(_text: string): boolean {
   const maskedPatterns = [
     /\[REDACTED\]/,
     /\*{3,}/,
@@ -251,7 +251,7 @@ describe('Secure Display Formatting Properties', () => {
           }
         }
       ),
-      { numRuns: 100 }
+      { _numRuns: 100 }
     );
   });
 

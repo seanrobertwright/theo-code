@@ -30,13 +30,17 @@ export interface UseConfigResult {
  * ```tsx
  * const { config, isLoading, error } = useConfig('/path/to/project');
  *
- * if (isLoading) return <Spinner />;
- * if (error) return <Text color="red">{error.message}</Text>;
+ * if (isLoading) {
+    return <Spinner />;
+  }
+ * if (error) {
+    return <Text color="red">{error.message}</Text>;
+  }
  *
  * return <Text>Model: {config?.global.defaultModel}</Text>;
  * ```
  */
-export function useConfig(workspaceRoot: string): UseConfigResult {
+export function useConfig(_workspaceRoot: string): UseConfigResult {
   const [config, setConfig] = useState<MergedConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);

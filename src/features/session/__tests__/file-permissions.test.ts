@@ -462,7 +462,7 @@ describe('File Permission Management Tests', () => {
       
       if (!isWindows) {
         // On Unix-like systems, verify exact permissions
-        let mode = stats.mode & parseInt('777', 8);
+        const mode = stats.mode & parseInt('777', 8);
         expect(mode).toBe(0o750);
       }
       

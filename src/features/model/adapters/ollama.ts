@@ -22,8 +22,6 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
-import { logger } from '../../../shared/utils/index.js';
-
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -145,7 +143,7 @@ interface OllamaListResponse {
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(message: Message): string {
+function getMessageContent(_message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -195,7 +193,7 @@ function convertMessages(messages: Message[]): Array<{
       
       ollamaMessages.push({
         role: 'assistant',
-        content: assistantContent,
+        _content: assistantContent,
       });
     } else if (message.role === 'tool') {
       // Convert tool results to user messages
@@ -240,7 +238,7 @@ function convertToolsToSystemPrompt(tools: UniversalToolDefinition[]): string {
 /**
  * Maps Ollama API errors to StreamChunk error format.
  */
-function handleApiError(error: unknown): StreamChunk {
+function handleApiError(_error: unknown): StreamChunk {
   if (error instanceof Error) {
     // Try to extract error code from message
     const errorMessage = error.message.toLowerCase();
@@ -334,7 +332,7 @@ function estimateTokens(messages: Message[]): number {
  * });
  *
  * for await (const chunk of adapter.generateStream(messages, tools)) {
- *   console.log(chunk);
+ *   console.warn(chunk);
  * }
  * ```
  */
@@ -350,7 +348,7 @@ export class OllamaAdapter implements IModelAdapter {
   /**
    * Creates a new enhanced Ollama adapter.
    */
-  constructor(config: ModelConfig) {
+  constructor(_config: ModelConfig) {
     this.config = config;
     this.model = config.model;
     const defaultContextLimit = MODEL_CONTEXT_LIMITS[config.model] || 8192;
@@ -482,10 +480,10 @@ export class OllamaAdapter implements IModelAdapter {
   /**
    * Pulls a model from the Ollama registry.
    */
-  async pullModel(modelName: string): Promise<void> {
+  async pullModel(_modelName: string): Promise<void> {
     try {
       logger.info(`[Ollama] Pulling model ${modelName}...`);
-      await this.client.pull({ model: modelName });
+      await this.client.pull({ _model: modelName });
       logger.info(`[Ollama] Successfully pulled model ${modelName}`);
     } catch (error) {
       logger.error(`[Ollama] Failed to pull model ${modelName}:`, error);
@@ -500,10 +498,10 @@ export class OllamaAdapter implements IModelAdapter {
   /**
    * Removes a model from local storage.
    */
-  async removeModel(modelName: string): Promise<void> {
+  async removeModel(_modelName: string): Promise<void> {
     try {
       logger.info(`[Ollama] Removing model ${modelName}...`);
-      await this.client.delete({ model: modelName });
+      await this.client.delete({ _model: modelName });
       logger.info(`[Ollama] Successfully removed model ${modelName}`);
     } catch (error) {
       logger.error(`[Ollama] Failed to remove model ${modelName}:`, error);
@@ -581,7 +579,7 @@ export class OllamaAdapter implements IModelAdapter {
           logger.debug('[Ollama] Stream finished');
           
           // Check for tool calls in the response
-          const content = chunk.message?.content || '';
+          const content = chunk.message?.content ?? '';
           const toolCallMatch = content.match(/Tool call: (\w+)\(([^)]*)\)/);
           
           if (toolCallMatch) {
@@ -591,7 +589,7 @@ export class OllamaAdapter implements IModelAdapter {
               yield {
                 type: 'tool_call',
                 id: `ollama_${Date.now()}`,
-                name: toolName,
+                _name: toolName,
                 arguments: JSON.stringify(args),
               };
             } catch {
@@ -630,7 +628,7 @@ export class OllamaAdapter implements IModelAdapter {
 /**
  * Creates an enhanced Ollama adapter from configuration.
  */
-function createOllamaAdapter(config: ModelConfig): IModelAdapter {
+function createOllamaAdapter(_config: ModelConfig): IModelAdapter {
   return new OllamaAdapter(config);
 }
 

@@ -6,8 +6,6 @@ import { execSync } from 'node:child_process';
 import * as path from 'node:path';
 import { z } from 'zod';
 import type { Tool } from '../../../shared/types/tools.js';
-import { logger } from '../../../shared/utils/index.js';
-
 interface GitChange {
   file: string;
   status: 'added' | 'modified' | 'deleted' | 'renamed';
@@ -35,10 +33,18 @@ class GitAnalyzer {
       c.diff.toLowerCase().includes('error')
     );
 
-    if (hasBugFix) return 'fix';
-    if (hasNewFiles && !hasTests) return 'feat';
-    if (hasTests) return 'test';
-    if (hasDocumentation) return 'docs';
+    if (hasBugFix) {
+    return 'fix';
+  }
+    if (hasNewFiles && !hasTests) {
+    return 'feat';
+  }
+    if (hasTests) {
+    return 'test';
+  }
+    if (hasDocumentation) {
+    return 'docs';
+  }
     
     return 'refactor';
   }
@@ -100,11 +106,11 @@ class GitAnalyzer {
       type,
       scope,
       description,
-      breaking: hasBreaking
+      _breaking: hasBreaking
     };
   }
 
-  formatCommitMessage(analysis: CommitAnalysis): string {
+  formatCommitMessage(_analysis: CommitAnalysis): string {
     let message = analysis.type;
     
     if (analysis.scope) {
@@ -139,7 +145,7 @@ export const createGitTools = (): Tool[] => [
       parameters: {
         type: 'object',
         properties: {
-          porcelain: { type: 'boolean', default: true, description: 'Use porcelain format for machine-readable output' }
+          porcelain: { type: 'boolean', _default: true, description: 'Use porcelain format for machine-readable output' }
         },
         required: []
       }
@@ -155,10 +161,10 @@ export const createGitTools = (): Tool[] => [
       }).optional(),
       error: z.string().optional()
     }),
-    requiresConfirmation: false,
+    _requiresConfirmation: false,
     category: 'git',
 
-    async execute(params: unknown, context) {
+    async execute(_params: unknown, context) {
       try {
         const typedParams = params as { porcelain?: boolean };
         const cmd = typedParams.porcelain ? 'git status --porcelain' : 'git status';
@@ -168,7 +174,7 @@ export const createGitTools = (): Tool[] => [
         });
 
         return {
-          success: true,
+          _success: true,
           data: {
             status: result.trim(),
             hasChanges: result.trim().length > 0
@@ -176,7 +182,7 @@ export const createGitTools = (): Tool[] => [
         };
       } catch (error) {
         return {
-          success: false,
+          _success: false,
           error: `Git status failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         };
       }
@@ -190,9 +196,9 @@ export const createGitTools = (): Tool[] => [
       parameters: {
         type: 'object',
         properties: {
-          staged: { type: 'boolean', default: false, description: 'Show staged changes only' },
+          staged: { type: 'boolean', _default: false, description: 'Show staged changes only' },
           files: { type: 'array', items: { type: 'string' }, description: 'Specific files to diff' },
-          generateCommit: { type: 'boolean', default: false, description: 'Generate commit message suggestion' }
+          generateCommit: { type: 'boolean', _default: false, description: 'Generate commit message suggestion' }
         },
         required: []
       }
@@ -213,17 +219,21 @@ export const createGitTools = (): Tool[] => [
       }).optional(),
       error: z.string().optional()
     }),
-    requiresConfirmation: false,
+    _requiresConfirmation: false,
     category: 'git',
 
-    async execute(params: unknown, context) {
+    async execute(_params: unknown, context) {
       try {
         const typedParams = params as { staged?: boolean; files?: string[]; generateCommit?: boolean };
         const { staged, files = [], generateCommit } = typedParams;
         
         let cmd = 'git diff --numstat';
-        if (staged) cmd += ' --cached';
-        if (files.length > 0) cmd += ` -- ${files.join(' ')}`;
+        if (staged) {
+    cmd += ' --cached';
+  }
+        if (files.length > 0) {
+    cmd += ` -- ${files.join(' ')}`;
+  }
 
         const numstat = execSync(cmd, {
           cwd: context.workspaceRoot,
@@ -253,8 +263,12 @@ export const createGitTools = (): Tool[] => [
 
             // Determine status
             let status: GitChange['status'] = 'modified';
-            if (additions !== '0' && deletions === '0') status = 'added';
-            else if (additions === '0' && deletions !== '0') status = 'deleted';
+            if (additions !== '0' && deletions === '0') {
+    status = 'added';
+  }
+            else if (additions === '0' && deletions !== '0') {
+    status = 'deleted';
+  }
 
             return {
               file,
@@ -275,7 +289,7 @@ export const createGitTools = (): Tool[] => [
         }
 
         return {
-          success: true,
+          _success: true,
           data: {
             changes,
             totalFiles: changes.length,
@@ -287,7 +301,7 @@ export const createGitTools = (): Tool[] => [
 
       } catch (error) {
         return {
-          success: false,
+          _success: false,
           error: `Git diff failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         };
       }
@@ -302,8 +316,8 @@ export const createGitTools = (): Tool[] => [
         type: 'object',
         properties: {
           message: { type: 'string', description: 'Custom commit message' },
-          autoGenerate: { type: 'boolean', default: true, description: 'Auto-generate commit message if not provided' },
-          addAll: { type: 'boolean', default: false, description: 'Add all changes before committing' },
+          autoGenerate: { type: 'boolean', _default: true, description: 'Auto-generate commit message if not provided' },
+          addAll: { type: 'boolean', _default: false, description: 'Add all changes before committing' },
           files: { type: 'array', items: { type: 'string' }, description: 'Specific files to add before committing' }
         },
         required: []
@@ -324,10 +338,10 @@ export const createGitTools = (): Tool[] => [
       }).optional(),
       error: z.string().optional()
     }),
-    requiresConfirmation: true,
+    _requiresConfirmation: true,
     category: 'git',
 
-    async execute(params: unknown, context) {
+    async execute(_params: unknown, context) {
       try {
         const typedParams = params as { message?: string; autoGenerate?: boolean; addAll?: boolean; files?: string[] };
         const { message, autoGenerate, addAll, files = [] } = typedParams;
@@ -348,9 +362,9 @@ export const createGitTools = (): Tool[] => [
             encoding: 'utf8'
           });
 
-          if (!diffResult.trim()) {
+          if (!diffResult.trim() {
             return {
-              success: false,
+              _success: false,
               error: 'No staged changes to commit'
             };
           }
@@ -384,7 +398,7 @@ export const createGitTools = (): Tool[] => [
 
         if (!commitMessage) {
           return {
-            success: false,
+            _success: false,
             error: 'No commit message provided'
           };
         }
@@ -396,9 +410,9 @@ export const createGitTools = (): Tool[] => [
         });
 
         return {
-          success: true,
+          _success: true,
           data: {
-            message: commitMessage,
+            _message: commitMessage,
             output: result.trim(),
             generated: !message && autoGenerate
           }
@@ -406,7 +420,7 @@ export const createGitTools = (): Tool[] => [
 
       } catch (error) {
         return {
-          success: false,
+          _success: false,
           error: `Git commit failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         };
       }
@@ -420,8 +434,8 @@ export const createGitTools = (): Tool[] => [
       parameters: {
         type: 'object',
         properties: {
-          limit: { type: 'number', default: 10, description: 'Maximum number of commits to return' },
-          oneline: { type: 'boolean', default: false, description: 'Use oneline format' },
+          limit: { type: 'number', _default: 10, description: 'Maximum number of commits to return' },
+          oneline: { type: 'boolean', _default: false, description: 'Use oneline format' },
           since: { type: 'string', description: 'Date filter (e.g., "1 week ago")' }
         },
         required: []
@@ -445,17 +459,21 @@ export const createGitTools = (): Tool[] => [
       }).optional(),
       error: z.string().optional()
     }),
-    requiresConfirmation: false,
+    _requiresConfirmation: false,
     category: 'git',
 
-    async execute(params: unknown, context) {
+    async execute(_params: unknown, context) {
       try {
         const typedParams = params as { limit?: number; oneline?: boolean; since?: string };
         const { limit, oneline, since } = typedParams;
         
         let cmd = 'git log --pretty=format:"%H|%an|%ad|%s"';
-        if (limit) cmd += ` -${limit}`;
-        if (since) cmd += ` --since="${since}"`;
+        if (limit) {
+    cmd += ` -${limit}`;
+  }
+        if (since) {
+    cmd += ` --since="${since}"`;
+  }
 
         const result = execSync(cmd, {
           cwd: context.workspaceRoot,
@@ -472,7 +490,7 @@ export const createGitTools = (): Tool[] => [
           });
 
         return {
-          success: true,
+          _success: true,
           data: {
             commits,
             total: commits.length
@@ -481,7 +499,7 @@ export const createGitTools = (): Tool[] => [
 
       } catch (error) {
         return {
-          success: false,
+          _success: false,
           error: `Git log failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         };
       }

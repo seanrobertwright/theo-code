@@ -30,9 +30,9 @@ describe('Store Session Integration - Unit Tests', () => {
       const session = store.createNewSession('gpt-4o');
       
       // Debug: log the actual state
-      console.log('Created session:', session);
-      console.log('Store session:', store.session);
-      console.log('Fresh store session:', useAppStore.getState().session);
+      console.warn('Created session:', session);
+      console.warn('Store session:', store.session);
+      console.warn('Fresh store session:', useAppStore.getState().session);
       
       // Verify store state - need to get fresh state
       const freshStore = useAppStore.getState();
@@ -68,9 +68,9 @@ describe('Store Session Integration - Unit Tests', () => {
       
       // Update tokens
       store.updateSessionTokens({
-        total: 100,
-        input: 50,
-        output: 50,
+        _total: 100,
+        _input: 50,
+        _output: 50,
       });
       
       // Get fresh state to verify session ID still hasn't changed
@@ -116,7 +116,7 @@ describe('Store Session Integration - Unit Tests', () => {
       expect(sessionManager.getCurrentSession()?.contextFiles).toHaveLength(1);
       
       // Update tokens
-      store.updateSessionTokens({ total: 100 });
+      store.updateSessionTokens({ _total: 100 });
       
       // Get fresh state to verify both store and manager have updated tokens
       freshStore = useAppStore.getState();

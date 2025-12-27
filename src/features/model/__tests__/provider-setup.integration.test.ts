@@ -26,24 +26,24 @@ import { OllamaAdapter } from '../adapters/ollama';
 import type { ModelConfig, IModelAdapter, StreamChunk } from '../../../shared/types';
 
 // Mock adapter factory function
-function createMockAdapter(providerName: string): IModelAdapter {
+function createMockAdapter(_providerName: string): IModelAdapter {
   return {
-    provider: providerName,
+    _provider: providerName,
     generateResponse: vi.fn().mockResolvedValue({
       content: 'Mock response',
-      usage: { inputTokens: 10, outputTokens: 20 }
+      usage: { _inputTokens: 10, _outputTokens: 20 }
     }),
     generateStreamResponse: vi.fn().mockImplementation(async function* () {
-      yield { type: 'content', content: 'Mock', usage: null } as StreamChunk;
+      yield { type: 'content', content: 'Mock', _usage: null } as StreamChunk;
     }),
     countTokens: vi.fn().mockResolvedValue(30),
-    validateConfig: vi.fn().mockReturnValue({ isValid: true }),
+    validateConfig: vi.fn().mockReturnValue({ _isValid: true }),
     getModelInfo: vi.fn().mockReturnValue({
       id: `${providerName}-model`,
       name: `${providerName} Model`,
-      contextLimit: 100000,
-      supportsStreaming: true,
-      supportsToolCalling: true
+      _contextLimit: 100000,
+      _supportsStreaming: true,
+      _supportsToolCalling: true
     })
   };
 }
@@ -91,7 +91,7 @@ describe('Provider Setup Integration Tests', () => {
         model: 'claude-3-5-sonnet-20241022',
         apiKey: 'sk-ant-test-key',
         baseUrl: 'https://api.anthropic.com',
-        maxTokens: 4096,
+        _maxTokens: 4096,
         temperature: 0.7
       };
 
@@ -109,19 +109,19 @@ describe('Provider Setup Integration Tests', () => {
 
       const modelCapabilities = {
         'claude-3-5-sonnet-20241022': {
-          contextLimit: 200000,
-          supportsToolCalling: true,
-          supportsStreaming: true
+          _contextLimit: 200000,
+          _supportsToolCalling: true,
+          _supportsStreaming: true
         },
         'claude-3-opus-20240229': {
-          contextLimit: 200000,
-          supportsToolCalling: true,
-          supportsStreaming: true
+          _contextLimit: 200000,
+          _supportsToolCalling: true,
+          _supportsStreaming: true
         },
         'claude-3-haiku-20240307': {
-          contextLimit: 200000,
-          supportsToolCalling: true,
-          supportsStreaming: true
+          _contextLimit: 200000,
+          _supportsToolCalling: true,
+          _supportsStreaming: true
         }
       };
 
@@ -167,7 +167,7 @@ describe('Provider Setup Integration Tests', () => {
         gemini: {
           thinkingLevel: 'medium',
           mediaResolution: 'high',
-          thoughtSignatures: true,
+          _thoughtSignatures: true,
           imageConfig: {
             aspectRatio: '16:9',
             imageSize: '2K'
@@ -183,22 +183,22 @@ describe('Provider Setup Integration Tests', () => {
     it('should validate Gemini 3.0 models and features from documentation', () => {
       const gemini3Models = {
         'gemini-3-pro-preview': {
-          contextLimit: 1000000,
-          supportsReasoning: true,
-          supportsImageGeneration: false,
+          _contextLimit: 1000000,
+          _supportsReasoning: true,
+          _supportsImageGeneration: false,
           knowledgeCutoff: 'Jan 2025'
         },
         'gemini-3-flash-preview': {
-          contextLimit: 1000000,
-          supportsReasoning: true,
-          supportsImageGeneration: false,
+          _contextLimit: 1000000,
+          _supportsReasoning: true,
+          _supportsImageGeneration: false,
           optimizedFor: 'speed'
         },
         'gemini-3-pro-image-preview': {
-          contextLimit: 1000000,
-          supportsReasoning: true,
-          supportsImageGeneration: true,
-          nativeImageGen: true
+          _contextLimit: 1000000,
+          _supportsReasoning: true,
+          _supportsImageGeneration: true,
+          _nativeImageGen: true
         }
       };
 
@@ -264,7 +264,7 @@ describe('Provider Setup Integration Tests', () => {
         apiKey: 'sk-or-v1-test-key',
         baseUrl: 'https://openrouter.ai/api/v1',
         openrouter: {
-          trackCredits: true,
+          _trackCredits: true,
           creditThreshold: 10.00,
           httpReferer: 'https://theo-code.dev',
           xTitle: 'theo-code'
@@ -376,11 +376,11 @@ describe('Provider Setup Integration Tests', () => {
         providers: {
           anthropic: {
             apiKey: '${ANTHROPIC_API_KEY}',
-            enabled: true
+            _enabled: true
           },
           google: {
             apiKey: '${GOOGLE_API_KEY}',
-            enabled: true
+            _enabled: true
           }
         }
       };
@@ -410,7 +410,7 @@ describe('Provider Setup Integration Tests', () => {
           provider: providerName as any,
           model: `${providerName}-model`,
           apiKey: 'test-key',
-          enabled: true
+          _enabled: true
         };
         
         providerManager.registerProvider(config);
@@ -452,24 +452,24 @@ describe('Provider Setup Integration Tests', () => {
     it('should validate rate limits from documentation examples', () => {
       const rateLimits = {
         'openai': {
-          requestsPerMinute: 500,
-          tokensPerMinute: 500000,
-          concurrentRequests: 50
+          _requestsPerMinute: 500,
+          _tokensPerMinute: 500000,
+          _concurrentRequests: 50
         },
         'anthropic': {
-          requestsPerMinute: 200,
-          tokensPerMinute: 200000,
-          concurrentRequests: 20
+          _requestsPerMinute: 200,
+          _tokensPerMinute: 200000,
+          _concurrentRequests: 20
         },
         'google': {
-          requestsPerMinute: 300,
-          tokensPerMinute: 300000,
-          concurrentRequests: 30
+          _requestsPerMinute: 300,
+          _tokensPerMinute: 300000,
+          _concurrentRequests: 30
         },
         'openrouter': {
-          requestsPerMinute: 100,
-          tokensPerMinute: 200000,
-          concurrentRequests: 20
+          _requestsPerMinute: 100,
+          _tokensPerMinute: 200000,
+          _concurrentRequests: 20
         }
       };
 
@@ -501,11 +501,11 @@ describe('Provider Setup Integration Tests', () => {
 
     it('should validate security best practices from documentation', () => {
       const securityPractices = {
-        neverCommitKeys: true,
-        useEnvironmentVariables: true,
-        rotateKeysRegularly: true,
-        separateDevProdKeys: true,
-        monitorApiUsage: true
+        _neverCommitKeys: true,
+        _useEnvironmentVariables: true,
+        _rotateKeysRegularly: true,
+        _separateDevProdKeys: true,
+        _monitorApiUsage: true
       };
 
       Object.values(securityPractices).forEach(practice => {

@@ -19,7 +19,7 @@ const tokenizerCache = new Map<string, Tiktoken>();
  * @param model - The model identifier
  * @returns Tiktoken encoder instance
  */
-function getTokenizer(model: string): Tiktoken {
+function getTokenizer(_model: string): Tiktoken {
   const cached = tokenizerCache.get(model);
   if (cached !== undefined) {
     return cached;
@@ -51,7 +51,7 @@ function getTokenizer(model: string): Tiktoken {
  * @param model - The model identifier
  * @returns Tiktoken-compatible model name
  */
-function mapModelToEncoding(model: string): Parameters<typeof encodingForModel>[0] {
+function mapModelToEncoding(_model: string): Parameters<typeof encodingForModel>[0] {
   const normalizedModel = model.toLowerCase();
 
   // GPT-4 family
@@ -60,17 +60,17 @@ function mapModelToEncoding(model: string): Parameters<typeof encodingForModel>[
   }
 
   // GPT-3.5 family
-  if (normalizedModel.includes('gpt-3.5')) {
+  if (normalizedModel.includes('gpt-3.5') {
     return 'gpt-3.5-turbo';
   }
 
   // Claude models (use GPT-4 tokenizer as approximation)
-  if (normalizedModel.includes('claude')) {
+  if (normalizedModel.includes('claude') {
     return 'gpt-4o';
   }
 
   // Gemini models (use GPT-4 tokenizer as approximation)
-  if (normalizedModel.includes('gemini')) {
+  if (normalizedModel.includes('gemini') {
     return 'gpt-4o';
   }
 
@@ -92,10 +92,10 @@ function mapModelToEncoding(model: string): Parameters<typeof encodingForModel>[
  * @example
  * ```typescript
  * const tokens = countTokens('Hello, world!', 'gpt-4o');
- * console.log(tokens); // 4
+ * console.warn(tokens); // 4
  * ```
  */
-export function countTokens(text: string, model = 'gpt-4o'): number {
+export function countTokens(_text: string, model = 'gpt-4o'): number {
   const tokenizer = getTokenizer(model);
   return tokenizer.encode(text).length;
 }
@@ -109,7 +109,7 @@ export function countTokens(text: string, model = 'gpt-4o'): number {
  * @param model - The model to use for tokenization
  * @returns Number of tokens
  */
-export function countMessageTokens(message: Message, model = 'gpt-4o'): number {
+export function countMessageTokens(_message: Message, model = 'gpt-4o'): number {
   let tokenCount = 0;
   const tokenizer = getTokenizer(model);
 
@@ -194,7 +194,7 @@ const MODEL_CONTEXT_LIMITS: Record<string, number> = {
  * @param model - The model identifier
  * @returns Context limit in tokens
  */
-export function getContextLimit(model: string): number {
+export function getContextLimit(_model: string): number {
   const normalizedModel = model.toLowerCase();
 
   // Check exact match
@@ -226,7 +226,7 @@ export function checkContextFit(
   messages: Message[],
   model = 'gpt-4o',
   reserveTokens = 4096
-): { fits: boolean; used: number; limit: number; available: number } {
+): { fits: boolean; used: number; limit: number; _available: number } {
   const used = countMessagesTokens(messages, model);
   const limit = getContextLimit(model);
   const available = limit - used - reserveTokens;
@@ -245,7 +245,7 @@ export function checkContextFit(
  * @param tokens - Number of tokens
  * @returns Formatted string (e.g., "1.2K", "150K")
  */
-export function formatTokenCount(tokens: number): string {
+export function formatTokenCount(_tokens: number): string {
   if (tokens < 1000) {
     return tokens.toString();
   }

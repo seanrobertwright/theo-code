@@ -19,7 +19,7 @@ interface HistoryEntry {
  */
 export interface UseKeyboardOptions {
   /** Callback when user submits input */
-  onSubmit?: (input: string) => void;
+  onSubmit?: (_input: string) => void;
   /** Callback when user requests exit */
   onExit?: () => void;
   /** Whether keyboard input is active */
@@ -47,9 +47,9 @@ export interface UseKeyboardResult {
  */
 function navigateHistoryUp(
   history: HistoryEntry[],
-  historyIndex: number,
-  setHistoryIndex: (idx: number) => void,
-  setInput: (value: string) => void
+  _historyIndex: number,
+  setHistoryIndex: (_idx: number) => void,
+  setInput: (_value: string) => void
 ): void {
   if (history.length > 0 && historyIndex < history.length - 1) {
     const newIndex = historyIndex + 1;
@@ -66,9 +66,9 @@ function navigateHistoryUp(
  */
 function navigateHistoryDown(
   history: HistoryEntry[],
-  historyIndex: number,
-  setHistoryIndex: (idx: number) => void,
-  setInput: (value: string) => void
+  _historyIndex: number,
+  setHistoryIndex: (_idx: number) => void,
+  setInput: (_value: string) => void
 ): void {
   if (historyIndex > 0) {
     const newIndex = historyIndex - 1;
@@ -87,8 +87,8 @@ function navigateHistoryDown(
  * Check if the key is a special key that should be handled.
  */
 function handleSpecialKey(
-  key: Key,
-  char: string,
+  _key: Key,
+  _char: string,
   handlers: {
     onExit: (() => void) | undefined;
     onSubmit: () => void;
@@ -151,13 +151,13 @@ export function useKeyboard(options: UseKeyboardOptions = {}): UseKeyboardResult
     setHistoryIndex(-1);
   }, []);
 
-  const addToHistory = useCallback((entry: string): void => {
-    if (entry.trim().length === 0) {
+  const addToHistory = useCallback((_entry: string): void => {
+    if (length === 0) {
       return;
     }
 
     setHistory((prev) => [
-      { input: entry, timestamp: Date.now() },
+      { _input: entry, timestamp: Date.now() },
       ...prev.slice(0, 99), // Keep last 100 entries
     ]);
   }, []);
@@ -167,7 +167,7 @@ export function useKeyboard(options: UseKeyboardOptions = {}): UseKeyboardResult
       const handled = handleSpecialKey(key, char, {
         onExit,
         onSubmit: () => {
-          if (input.trim().length > 0) {
+          if (length > 0) {
             addToHistory(input);
             onSubmit?.(input);
           }
@@ -176,7 +176,7 @@ export function useKeyboard(options: UseKeyboardOptions = {}): UseKeyboardResult
         onBackspace: () => setInput((prev) => prev.slice(0, -1)),
         onUpArrow: () => navigateHistoryUp(history, historyIndex, setHistoryIndex, setInput),
         onDownArrow: () => navigateHistoryDown(history, historyIndex, setHistoryIndex, setInput),
-        onEscape: clearInput,
+        _onEscape: clearInput,
       });
 
       // Handle regular character input
@@ -189,7 +189,7 @@ export function useKeyboard(options: UseKeyboardOptions = {}): UseKeyboardResult
   );
 
   return {
-    currentInput: input,
+    _currentInput: input,
     setInput,
     clearInput,
     history,

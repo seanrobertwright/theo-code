@@ -5,8 +5,6 @@
 
 import type { ModelProvider } from '../../shared/types/models.js';
 import type { IOAuthManager, ITokenStore, OAuthError } from './types.js';
-import { logger } from '../../shared/utils/index.js';
-
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -79,7 +77,7 @@ export class OAuthErrorRecoveryManager {
   private readonly maxRetryAttempts = 3;
   private readonly retryDelayMs = 1000;
 
-  constructor(oauthManager: IOAuthManager, tokenStore: ITokenStore) {
+  constructor(_oauthManager: IOAuthManager, _tokenStore: ITokenStore) {
     this.oauthManager = oauthManager;
     this.tokenStore = tokenStore;
   }
@@ -91,7 +89,7 @@ export class OAuthErrorRecoveryManager {
   /**
    * Analyze an error and determine the best recovery strategy.
    */
-  analyzeError(error: any, context: RecoveryContext): RecoveryStrategy {
+  analyzeError(_error: any, _context: RecoveryContext): RecoveryStrategy {
     const errorType = this.classifyError(error);
     const attemptKey = `${context.provider}-${context.operation}`;
     const attempts = this.recoveryAttempts.get(attemptKey) || 0;
@@ -148,22 +146,24 @@ export class OAuthErrorRecoveryManager {
   /**
    * Classify error type for recovery strategy selection.
    */
-  private classifyError(error: any): string {
-    if (!error) return 'unknown_error';
+  private classifyError(_error: any): string {
+    if (!error) {
+    return 'unknown_error';
+  }
 
     const message = error.message?.toLowerCase() || '';
     const code = error.code?.toLowerCase() || '';
     const errorType = error.error?.toLowerCase() || '';
 
     // Network and connectivity errors
-    if (code.includes('enotfound') || code.includes('econnrefused') || 
+    if (code.includes('enotfound') || code.includes('econnrefused') ||
         code.includes('etimedout') || message.includes('network') ||
         message.includes('connection')) {
       return 'network_error';
     }
 
     // Timeout errors
-    if (code === 'timeout' || message.includes('timeout') || 
+    if (code === 'timeout' || message.includes('timeout') ||
         message.includes('timed out')) {
       return 'timeout_error';
     }
@@ -177,7 +177,7 @@ export class OAuthErrorRecoveryManager {
       return 'access_denied';
     }
 
-    if (message.includes('expired') || message.includes('token') && message.includes('invalid')) {
+    if (message.includes('expired') || (message.includes('token') && message.includes('invalid'))) {
       return 'token_expired';
     }
 
@@ -214,8 +214,8 @@ export class OAuthErrorRecoveryManager {
    * Execute recovery strategy for an OAuth error.
    */
   async executeRecovery(
-    error: any, 
-    context: RecoveryContext
+    _error: any, 
+    _context: RecoveryContext
   ): Promise<RecoveryResult> {
     const strategy = this.analyzeError(error, context);
     const attemptKey = `${context.provider}-${context.operation}`;
@@ -248,10 +248,10 @@ export class OAuthErrorRecoveryManager {
 
         default:
           return {
-            success: false,
+            _success: false,
             strategy,
             message: `Unknown recovery strategy: ${strategy}`,
-            requiresUserIntervention: true,
+            _requiresUserIntervention: true,
             error: `Unsupported recovery strategy: ${strategy}`,
           };
       }
@@ -259,10 +259,10 @@ export class OAuthErrorRecoveryManager {
       logger.error(`[ErrorRecovery] Recovery strategy '${strategy}' failed:`, recoveryError);
       
       return {
-        success: false,
+        _success: false,
         strategy,
         message: `Recovery attempt failed: ${recoveryError instanceof Error ? recoveryError.message : 'Unknown error'}`,
-        requiresUserIntervention: true,
+        _requiresUserIntervention: true,
         error: recoveryError instanceof Error ? recoveryError.message : 'Recovery failed',
       };
     }
@@ -271,7 +271,7 @@ export class OAuthErrorRecoveryManager {
   /**
    * Execute retry strategy with exponential backoff.
    */
-  private async executeRetryStrategy(context: RecoveryContext): Promise<RecoveryResult> {
+  private async executeRetryStrategy(_context: RecoveryContext): Promise<RecoveryResult> {
     const attemptKey = `${context.provider}-${context.operation}`;
     const attempts = this.recoveryAttempts.get(attemptKey) || 0;
     const delay = this.retryDelayMs * Math.pow(2, attempts - 1); // Exponential backoff
@@ -282,27 +282,27 @@ export class OAuthErrorRecoveryManager {
     await new Promise(resolve => setTimeout(resolve, delay));
 
     return {
-      success: true,
+      _success: true,
       strategy: 'retry',
       message: `Retrying ${context.operation} (attempt ${attempts}) after ${delay}ms delay`,
-      requiresUserIntervention: false,
+      _requiresUserIntervention: false,
     };
   }
 
   /**
    * Execute token refresh strategy.
    */
-  private async executeRefreshStrategy(context: RecoveryContext): Promise<RecoveryResult> {
+  private async executeRefreshStrategy(_context: RecoveryContext): Promise<RecoveryResult> {
     try {
       logger.debug(`[ErrorRecovery] Attempting token refresh for ${context.provider}`);
       
       const tokens = await this.oauthManager.refreshTokens(context.provider);
       
       return {
-        success: true,
+        _success: true,
         strategy: 'refresh_tokens',
         message: `Successfully refreshed OAuth tokens for ${context.provider}`,
-        requiresUserIntervention: false,
+        _requiresUserIntervention: false,
       };
     } catch (refreshError) {
       logger.warn(`[ErrorRecovery] Token refresh failed for ${context.provider}:`, refreshError);
@@ -315,7 +315,7 @@ export class OAuthErrorRecoveryManager {
   /**
    * Execute clear and restart strategy.
    */
-  private async executeClearAndRestartStrategy(context: RecoveryContext): Promise<RecoveryResult> {
+  private async executeClearAndRestartStrategy(_context: RecoveryContext): Promise<RecoveryResult> {
     try {
       logger.debug(`[ErrorRecovery] Clearing tokens and restarting OAuth for ${context.provider}`);
       
@@ -323,10 +323,10 @@ export class OAuthErrorRecoveryManager {
       await this.tokenStore.clearTokens(context.provider);
       
       return {
-        success: true,
+        _success: true,
         strategy: 'clear_and_restart',
         message: `Cleared OAuth tokens for ${context.provider}. Re-authentication required.`,
-        requiresUserIntervention: true,
+        _requiresUserIntervention: true,
         userActions: [
           `Run '/auth login ${context.provider}' to re-authenticate`,
           'Complete the OAuth flow in your browser',
@@ -337,10 +337,10 @@ export class OAuthErrorRecoveryManager {
       logger.error(`[ErrorRecovery] Failed to clear tokens for ${context.provider}:`, clearError);
       
       return {
-        success: false,
+        _success: false,
         strategy: 'clear_and_restart',
         message: `Failed to clear OAuth tokens for ${context.provider}`,
-        requiresUserIntervention: true,
+        _requiresUserIntervention: true,
         error: clearError instanceof Error ? clearError.message : 'Token clearing failed',
         userActions: [
           'Manually revoke access in your provider account settings',
@@ -354,21 +354,21 @@ export class OAuthErrorRecoveryManager {
   /**
    * Execute API key fallback strategy.
    */
-  private async executeFallbackStrategy(context: RecoveryContext): Promise<RecoveryResult> {
+  private async executeFallbackStrategy(_context: RecoveryContext): Promise<RecoveryResult> {
     logger.debug(`[ErrorRecovery] Falling back to API key authentication for ${context.provider}`);
     
     return {
-      success: true,
+      _success: true,
       strategy: 'fallback_to_api_key',
       message: `OAuth failed for ${context.provider}, falling back to API key authentication`,
-      requiresUserIntervention: false,
+      _requiresUserIntervention: false,
     };
   }
 
   /**
    * Execute user intervention strategy.
    */
-  private executeUserInterventionStrategy(error: any, context: RecoveryContext): RecoveryResult {
+  private executeUserInterventionStrategy(_error: any, _context: RecoveryContext): RecoveryResult {
     const errorMessage = error.message || error.toString() || 'Unknown error';
     
     const userActions = [
@@ -384,33 +384,33 @@ export class OAuthErrorRecoveryManager {
     }
 
     return {
-      success: false,
+      _success: false,
       strategy: 'user_intervention',
       message: `OAuth ${context.operation} failed for ${context.provider} after multiple attempts. User intervention required.`,
-      requiresUserIntervention: true,
+      _requiresUserIntervention: true,
       userActions,
-      error: errorMessage,
+      _error: errorMessage,
     };
   }
 
   /**
    * Execute no recovery strategy.
    */
-  private executeNoRecoveryStrategy(error: any, context: RecoveryContext): RecoveryResult {
+  private executeNoRecoveryStrategy(_error: any, _context: RecoveryContext): RecoveryResult {
     const errorMessage = error.message || error.toString() || 'Unknown error';
     
     return {
-      success: false,
+      _success: false,
       strategy: 'no_recovery',
       message: `OAuth ${context.operation} failed for ${context.provider} due to configuration issues. No automatic recovery available.`,
-      requiresUserIntervention: true,
+      _requiresUserIntervention: true,
       userActions: [
         'Check OAuth configuration for this provider',
         'Verify client ID and endpoints are correct',
         'Contact support for configuration assistance',
         'Consider using API key authentication if available',
       ],
-      error: errorMessage,
+      _error: errorMessage,
     };
   }
 
@@ -421,7 +421,7 @@ export class OAuthErrorRecoveryManager {
   /**
    * Clean up resources after failed OAuth flows.
    */
-  async cleanupFailedFlow(provider: ModelProvider, operation: string): Promise<void> {
+  async cleanupFailedFlow(_provider: ModelProvider, _operation: string): Promise<void> {
     logger.debug(`[ErrorRecovery] Cleaning up failed OAuth flow for ${provider}`);
     
     try {
@@ -441,7 +441,7 @@ export class OAuthErrorRecoveryManager {
   /**
    * Reset recovery attempts for a provider.
    */
-  resetRecoveryAttempts(provider: ModelProvider, operation?: string): void {
+  resetRecoveryAttempts(_provider: ModelProvider, operation?: string): void {
     if (operation) {
       const attemptKey = `${provider}-${operation}`;
       this.recoveryAttempts.delete(attemptKey);
@@ -465,7 +465,7 @@ export class OAuthErrorRecoveryManager {
     operationAttempts: Record<string, number>;
   } {
     const stats = {
-      totalAttempts: 0,
+      _totalAttempts: 0,
       providerAttempts: {} as Record<string, number>,
       operationAttempts: {} as Record<string, number>,
     };
@@ -502,8 +502,8 @@ export class OAuthErrorRecoveryManager {
  * Create a new OAuth error recovery manager.
  */
 export function createOAuthErrorRecoveryManager(
-  oauthManager: IOAuthManager,
-  tokenStore: ITokenStore
+  _oauthManager: IOAuthManager,
+  _tokenStore: ITokenStore
 ): OAuthErrorRecoveryManager {
   return new OAuthErrorRecoveryManager(oauthManager, tokenStore);
 }

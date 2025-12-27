@@ -22,8 +22,6 @@ import {
   registerAdapter,
 } from './types.js';
 import type { AuthenticationManager } from '../../auth/authentication-manager.js';
-import { logger } from '../../../shared/utils/index.js';
-
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -184,7 +182,9 @@ function processToolCallDelta(
   delta: OpenRouterChoice['delta'],
   accumulators: Map<number, ToolCallAccumulator>
 ): void {
-  if (!delta?.tool_calls) return;
+  if (!delta?.tool_calls) {
+    return;
+  }
 
   for (const toolCall of delta.tool_calls) {
     const index = toolCall.index;
@@ -236,7 +236,7 @@ function emitToolCalls(accumulators: Map<number, ToolCallAccumulator>): StreamCh
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(message: Message): string {
+function getMessageContent(_message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -251,8 +251,8 @@ function getMessageContent(message: Message): string {
  * Converts an assistant message to OpenRouter format.
  */
 function convertAssistantMessage(
-  message: Message,
-  content: string
+  _message: Message,
+  _content: string
 ): OpenRouterChatMessage {
   if (message.toolCalls !== undefined && message.toolCalls.length > 0) {
     return {
@@ -274,7 +274,7 @@ function convertAssistantMessage(
 /**
  * Converts tool result messages to OpenRouter format.
  */
-function convertToolMessage(message: Message): OpenRouterChatMessage[] {
+function convertToolMessage(_message: Message): OpenRouterChatMessage[] {
   if (message.toolResults === undefined) {
     return [];
   }
@@ -334,7 +334,7 @@ function convertTools(tools: UniversalToolDefinition[]): OpenRouterTool[] {
 /**
  * Maps API errors to StreamChunk error format.
  */
-function handleApiError(error: unknown): StreamChunk {
+function handleApiError(_error: unknown): StreamChunk {
   if (error instanceof Error && 'status' in error) {
     const apiError = error as Error & { status?: number };
     const code = ERROR_STATUS_MAP[apiError.status ?? 0] ?? 'API_ERROR';
@@ -369,7 +369,7 @@ class OpenRouterClient {
   private readonly baseUrl: string;
   private readonly appName: string;
 
-  constructor(apiKey: string, baseUrl?: string, appName = 'theo-code') {
+  constructor(_apiKey: string, baseUrl?: string, appName = 'theo-code') {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl ?? OPENROUTER_BASE_URL;
     this.appName = appName;
@@ -379,7 +379,7 @@ class OpenRouterClient {
    * Makes a request to the OpenRouter API.
    */
   private async makeRequest(
-    endpoint: string,
+    _endpoint: string,
     options: RequestInit = {}
   ): Promise<Response> {
     const url = `${this.baseUrl}${endpoint}`;
@@ -418,7 +418,7 @@ class OpenRouterClient {
   /**
    * Creates a chat completion request.
    */
-  async createChatCompletion(request: OpenRouterChatRequest): Promise<OpenRouterResponse> {
+  async createChatCompletion(_request: OpenRouterChatRequest): Promise<OpenRouterResponse> {
     const response = await this.makeRequest('/chat/completions', {
       method: 'POST',
       body: JSON.stringify(request),
@@ -430,11 +430,11 @@ class OpenRouterClient {
    * Creates a streaming chat completion request.
    */
   async createChatCompletionStream(
-    request: OpenRouterChatRequest
+    _request: OpenRouterChatRequest
   ): Promise<AsyncIterable<OpenRouterStreamChunk>> {
     const response = await this.makeRequest('/chat/completions', {
       method: 'POST',
-      body: JSON.stringify({ ...request, stream: true }),
+      body: JSON.stringify({ ...request, _stream: true }),
     });
 
     if (!response.body) {
@@ -457,16 +457,22 @@ class OpenRouterClient {
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+    break;
+  }
 
-        buffer += decoder.decode(value, { stream: true });
+        buffer += decoder.decode(value, { _stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() ?? '';
 
         for (const line of lines) {
           const trimmed = line.trim();
-          if (trimmed === '' || trimmed === 'data: [DONE]') continue;
-          if (!trimmed.startsWith('data: ')) continue;
+          if (trimmed === '' || trimmed === 'data: [DONE]') {
+            continue;
+          }
+          if (!trimmed.startsWith('data: ')) {
+            continue;
+          }
 
           try {
             const jsonStr = trimmed.slice(6);
@@ -499,7 +505,7 @@ class OpenRouterClient {
  * }, authManager);
  *
  * for await (const chunk of adapter.generateStream(messages, tools)) {
- *   console.log(chunk);
+ *   console.warn(chunk);
  * }
  * ```
  */
@@ -517,7 +523,7 @@ export class OpenRouterAdapter implements IModelAdapter {
   /**
    * Creates a new OpenRouter adapter.
    */
-  constructor(config: ModelConfig, authManager?: AuthenticationManager) {
+  constructor(_config: ModelConfig, authManager?: AuthenticationManager) {
     this.config = config;
     this.model = config.model;
     this.contextLimit = config.contextLimit ?? DEFAULT_CONTEXT_LIMIT;
@@ -598,7 +604,9 @@ export class OpenRouterAdapter implements IModelAdapter {
    * Loads model information from OpenRouter catalog.
    */
   async loadModelInfo(): Promise<void> {
-    if (this.modelInfo !== null) return;
+    if (this.modelInfo !== null) {
+    return;
+  }
 
     try {
       const authenticatedClient = await this.getAuthenticatedClient();
@@ -676,7 +684,7 @@ export class OpenRouterAdapter implements IModelAdapter {
    * Creates the OpenRouter streaming request.
    */
   private async createStream(
-    client: OpenRouterClient,
+    _client: OpenRouterClient,
     messages: OpenRouterChatMessage[],
     tools: OpenRouterTool[] | undefined,
     options?: GenerateOptions
@@ -727,7 +735,9 @@ export class OpenRouterAdapter implements IModelAdapter {
 
     for await (const chunk of stream) {
       const choice = chunk.choices[0];
-      if (!choice) continue;
+      if (!choice) {
+    continue;
+  }
 
       const delta = choice.delta;
       if (delta?.content !== undefined && delta.content !== null) {
@@ -766,7 +776,7 @@ export class OpenRouterAdapter implements IModelAdapter {
 /**
  * Creates an OpenRouter adapter from configuration.
  */
-function createOpenRouterAdapter(config: ModelConfig, authManager?: AuthenticationManager): IModelAdapter {
+function createOpenRouterAdapter(_config: ModelConfig, authManager?: AuthenticationManager): IModelAdapter {
   return new OpenRouterAdapter(config, authManager);
 }
 

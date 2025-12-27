@@ -8,8 +8,6 @@
 
 import type { ModelProvider } from '../../shared/types/models.js';
 import { ExtendedAdapterError } from './error-handling.js';
-import { logger } from '../../shared/utils/index.js';
-
 // =============================================================================
 // CIRCUIT BREAKER STATES
 // =============================================================================
@@ -72,11 +70,11 @@ export interface CircuitBreakerMetrics {
  */
 const DEFAULT_CIRCUIT_BREAKER_CONFIGS: Record<ModelProvider, CircuitBreakerConfig> = {
   openai: {
-    failureThreshold: 5,
-    successThreshold: 3,
-    timeWindowMs: 60000, // 1 minute
-    openTimeoutMs: 30000, // 30 seconds
-    halfOpenMaxRequests: 3,
+    _failureThreshold: 5,
+    _successThreshold: 3,
+    _timeWindowMs: 60000, // 1 minute
+    _openTimeoutMs: 30000, // 30 seconds
+    _halfOpenMaxRequests: 3,
     failureErrors: new Set([
       'RATE_LIMITED',
       'NETWORK_ERROR',
@@ -91,11 +89,11 @@ const DEFAULT_CIRCUIT_BREAKER_CONFIGS: Record<ModelProvider, CircuitBreakerConfi
     ]),
   },
   anthropic: {
-    failureThreshold: 5,
-    successThreshold: 3,
-    timeWindowMs: 60000,
-    openTimeoutMs: 30000,
-    halfOpenMaxRequests: 3,
+    _failureThreshold: 5,
+    _successThreshold: 3,
+    _timeWindowMs: 60000,
+    _openTimeoutMs: 30000,
+    _halfOpenMaxRequests: 3,
     failureErrors: new Set([
       'RATE_LIMITED',
       'NETWORK_ERROR',
@@ -109,11 +107,11 @@ const DEFAULT_CIRCUIT_BREAKER_CONFIGS: Record<ModelProvider, CircuitBreakerConfi
     ]),
   },
   google: {
-    failureThreshold: 5,
-    successThreshold: 3,
-    timeWindowMs: 60000,
-    openTimeoutMs: 30000,
-    halfOpenMaxRequests: 3,
+    _failureThreshold: 5,
+    _successThreshold: 3,
+    _timeWindowMs: 60000,
+    _openTimeoutMs: 30000,
+    _halfOpenMaxRequests: 3,
     failureErrors: new Set([
       'RATE_LIMITED',
       'NETWORK_ERROR',
@@ -127,11 +125,11 @@ const DEFAULT_CIRCUIT_BREAKER_CONFIGS: Record<ModelProvider, CircuitBreakerConfi
     ]),
   },
   openrouter: {
-    failureThreshold: 3,
-    successThreshold: 2,
-    timeWindowMs: 45000,
-    openTimeoutMs: 20000,
-    halfOpenMaxRequests: 2,
+    _failureThreshold: 3,
+    _successThreshold: 2,
+    _timeWindowMs: 45000,
+    _openTimeoutMs: 20000,
+    _halfOpenMaxRequests: 2,
     failureErrors: new Set([
       'RATE_LIMITED',
       'NETWORK_ERROR',
@@ -145,11 +143,11 @@ const DEFAULT_CIRCUIT_BREAKER_CONFIGS: Record<ModelProvider, CircuitBreakerConfi
     ]),
   },
   cohere: {
-    failureThreshold: 4,
-    successThreshold: 3,
-    timeWindowMs: 60000,
-    openTimeoutMs: 25000,
-    halfOpenMaxRequests: 3,
+    _failureThreshold: 4,
+    _successThreshold: 3,
+    _timeWindowMs: 60000,
+    _openTimeoutMs: 25000,
+    _halfOpenMaxRequests: 3,
     failureErrors: new Set([
       'RATE_LIMITED',
       'NETWORK_ERROR',
@@ -162,11 +160,11 @@ const DEFAULT_CIRCUIT_BREAKER_CONFIGS: Record<ModelProvider, CircuitBreakerConfi
     ]),
   },
   mistral: {
-    failureThreshold: 4,
-    successThreshold: 3,
-    timeWindowMs: 60000,
-    openTimeoutMs: 25000,
-    halfOpenMaxRequests: 3,
+    _failureThreshold: 4,
+    _successThreshold: 3,
+    _timeWindowMs: 60000,
+    _openTimeoutMs: 25000,
+    _halfOpenMaxRequests: 3,
     failureErrors: new Set([
       'RATE_LIMITED',
       'NETWORK_ERROR',
@@ -179,11 +177,11 @@ const DEFAULT_CIRCUIT_BREAKER_CONFIGS: Record<ModelProvider, CircuitBreakerConfi
     ]),
   },
   together: {
-    failureThreshold: 3,
-    successThreshold: 2,
-    timeWindowMs: 45000,
-    openTimeoutMs: 20000,
-    halfOpenMaxRequests: 2,
+    _failureThreshold: 3,
+    _successThreshold: 2,
+    _timeWindowMs: 45000,
+    _openTimeoutMs: 20000,
+    _halfOpenMaxRequests: 2,
     failureErrors: new Set([
       'RATE_LIMITED',
       'NETWORK_ERROR',
@@ -196,11 +194,11 @@ const DEFAULT_CIRCUIT_BREAKER_CONFIGS: Record<ModelProvider, CircuitBreakerConfi
     ]),
   },
   perplexity: {
-    failureThreshold: 3,
-    successThreshold: 2,
-    timeWindowMs: 45000,
-    openTimeoutMs: 20000,
-    halfOpenMaxRequests: 2,
+    _failureThreshold: 3,
+    _successThreshold: 2,
+    _timeWindowMs: 45000,
+    _openTimeoutMs: 20000,
+    _halfOpenMaxRequests: 2,
     failureErrors: new Set([
       'RATE_LIMITED',
       'NETWORK_ERROR',
@@ -212,11 +210,11 @@ const DEFAULT_CIRCUIT_BREAKER_CONFIGS: Record<ModelProvider, CircuitBreakerConfi
     ]),
   },
   ollama: {
-    failureThreshold: 2,
-    successThreshold: 1,
-    timeWindowMs: 30000,
-    openTimeoutMs: 10000,
-    halfOpenMaxRequests: 1,
+    _failureThreshold: 2,
+    _successThreshold: 1,
+    _timeWindowMs: 30000,
+    _openTimeoutMs: 10000,
+    _halfOpenMaxRequests: 1,
     failureErrors: new Set([
       'NETWORK_ERROR',
       'TIMEOUT',
@@ -244,7 +242,7 @@ export class CircuitBreaker {
   private halfOpenSuccesses = 0;
   private windowStart = Date.now();
 
-  constructor(provider: ModelProvider, customConfig?: Partial<CircuitBreakerConfig>) {
+  constructor(_provider: ModelProvider, customConfig?: Partial<CircuitBreakerConfig>) {
     this.provider = provider;
     this.config = {
       ...DEFAULT_CIRCUIT_BREAKER_CONFIGS[provider],
@@ -252,15 +250,15 @@ export class CircuitBreaker {
     };
 
     this.metrics = {
-      totalRequests: 0,
-      successCount: 0,
-      failureCount: 0,
-      failureRate: 0,
-      lastFailureTime: null,
-      lastSuccessTime: null,
-      openedTime: null,
-      windowRequests: 0,
-      windowFailures: 0,
+      _totalRequests: 0,
+      _successCount: 0,
+      _failureCount: 0,
+      _failureRate: 0,
+      _lastFailureTime: null,
+      _lastSuccessTime: null,
+      _openedTime: null,
+      _windowRequests: 0,
+      _windowFailures: 0,
     };
 
     logger.debug(`[CircuitBreaker] Initialized for ${provider} with config:`, this.config);
@@ -277,7 +275,7 @@ export class CircuitBreaker {
         this.provider,
         `Circuit breaker is ${this.state} for ${this.provider}`,
         {
-          retryable: false,
+          _retryable: false,
           severity: 'high',
           recoveryStrategy: 'fallback',
           context: {
@@ -324,7 +322,7 @@ export class CircuitBreaker {
 
       case 'OPEN':
         // Check if we should transition to half-open
-        if (this.shouldTransitionToHalfOpen()) {
+        if (this.shouldTransitionToHalfOpen() {
           this.transitionToHalfOpen();
           return true;
         }
@@ -358,7 +356,7 @@ export class CircuitBreaker {
   /**
    * Force the circuit breaker to a specific state.
    */
-  forceState(state: CircuitBreakerState): void {
+  forceState(_state: CircuitBreakerState): void {
     logger.info(`[CircuitBreaker] Forcing state change from ${this.state} to ${state} for ${this.provider}`);
     
     this.state = state;
@@ -383,15 +381,15 @@ export class CircuitBreaker {
     this.windowStart = Date.now();
     
     this.metrics = {
-      totalRequests: 0,
-      successCount: 0,
-      failureCount: 0,
-      failureRate: 0,
-      lastFailureTime: null,
-      lastSuccessTime: null,
-      openedTime: null,
-      windowRequests: 0,
-      windowFailures: 0,
+      _totalRequests: 0,
+      _successCount: 0,
+      _failureCount: 0,
+      _failureRate: 0,
+      _lastFailureTime: null,
+      _lastSuccessTime: null,
+      _openedTime: null,
+      _windowRequests: 0,
+      _windowFailures: 0,
     };
   }
 
@@ -402,7 +400,7 @@ export class CircuitBreaker {
   /**
    * Record a successful operation.
    */
-  private recordSuccess(responseTimeMs: number): void {
+  private recordSuccess(_responseTimeMs: number): void {
     this.metrics.totalRequests++;
     this.metrics.successCount++;
     this.metrics.lastSuccessTime = Date.now();
@@ -426,14 +424,14 @@ export class CircuitBreaker {
   /**
    * Record a failed operation.
    */
-  private recordFailure(error: ExtendedAdapterError, responseTimeMs: number): void {
+  private recordFailure(_error: ExtendedAdapterError, _responseTimeMs: number): void {
     this.metrics.totalRequests++;
     this.metrics.failureCount++;
     this.metrics.lastFailureTime = Date.now();
     this.metrics.windowRequests++;
 
     // Only count as window failure if it's a circuit-breaking error
-    if (this.isCircuitBreakingError(error)) {
+    if (this.isCircuitBreakingError(error) {
       this.metrics.windowFailures++;
     }
 
@@ -445,7 +443,7 @@ export class CircuitBreaker {
       this.transitionToOpen();
     } else if (this.state === 'CLOSED') {
       // Check if we should open the circuit
-      if (this.shouldTransitionToOpen(error)) {
+      if (this.shouldTransitionToOpen(error) {
         this.transitionToOpen();
       }
     }
@@ -456,16 +454,16 @@ export class CircuitBreaker {
   /**
    * Check if an error should cause the circuit to break.
    */
-  private isCircuitBreakingError(error: ExtendedAdapterError): boolean {
+  private isCircuitBreakingError(_error: ExtendedAdapterError): boolean {
     return this.config.failureErrors.has(error.code) || this.config.criticalErrors.has(error.code);
   }
 
   /**
    * Check if the circuit should transition to open state.
    */
-  private shouldTransitionToOpen(error: ExtendedAdapterError): boolean {
+  private shouldTransitionToOpen(_error: ExtendedAdapterError): boolean {
     // Critical errors immediately open the circuit
-    if (this.config.criticalErrors.has(error.code)) {
+    if (this.config.criticalErrors.has(error.code) {
       return true;
     }
 
@@ -549,7 +547,7 @@ export class CircuitBreaker {
   /**
    * Adapt generic errors to ExtendedAdapterError.
    */
-  private adaptError(error: unknown): ExtendedAdapterError {
+  private adaptError(_error: unknown): ExtendedAdapterError {
     if (error instanceof ExtendedAdapterError) {
       return error;
     }
@@ -574,7 +572,7 @@ export class CircuitBreakerManager {
   /**
    * Get or create a circuit breaker for a provider.
    */
-  getCircuitBreaker(provider: ModelProvider, customConfig?: Partial<CircuitBreakerConfig>): CircuitBreaker {
+  getCircuitBreaker(_provider: ModelProvider, customConfig?: Partial<CircuitBreakerConfig>): CircuitBreaker {
     let circuitBreaker = this.circuitBreakers.get(provider);
     
     if (!circuitBreaker) {
@@ -593,9 +591,9 @@ export class CircuitBreakerManager {
    * Execute an operation through the appropriate circuit breaker.
    */
   async execute<T>(
-    provider: ModelProvider,
+    _provider: ModelProvider,
     operation: () => Promise<T>,
-    operationName: string,
+    _operationName: string,
     customConfig?: Partial<CircuitBreakerConfig>
   ): Promise<T> {
     const circuitBreaker = this.getCircuitBreaker(provider, customConfig);
@@ -642,7 +640,7 @@ export class CircuitBreakerManager {
   /**
    * Reset a specific circuit breaker.
    */
-  reset(provider: ModelProvider): void {
+  reset(_provider: ModelProvider): void {
     const circuitBreaker = this.circuitBreakers.get(provider);
     if (circuitBreaker) {
       circuitBreaker.reset();
@@ -652,7 +650,7 @@ export class CircuitBreakerManager {
   /**
    * Force a specific circuit breaker to a state.
    */
-  forceState(provider: ModelProvider, state: CircuitBreakerState): void {
+  forceState(_provider: ModelProvider, _state: CircuitBreakerState): void {
     const circuitBreaker = this.circuitBreakers.get(provider);
     if (circuitBreaker) {
       circuitBreaker.forceState(state);
@@ -677,9 +675,9 @@ export const circuitBreakerManager = new CircuitBreakerManager();
  * Execute an operation with circuit breaker protection.
  */
 export async function withCircuitBreaker<T>(
-  provider: ModelProvider,
+  _provider: ModelProvider,
   operation: () => Promise<T>,
-  operationName: string,
+  _operationName: string,
   customConfig?: Partial<CircuitBreakerConfig>
 ): Promise<T> {
   return circuitBreakerManager.execute(provider, operation, operationName, customConfig);
@@ -688,6 +686,6 @@ export async function withCircuitBreaker<T>(
 /**
  * Get default circuit breaker configuration for a provider.
  */
-export function getDefaultCircuitBreakerConfig(provider: ModelProvider): CircuitBreakerConfig {
+export function getDefaultCircuitBreakerConfig(_provider: ModelProvider): CircuitBreakerConfig {
   return { ...DEFAULT_CIRCUIT_BREAKER_CONFIGS[provider] };
 }

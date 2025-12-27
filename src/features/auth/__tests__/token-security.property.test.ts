@@ -17,25 +17,25 @@ import type { ModelProvider } from '../../../shared/types/models.js';
 const mockStorage = new Map<string, string>();
 
 vi.mock('keytar', () => ({
-  setPassword: vi.fn().mockImplementation(async (service: string, account: string, password: string) => {
+  setPassword: vi.fn().mockImplementation(async (_service: string, _account: string, _password: string) => {
     const key = `${service}:${account}`;
     mockStorage.set(key, password);
     return undefined;
   }),
-  getPassword: vi.fn().mockImplementation(async (service: string, account: string) => {
+  getPassword: vi.fn().mockImplementation(async (_service: string, _account: string) => {
     const key = `${service}:${account}`;
     return mockStorage.get(key) || null;
   }),
-  deletePassword: vi.fn().mockImplementation(async (service: string, account: string) => {
+  deletePassword: vi.fn().mockImplementation(async (_service: string, _account: string) => {
     const key = `${service}:${account}`;
     const existed = mockStorage.has(key);
     mockStorage.delete(key);
     return existed;
   }),
-  findCredentials: vi.fn().mockImplementation(async (service: string) => {
-    const credentials: Array<{ account: string; password: string }> = [];
+  findCredentials: vi.fn().mockImplementation(async (_service: string) => {
+    const credentials: Array<{ account: string; _password: string }> = [];
     for (const [key, password] of mockStorage.entries()) {
-      if (key.startsWith(`${service}:`)) {
+      if (key.startsWith(`${service}:`) {
         const account = key.substring(service.length + 1);
         credentials.push({ account, password });
       }
@@ -52,8 +52,8 @@ vi.mock('keytar', () => ({
  * Generates valid access tokens with various security characteristics.
  */
 const secureAccessTokenArb = fc.string({ 
-  minLength: 32, 
-  maxLength: 512,
+  _minLength: 32, 
+  _maxLength: 512,
   unit: fc.constantFrom(...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'.split(''))
 });
 
@@ -61,8 +61,8 @@ const secureAccessTokenArb = fc.string({
  * Generates valid refresh tokens.
  */
 const secureRefreshTokenArb = fc.string({ 
-  minLength: 32, 
-  maxLength: 512,
+  _minLength: 32, 
+  _maxLength: 512,
   unit: fc.constantFrom(...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'.split(''))
 });
 
@@ -75,14 +75,14 @@ const providerArb = fc.constantFrom('google', 'openrouter', 'anthropic');
  * Generates secure token sets.
  */
 const secureTokenSetArb = fc.record({
-  accessToken: secureAccessTokenArb,
-  refreshToken: secureRefreshTokenArb,
+  _accessToken: secureAccessTokenArb,
+  _refreshToken: secureRefreshTokenArb,
   expiresAt: fc.date({ 
     min: new Date(Date.now() + 60000), 
     max: new Date(Date.now() + 3600000) 
   }).filter(date => !isNaN(date.getTime())), // Ensure valid dates only
   tokenType: fc.constant('Bearer' as const),
-  scope: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
+  scope: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
 });
 
 /**
@@ -100,9 +100,9 @@ const maliciousTokenArb = fc.oneof(
   // JSON injection attempts
   fc.constant('{"malicious": true}'),
   // Moderately long strings (reduced from 10k-50k to 1k-5k for performance)
-  fc.string({ minLength: 1000, maxLength: 5000 }),
+  fc.string({ _minLength: 1000, _maxLength: 5000 }),
   // Smaller binary data (reduced from 100-1000 to 50-200 for performance)
-  fc.uint8Array({ minLength: 50, maxLength: 200 }).map(arr => 
+  fc.uint8Array({ _minLength: 50, _maxLength: 200 }).map(arr => 
     Array.from(arr).map(b => String.fromCharCode(b)).join('')
   ),
 );
@@ -185,9 +185,9 @@ describe('Token Security Property Tests', () => {
           }
         }
       ),
-      { numRuns: 10 } // Reduced from 50 to 10
+      { _numRuns: 10 } // Reduced from 50 to 10
     );
-  }, { timeout: 10000 }); // Added 10 second timeout
+  }, { _timeout: 10000 }); // Added 10 second timeout
 
   /**
    * Property: Token storage should be isolated between providers
@@ -245,9 +245,9 @@ describe('Token Security Property Tests', () => {
           }
         }
       ),
-      { numRuns: 8 } // Reduced from 30 to 8
+      { _numRuns: 8 } // Reduced from 30 to 8
     );
-  }, { timeout: 8000 }); // Added 8 second timeout
+  }, { _timeout: 8000 }); // Added 8 second timeout
 
   /**
    * Property: Token storage should handle malicious input safely
@@ -266,7 +266,7 @@ describe('Token Security Property Tests', () => {
           
           // Create token set with malicious data
           const maliciousTokenSet: TokenSet = {
-            accessToken: maliciousToken,
+            _accessToken: maliciousToken,
             refreshToken: 'safe_refresh_token',
             expiresAt: new Date(Date.now() + 3600000),
             tokenType: 'Bearer',
@@ -308,9 +308,9 @@ describe('Token Security Property Tests', () => {
           }
         }
       ),
-      { numRuns: 5 } // Reduced from 20 to 5 (malicious data tests are expensive)
+      { _numRuns: 5 } // Reduced from 20 to 5 (malicious data tests are expensive)
     );
-  }, { timeout: 15000 }); // Added 15 second timeout (malicious data can be slow)
+  }, { _timeout: 15000 }); // Added 15 second timeout (malicious data can be slow)
 
   /**
    * Property: Token clearing should be complete and secure
@@ -359,9 +359,9 @@ describe('Token Security Property Tests', () => {
           }
         }
       ),
-      { numRuns: 8 } // Reduced from 30 to 8
+      { _numRuns: 8 } // Reduced from 30 to 8
     );
-  }, { timeout: 8000 }); // Added 8 second timeout
+  }, { _timeout: 8000 }); // Added 8 second timeout
 
   /**
    * Property: Token expiration should be calculated securely
@@ -417,9 +417,9 @@ describe('Token Security Property Tests', () => {
           }
         }
       ),
-      { numRuns: 8 } // Reduced from 30 to 8
+      { _numRuns: 8 } // Reduced from 30 to 8
     );
-  }, { timeout: 8000 }); // Added 8 second timeout
+  }, { _timeout: 8000 }); // Added 8 second timeout
 
   /**
    * Property: Token validation should be consistent and secure
@@ -482,9 +482,9 @@ describe('Token Security Property Tests', () => {
           }
         }
       ),
-      { numRuns: 10 } // Reduced from 40 to 10
+      { _numRuns: 10 } // Reduced from 40 to 10
     );
-  }, { timeout: 10000 }); // Added 10 second timeout
+  }, { _timeout: 10000 }); // Added 10 second timeout
 
   /**
    * Property: Multiple concurrent operations should be safe
@@ -495,8 +495,8 @@ describe('Token Security Property Tests', () => {
   it('should handle concurrent operations safely', async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.array(secureTokenSetArb, { minLength: 2, maxLength: 3 }), // Reduced from 5 to 3
-        fc.array(providerArb, { minLength: 2, maxLength: 2 }), // Reduced from 3 to 2
+        fc.array(secureTokenSetArb, { _minLength: 2, _maxLength: 3 }), // Reduced from 5 to 3
+        fc.array(providerArb, { _minLength: 2, _maxLength: 2 }), // Reduced from 3 to 2
         async (tokenSets, providers) => {
           // Clear mock storage for this iteration
           mockStorage.clear();
@@ -562,7 +562,7 @@ describe('Token Security Property Tests', () => {
           }
         }
       ),
-      { numRuns: 3 } // Reduced from 15 to 3 (concurrent tests are very expensive)
+      { _numRuns: 3 } // Reduced from 15 to 3 (concurrent tests are very expensive)
     );
-  }, { timeout: 20000 }); // Added 20 second timeout (concurrent operations can be slow)
+  }, { _timeout: 20000 }); // Added 20 second timeout (concurrent operations can be slow)
 });

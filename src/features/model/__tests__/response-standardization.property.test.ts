@@ -274,16 +274,16 @@ describe('Response Format Standardization Property Tests', () => {
             // Validate specific chunk types
             switch (streamChunk.type) {
               case 'text':
-                expect(typeof (streamChunk as TextStreamChunk).text).toBe('string');
+                expect(typeof (streamChunk).text).toBe('string');
                 break;
               case 'tool_call':
-                const toolChunk = streamChunk as ToolCallStreamChunk;
+                const toolChunk = streamChunk;
                 expect(typeof toolChunk.id).toBe('string');
                 expect(typeof toolChunk.name).toBe('string');
                 expect(typeof toolChunk.arguments).toBe('string');
                 break;
               case 'done':
-                const doneChunk = streamChunk as DoneStreamChunk;
+                const doneChunk = streamChunk;
                 if (doneChunk.usage) {
                   expect(typeof doneChunk.usage.inputTokens).toBe('number');
                   expect(typeof doneChunk.usage.outputTokens).toBe('number');
@@ -322,17 +322,17 @@ describe('Response Format Standardization Property Tests', () => {
             // Validate specific chunk types
             switch (streamChunk.type) {
               case 'text':
-                expect(typeof (streamChunk as TextStreamChunk).text).toBe('string');
-                expect((streamChunk as TextStreamChunk).text.length).toBeGreaterThan(0);
+                expect(typeof (streamChunk).text).toBe('string');
+                expect((streamChunk).text.length).toBeGreaterThan(0);
                 break;
               case 'tool_call':
-                const toolChunk = streamChunk as ToolCallStreamChunk;
+                const toolChunk = streamChunk;
                 expect(typeof toolChunk.id).toBe('string');
                 expect(typeof toolChunk.name).toBe('string');
                 expect(typeof toolChunk.arguments).toBe('string');
                 break;
               case 'done':
-                const doneChunk = streamChunk as DoneStreamChunk;
+                const doneChunk = streamChunk;
                 if (doneChunk.usage) {
                   expect(typeof doneChunk.usage.inputTokens).toBe('number');
                   expect(typeof doneChunk.usage.outputTokens).toBe('number');
@@ -373,11 +373,11 @@ describe('Response Format Standardization Property Tests', () => {
             // Validate specific chunk types
             switch (streamChunk.type) {
               case 'text':
-                expect(typeof (streamChunk as TextStreamChunk).text).toBe('string');
-                expect((streamChunk as TextStreamChunk).text.length).toBeGreaterThan(0);
+                expect(typeof (streamChunk).text).toBe('string');
+                expect((streamChunk).text.length).toBeGreaterThan(0);
                 break;
               case 'tool_call':
-                const toolChunk = streamChunk as ToolCallStreamChunk;
+                const toolChunk = streamChunk;
                 expect(typeof toolChunk.id).toBe('string');
                 expect(typeof toolChunk.name).toBe('string');
                 expect(typeof toolChunk.arguments).toBe('string');
@@ -385,7 +385,7 @@ describe('Response Format Standardization Property Tests', () => {
                 expect(toolChunk.name.length).toBeGreaterThan(0);
                 break;
               case 'done':
-                const doneChunk = streamChunk as DoneStreamChunk;
+                const doneChunk = streamChunk;
                 if (doneChunk.usage) {
                   expect(typeof doneChunk.usage.inputTokens).toBe('number');
                   expect(typeof doneChunk.usage.outputTokens).toBe('number');
@@ -426,11 +426,11 @@ describe('Response Format Standardization Property Tests', () => {
             // Validate specific chunk types
             switch (streamChunk.type) {
               case 'text':
-                expect(typeof (streamChunk as TextStreamChunk).text).toBe('string');
-                expect((streamChunk as TextStreamChunk).text.length).toBeGreaterThan(0);
+                expect(typeof (streamChunk).text).toBe('string');
+                expect((streamChunk).text.length).toBeGreaterThan(0);
                 break;
               case 'tool_call':
-                const toolChunk = streamChunk as ToolCallStreamChunk;
+                const toolChunk = streamChunk;
                 expect(typeof toolChunk.id).toBe('string');
                 expect(typeof toolChunk.name).toBe('string');
                 expect(typeof toolChunk.arguments).toBe('string');
@@ -438,7 +438,7 @@ describe('Response Format Standardization Property Tests', () => {
                 expect(toolChunk.name.length).toBeGreaterThan(0);
                 break;
               case 'done':
-                const doneChunk = streamChunk as DoneStreamChunk;
+                const doneChunk = streamChunk;
                 if (doneChunk.usage) {
                   expect(typeof doneChunk.usage.inputTokens).toBe('number');
                   expect(typeof doneChunk.usage.outputTokens).toBe('number');
@@ -472,17 +472,17 @@ describe('Response Format Standardization Property Tests', () => {
             // Validate specific chunk types
             switch (streamChunk.type) {
               case 'text':
-                expect(typeof (streamChunk as TextStreamChunk).text).toBe('string');
-                expect((streamChunk as TextStreamChunk).text.length).toBeGreaterThan(0);
+                expect(typeof (streamChunk).text).toBe('string');
+                expect((streamChunk).text.length).toBeGreaterThan(0);
                 break;
               case 'tool_call':
-                const toolChunk = streamChunk as ToolCallStreamChunk;
+                const toolChunk = streamChunk;
                 expect(typeof toolChunk.id).toBe('string');
                 expect(typeof toolChunk.name).toBe('string');
                 expect(typeof toolChunk.arguments).toBe('string');
                 break;
               case 'done':
-                const doneChunk = streamChunk as DoneStreamChunk;
+                const doneChunk = streamChunk;
                 if (doneChunk.usage) {
                   expect(typeof doneChunk.usage.inputTokens).toBe('number');
                   expect(typeof doneChunk.usage.outputTokens).toBe('number');
@@ -524,7 +524,7 @@ describe('Response Format Standardization Property Tests', () => {
             }
             
             // Text chunks should preserve content
-            const textChunks = result.filter(c => c.type === 'text') as TextStreamChunk[];
+            const textChunks = result.filter(c => c.type === 'text');
             for (const textChunk of textChunks) {
               expect(textChunk.text).toBeTruthy();
               expect(typeof textChunk.text).toBe('string');
@@ -532,7 +532,7 @@ describe('Response Format Standardization Property Tests', () => {
             }
             
             // Tool call chunks should have valid structure
-            const toolChunks = result.filter(c => c.type === 'tool_call') as ToolCallStreamChunk[];
+            const toolChunks = result.filter(c => c.type === 'tool_call');
             for (const toolChunk of toolChunks) {
               expect(toolChunk.id).toBeTruthy();
               expect(toolChunk.name).toBeTruthy();
@@ -542,7 +542,7 @@ describe('Response Format Standardization Property Tests', () => {
             }
             
             // Done chunks should have valid usage if present
-            const doneChunks = result.filter(c => c.type === 'done') as DoneStreamChunk[];
+            const doneChunks = result.filter(c => c.type === 'done');
             for (const doneChunk of doneChunks) {
               if (doneChunk.usage) {
                 expect(typeof doneChunk.usage.inputTokens).toBe('number');
@@ -728,7 +728,7 @@ describe('Response Format Standardization Property Tests', () => {
             // Verify text content is preserved
             const originalTextContent = originalChunks
               .filter(chunk => chunk.type === 'text')
-              .map(chunk => (chunk as TextStreamChunk).text)
+              .map(chunk => (chunk).text)
               .join('');
             
             expect(formattedResponse.content).toBe(originalTextContent);
@@ -736,13 +736,13 @@ describe('Response Format Standardization Property Tests', () => {
             // Verify tool calls are preserved
             const originalToolCalls = originalChunks
               .filter(chunk => chunk.type === 'tool_call')
-              .map(chunk => chunk as ToolCallStreamChunk);
+              .map(chunk => chunk);
             
             expect(formattedResponse.toolCalls).toHaveLength(originalToolCalls.length);
             
             for (let i = 0; i < originalToolCalls.length; i++) {
               const original = originalToolCalls[i];
-              const formatted = formattedResponse.toolCalls![i];
+              const formatted = formattedResponse.toolCalls[i];
               
               expect(formatted.id).toBe(original.id);
               expect(formatted.name).toBe(original.name);
@@ -764,7 +764,7 @@ describe('Response Format Standardization Property Tests', () => {
             // Verify usage information is preserved
             const originalDoneChunks = originalChunks
               .filter(chunk => chunk.type === 'done')
-              .map(chunk => chunk as DoneStreamChunk);
+              .map(chunk => chunk);
             
             if (originalDoneChunks.length > 0) {
               const lastDoneChunk = originalDoneChunks[originalDoneChunks.length - 1];
@@ -787,7 +787,7 @@ describe('Response Format Standardization Property Tests', () => {
             
             for (let i = 0; i < originalErrors.length; i++) {
               const original = originalErrors[i];
-              const formatted = formattedResponse.errors![i];
+              const formatted = formattedResponse.errors[i];
               
               expect(formatted.code).toBe(original.code);
               expect(formatted.message).toBe(original.message);

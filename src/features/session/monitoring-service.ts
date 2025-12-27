@@ -30,7 +30,6 @@ import {
   type MonitoringConfig,
   type DashboardData,
 } from './monitoring.js';
-import { getAuditLogger, logOperation } from './audit.js';
 
 // =============================================================================
 // INTERFACES
@@ -72,16 +71,16 @@ interface OperationContext {
  */
 interface MonitoringEvents {
   /** Alert created */
-  'alert:created': (alert: SystemAlert) => void;
+  'alert:created': (_alert: SystemAlert) => void;
   
   /** Health status changed */
-  'health:changed': (status: SystemHealthStatus) => void;
+  'health:changed': (_status: SystemHealthStatus) => void;
   
   /** Performance threshold exceeded */
-  'performance:threshold': (operation: string, metrics: SessionOperationMetrics) => void;
+  'performance:threshold': (_operation: string, _metrics: SessionOperationMetrics) => void;
   
   /** Storage threshold exceeded */
-  'storage:threshold': (metrics: StorageUsageMetrics) => void;
+  'storage:threshold': (_metrics: StorageUsageMetrics) => void;
 }
 
 // =============================================================================
@@ -119,13 +118,13 @@ export class SessionMonitoringService {
       performanceAlertsEnabled: config.performanceAlertsEnabled ?? true,
       storageAlertsEnabled: config.storageAlertsEnabled ?? true,
       storageThresholds: {
-        warningPercentage: 80,
-        criticalPercentage: 95,
-        lowDiskSpaceGB: 1,
+        _warningPercentage: 80,
+        _criticalPercentage: 95,
+        _lowDiskSpaceGB: 1,
         ...config.storageThresholds,
       },
       performanceThresholds: {
-        slowOperationMs: 5000,
+        _slowOperationMs: 5000,
         highFailureRate: 0.1,
         lowCacheHitRate: 0.5,
         ...config.performanceThresholds,
@@ -164,7 +163,7 @@ export class SessionMonitoringService {
     
     this.isStarted = true;
     
-    console.log('Session monitoring service started');
+    console.warn('Session monitoring service started');
   }
   
   /**
@@ -186,7 +185,7 @@ export class SessionMonitoringService {
     
     this.isStarted = false;
     
-    console.log('Session monitoring service stopped');
+    console.warn('Session monitoring service stopped');
   }
   
   /**
@@ -208,7 +207,7 @@ export class SessionMonitoringService {
    * @param context - Operation context
    * @returns Operation tracking token
    */
-  startOperation(context: OperationContext): string {
+  startOperation(_context: OperationContext): string {
     if (!this.config.enabled) {
       return '';
     }
@@ -239,10 +238,10 @@ export class SessionMonitoringService {
    * @param startTime - Operation start time
    */
   endOperation(
-    context: OperationContext,
-    token: string,
-    success: boolean,
-    startTime: number
+    _context: OperationContext,
+    _token: string,
+    _success: boolean,
+    _startTime: number
   ): void {
     if (!this.config.enabled || !token) {
       return;
@@ -281,7 +280,7 @@ export class SessionMonitoringService {
    * @returns Promise resolving to operation result
    */
   async trackOperation<T>(
-    context: OperationContext,
+    _context: OperationContext,
     operation: () => Promise<T>
   ): Promise<T> {
     const startTime = performance.now();
@@ -346,7 +345,7 @@ export class SessionMonitoringService {
    * @param operation - Operation name
    * @returns Operation metrics or null if not found
    */
-  getOperationMetrics(operation: string): SessionOperationMetrics | null {
+  getOperationMetrics(_operation: string): SessionOperationMetrics | null {
     return this.metricsCollector.getOperationMetrics(operation);
   }
   
@@ -367,8 +366,8 @@ export class SessionMonitoringService {
    * @returns Performance metrics
    */
   getPerformanceMetrics(
-    cache: SessionMetadataCache,
-    backgroundTasks: BackgroundTaskManager
+    _cache: SessionMetadataCache,
+    _backgroundTasks: BackgroundTaskManager
   ): PerformanceMetrics {
     // This would typically integrate with the performance monitor
     // For now, return basic metrics
@@ -382,7 +381,7 @@ export class SessionMonitoringService {
     }
     
     return {
-      cache: cacheStats,
+      _cache: cacheStats,
       operationTimes: {
         listSessions: operationTimes['listSessions'] || 0,
         searchSessions: operationTimes['searchSessions'] || 0,
@@ -392,13 +391,13 @@ export class SessionMonitoringService {
       memory: {
         totalUsage: cacheStats.memoryUsage,
         cacheUsage: cacheStats.memoryUsage,
-        backgroundTasksUsage: 0,
+        _backgroundTasksUsage: 0,
       },
       backgroundTasks: {
         queued: taskStatus.queued,
         running: taskStatus.running,
-        completed: 0,
-        failed: 0,
+        _completed: 0,
+        _failed: 0,
       },
     };
   }
@@ -429,7 +428,7 @@ export class SessionMonitoringService {
       ...alert,
       id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: Date.now(),
-      acknowledged: false,
+      _acknowledged: false,
     };
     
     this.emit('alert:created', createdAlert);
@@ -440,7 +439,7 @@ export class SessionMonitoringService {
    * 
    * @param alertId - Alert ID to acknowledge
    */
-  acknowledgeAlert(alertId: string): void {
+  acknowledgeAlert(_alertId: string): void {
     this.healthMonitor.acknowledgeAlert(alertId);
   }
   
@@ -476,8 +475,8 @@ export class SessionMonitoringService {
    */
   async getDashboardData(
     sessions: SessionMetadata[],
-    cache: SessionMetadataCache,
-    backgroundTasks: BackgroundTaskManager
+    _cache: SessionMetadataCache,
+    _backgroundTasks: BackgroundTaskManager
   ): Promise<DashboardData> {
     const performanceMetrics = this.getPerformanceMetrics(cache, backgroundTasks);
     return this.dashboardProvider.getDashboardData(sessions, performanceMetrics);
@@ -493,7 +492,7 @@ export class SessionMonitoringService {
    * @param event - Event name
    * @param listener - Event listener function
    */
-  on<K extends keyof MonitoringEvents>(event: K, listener: MonitoringEvents[K]): void {
+  on<K extends keyof MonitoringEvents>(_event: K, listener: MonitoringEvents[K]): void {
     this.eventListeners[event] = listener;
   }
   
@@ -502,7 +501,7 @@ export class SessionMonitoringService {
    * 
    * @param event - Event name
    */
-  off<K extends keyof MonitoringEvents>(event: K): void {
+  off<K extends keyof MonitoringEvents>(_event: K): void {
     delete this.eventListeners[event];
   }
   
@@ -513,7 +512,7 @@ export class SessionMonitoringService {
    * @param args - Event arguments
    */
   private emit<K extends keyof MonitoringEvents>(
-    event: K,
+    _event: K,
     ...args: Parameters<MonitoringEvents[K]>
   ): void {
     const listener = this.eventListeners[event];
@@ -540,7 +539,7 @@ export class SessionMonitoringService {
     // Clear old metrics if needed
     // (This would be implemented based on specific requirements)
     
-    console.log('Monitoring service maintenance completed');
+    console.warn('Monitoring service maintenance completed');
   }
   
   /**
@@ -568,7 +567,7 @@ export class SessionMonitoringService {
     
     return {
       uptime: this.metricsCollector.getUptime(),
-      operationCount: totalOperations,
+      _operationCount: totalOperations,
       alertCount: this.getAllAlerts().length,
       lastStorageCheck: this.lastStorageCheck,
       lastPerformanceCheck: this.lastPerformanceCheck,
@@ -598,7 +597,7 @@ export class SessionMonitoringService {
     this.storageTrackingInterval = setInterval(() => {
       // This would typically get current sessions and record usage
       // For now, it's a placeholder that would be called by the session manager
-      console.log('Storage tracking interval - would record usage here');
+      console.warn('Storage tracking interval - would record usage here');
     }, this.config.storageTrackingInterval);
   }
   
@@ -607,7 +606,7 @@ export class SessionMonitoringService {
    * 
    * @param operation - Operation name to check
    */
-  private checkPerformanceAlerts(operation: string): void {
+  private checkPerformanceAlerts(_operation: string): void {
     const now = Date.now();
     
     // Throttle performance checks
@@ -713,13 +712,17 @@ export class SessionMonitoringService {
    * @param session - Session metadata
    * @returns Estimated size in bytes
    */
-  private estimateSessionSize(session: SessionMetadata): number {
+  private estimateSessionSize(_session: SessionMetadata): number {
     let size = 1000; // Base size
     size += session.messageCount * 500;
     size += session.tokenCount.total * 4;
     size += session.contextFiles.length * 100;
-    if (session.title) size += session.title.length * 2;
-    if (session.preview) size += session.preview.length * 2;
+    if (session.title) {
+    size += session.title.length * 2;
+  }
+    if (session.preview) {
+    size += session.preview.length * 2;
+  }
     return size;
   }
 }

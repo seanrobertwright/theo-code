@@ -22,8 +22,6 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
-import { logger } from '../../../shared/utils/index.js';
-
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -62,7 +60,7 @@ const ERROR_CODE_MAP: Record<string, string> = {
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(message: Message): string {
+function getMessageContent(_message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -78,16 +76,18 @@ function getMessageContent(message: Message): string {
  */
 function convertMessages(messages: Message[]): { 
   message: string; 
-  chatHistory?: Array<{ role: string; message: string }>;
+  chatHistory?: Array<{ role: string; _message: string }>;
   preamble?: string;
 } {
-  const chatHistory: Array<{ role: string; message: string }> = [];
+  const chatHistory: Array<{ role: string; _message: string }> = [];
   let preamble: string | undefined;
   let currentMessage = '';
 
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
-    if (!message) continue;
+    if (!message) {
+    continue;
+  }
     
     const content = getMessageContent(message);
 
@@ -102,13 +102,13 @@ function convertMessages(messages: Message[]): {
         // Previous user messages go to chat history
         chatHistory.push({
           role: 'USER',
-          message: content,
+          _message: content,
         });
       }
     } else if (message.role === 'assistant') {
       chatHistory.push({
         role: 'CHATBOT',
-        message: content,
+        _message: content,
       });
     } else if (message.role === 'tool') {
       // Tool results are handled differently in Cohere
@@ -125,7 +125,7 @@ function convertMessages(messages: Message[]): {
   }
 
   return {
-    message: currentMessage,
+    _message: currentMessage,
     ...(chatHistory.length > 0 ? { chatHistory } : {}),
     ...(preamble ? { preamble } : {}),
   };
@@ -145,7 +145,7 @@ function convertTools(tools: UniversalToolDefinition[]): Array<{
       throw new Error(`Invalid tool definition: name and description are required for tool: ${tool.name}`);
     }
 
-    if (!tool.parameters || !tool.parameters.properties) {
+    if (!tool.parameters?.properties) {
       throw new Error(`Invalid tool definition: parameters.properties is required for tool: ${tool.name}`);
     }
 
@@ -155,7 +155,7 @@ function convertTools(tools: UniversalToolDefinition[]): Array<{
       parameterDefinitions: Object.entries(tool.parameters.properties).reduce(
         (acc, [key, value]) => {
           acc[key] = {
-            description: (value as any).description || '',
+            description: (value as any).description ?? '',
             type: (value as any).type || 'string',
             required: tool.parameters.required?.includes(key) ?? false,
           };
@@ -170,7 +170,7 @@ function convertTools(tools: UniversalToolDefinition[]): Array<{
 /**
  * Validates and parses tool call arguments.
  */
-function parseToolCallArguments(parameters: any, toolName: string): any {
+function parseToolCallArguments(_parameters: any, _toolName: string): any {
   if (!parameters) {
     return {};
   }
@@ -180,7 +180,7 @@ function parseToolCallArguments(parameters: any, toolName: string): any {
     return typeof parameters === 'string' ? JSON.parse(parameters) : parameters;
   } catch (error) {
     logger.warn(`[Cohere] Failed to parse tool call arguments for ${toolName}:`, error);
-    return { raw_input: parameters };
+    return { _raw_input: parameters };
   }
 }
 
@@ -191,7 +191,7 @@ function parseToolCallArguments(parameters: any, toolName: string): any {
 /**
  * Maps Cohere API errors to StreamChunk error format.
  */
-function handleApiError(error: unknown): StreamChunk {
+function handleApiError(_error: unknown): StreamChunk {
   if (error instanceof Error) {
     // Try to extract error code from message
     const errorMessage = error.message.toLowerCase();
@@ -285,7 +285,7 @@ function estimateTokens(messages: Message[]): number {
  * });
  *
  * for await (const chunk of adapter.generateStream(messages, tools)) {
- *   console.log(chunk);
+ *   console.warn(chunk);
  * }
  * ```
  */
@@ -301,14 +301,14 @@ export class CohereAdapter implements IModelAdapter {
   /**
    * Creates a new Cohere adapter.
    */
-  constructor(config: ModelConfig) {
+  constructor(_config: ModelConfig) {
     this.config = config;
     this.model = config.model;
     this.contextLimit = config.contextLimit ?? MODEL_CONTEXT_LIMITS[config.model] ?? 128000;
     this.supportsToolCalling = TOOL_CALLING_MODELS.has(config.model);
 
     const apiKey = config.apiKey ?? process.env['COHERE_API_KEY'];
-    if (apiKey === undefined || apiKey === '') {
+    if (apiKey === undefined ?? apiKey === '') {
       throw new AdapterError(
         'INVALID_CONFIG',
         'cohere',
@@ -317,7 +317,7 @@ export class CohereAdapter implements IModelAdapter {
     }
 
     this.client = new CohereClient({
-      token: apiKey,
+      _token: apiKey,
     });
   }
 
@@ -387,8 +387,8 @@ export class CohereAdapter implements IModelAdapter {
    * Creates the Cohere streaming request.
    */
   private async createStream(
-    message: string,
-    chatHistory: Array<{ role: string; message: string }> | undefined,
+    _message: string,
+    chatHistory: Array<{ role: string; _message: string }> | undefined,
     preamble: string | undefined,
     tools: Array<{ name: string; description: string; parameterDefinitions: Record<string, any> }> | undefined,
     options?: GenerateOptions
@@ -498,7 +498,7 @@ export class CohereAdapter implements IModelAdapter {
 /**
  * Creates a Cohere adapter from configuration.
  */
-function createCohereAdapter(config: ModelConfig): IModelAdapter {
+function createCohereAdapter(_config: ModelConfig): IModelAdapter {
   return new CohereAdapter(config);
 }
 

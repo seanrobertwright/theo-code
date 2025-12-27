@@ -41,10 +41,10 @@ class MockOAuthManager implements IOAuthManager {
   private shouldFailAuth = false;
   private shouldFailRefresh = false;
 
-  async initiateFlow(provider: ModelProvider) {
+  async initiateFlow(_provider: ModelProvider) {
     if (this.shouldFailAuth) {
       return {
-        success: false,
+        _success: false,
         error: 'OAuth flow failed',
         provider,
       };
@@ -61,13 +61,13 @@ class MockOAuthManager implements IOAuthManager {
     this.authenticatedProviders.set(provider, tokens);
 
     return {
-      success: true,
+      _success: true,
       tokens,
       provider,
     };
   }
 
-  async handleCallback(code: string, state: string): Promise<TokenSet> {
+  async handleCallback(_code: string, _state: string): Promise<TokenSet> {
     return {
       accessToken: `callback_token_${code}`,
       refreshToken: `callback_refresh_${code}`,
@@ -77,7 +77,7 @@ class MockOAuthManager implements IOAuthManager {
     };
   }
 
-  async refreshTokens(provider: ModelProvider): Promise<TokenSet> {
+  async refreshTokens(_provider: ModelProvider): Promise<TokenSet> {
     if (this.shouldFailRefresh) {
       throw new Error('Token refresh failed');
     }
@@ -94,11 +94,11 @@ class MockOAuthManager implements IOAuthManager {
     return newTokens;
   }
 
-  async revokeTokens(provider: ModelProvider): Promise<void> {
+  async revokeTokens(_provider: ModelProvider): Promise<void> {
     this.authenticatedProviders.delete(provider);
   }
 
-  async getAuthStatus(provider: ModelProvider): Promise<AuthStatus> {
+  async getAuthStatus(_provider: ModelProvider): Promise<AuthStatus> {
     const tokens = this.authenticatedProviders.get(provider);
     
     return {
@@ -110,7 +110,7 @@ class MockOAuthManager implements IOAuthManager {
     };
   }
 
-  supportsOAuth(provider: ModelProvider): boolean {
+  supportsOAuth(_provider: ModelProvider): boolean {
     return this.supportedProviders.has(provider);
   }
 
@@ -118,7 +118,7 @@ class MockOAuthManager implements IOAuthManager {
     return Array.from(this.supportedProviders);
   }
 
-  async ensureValidTokens(provider: ModelProvider): Promise<TokenSet> {
+  async ensureValidTokens(_provider: ModelProvider): Promise<TokenSet> {
     const tokens = this.authenticatedProviders.get(provider);
     if (!tokens) {
       throw new Error(`No tokens available for provider: ${provider}`);
@@ -132,20 +132,24 @@ class MockOAuthManager implements IOAuthManager {
     return tokens;
   }
 
-  async needsTokenRefresh(provider: ModelProvider): Promise<boolean> {
+  async needsTokenRefresh(_provider: ModelProvider): Promise<boolean> {
     const tokens = this.authenticatedProviders.get(provider);
-    if (!tokens) return false;
+    if (!tokens) {
+    return false;
+  }
     return tokens.expiresAt.getTime() - Date.now() < 300000;
   }
 
-  async getTimeUntilExpiration(provider: ModelProvider): Promise<number | null> {
+  async getTimeUntilExpiration(_provider: ModelProvider): Promise<number | null> {
     const tokens = this.authenticatedProviders.get(provider);
-    if (!tokens) return null;
+    if (!tokens) {
+    return null;
+  }
     return Math.max(0, tokens.expiresAt.getTime() - Date.now());
   }
 
   // Test helpers
-  setAuthenticationStatus(provider: ModelProvider, authenticated: boolean) {
+  setAuthenticationStatus(_provider: ModelProvider, _authenticated: boolean) {
     if (authenticated) {
       this.authenticatedProviders.set(provider, {
         accessToken: `oauth_token_${provider}_${Date.now()}`,
@@ -159,19 +163,19 @@ class MockOAuthManager implements IOAuthManager {
     }
   }
 
-  setShouldFailAuth(shouldFail: boolean) {
+  setShouldFailAuth(_shouldFail: boolean) {
     this.shouldFailAuth = shouldFail;
   }
 
-  setShouldFailRefresh(shouldFail: boolean) {
+  setShouldFailRefresh(_shouldFail: boolean) {
     this.shouldFailRefresh = shouldFail;
   }
 
-  addSupportedProvider(provider: ModelProvider) {
+  addSupportedProvider(_provider: ModelProvider) {
     this.supportedProviders.add(provider);
   }
 
-  removeSupportedProvider(provider: ModelProvider) {
+  removeSupportedProvider(_provider: ModelProvider) {
     this.supportedProviders.delete(provider);
   }
 
@@ -206,8 +210,8 @@ const authMethodArb = fc.constantFrom('oauth', 'api_key', 'none');
  * Generates API keys.
  */
 const apiKeyArb = fc.string({ 
-  minLength: 20, 
-  maxLength: 100,
+  _minLength: 20, 
+  _maxLength: 100,
   unit: fc.constantFrom(...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._'.split(''))
 });
 
@@ -217,7 +221,7 @@ const apiKeyArb = fc.string({
 const authConfigArb = fc.record({
   preferredMethod: fc.constantFrom('oauth', 'api_key'),
   oauthEnabled: fc.boolean(),
-  apiKey: fc.option(apiKeyArb, { nil: undefined }),
+  apiKey: fc.option(apiKeyArb, { _nil: undefined }),
   enableFallback: fc.boolean(),
 });
 
@@ -227,7 +231,7 @@ const authConfigArb = fc.record({
 const dualAuthConfigArb = fc.record({
   preferredMethod: fc.constantFrom('oauth', 'api_key'),
   oauthEnabled: fc.constant(true),
-  apiKey: apiKeyArb,
+  _apiKey: apiKeyArb,
   enableFallback: fc.boolean(),
 });
 
@@ -237,7 +241,7 @@ const dualAuthConfigArb = fc.record({
 const oauthPreferredConfigArb = fc.record({
   preferredMethod: fc.constant('oauth' as const),
   oauthEnabled: fc.constant(true),
-  apiKey: fc.option(apiKeyArb, { nil: undefined }),
+  apiKey: fc.option(apiKeyArb, { _nil: undefined }),
   enableFallback: fc.boolean(),
 });
 
@@ -247,7 +251,7 @@ const oauthPreferredConfigArb = fc.record({
 const apiKeyPreferredConfigArb = fc.record({
   preferredMethod: fc.constant('api_key' as const),
   oauthEnabled: fc.boolean(),
-  apiKey: apiKeyArb,
+  _apiKey: apiKeyArb,
   enableFallback: fc.boolean(),
 });
 
@@ -306,7 +310,7 @@ describe('Authentication Priority Property Tests', () => {
           expect(status.authenticated).toBe(true);
         }
       ),
-      { numRuns: 20 }
+      { _numRuns: 20 }
     );
   });
 
@@ -349,7 +353,7 @@ describe('Authentication Priority Property Tests', () => {
           expect(status.authenticated).toBe(true);
         }
       ),
-      { numRuns: 20 }
+      { _numRuns: 20 }
     );
   });
 
@@ -385,7 +389,7 @@ describe('Authentication Priority Property Tests', () => {
             expect(result.usedFallback).toBe(true);
           } else {
             // API key is preferred, but if we simulate API key failure by removing it
-            const configWithoutApiKey = { ...config, apiKey: undefined };
+            const configWithoutApiKey = { ...config, _apiKey: undefined };
             authManager.configureProvider(provider as ModelProvider, configWithoutApiKey);
             
             // OAuth should be used as fallback
@@ -400,7 +404,7 @@ describe('Authentication Priority Property Tests', () => {
           }
         }
       ),
-      { numRuns: 15 }
+      { _numRuns: 15 }
     );
   });
 
@@ -435,7 +439,7 @@ describe('Authentication Priority Property Tests', () => {
             expect(result.usedFallback).toBe(false);
           } else {
             // Make API key unavailable by removing it
-            const configWithoutApiKey = { ...config, apiKey: undefined };
+            const configWithoutApiKey = { ...config, _apiKey: undefined };
             authManager.configureProvider(provider as ModelProvider, configWithoutApiKey);
 
             const result = await authManager.authenticate(provider as ModelProvider);
@@ -446,7 +450,7 @@ describe('Authentication Priority Property Tests', () => {
           }
         }
       ),
-      { numRuns: 15 }
+      { _numRuns: 15 }
     );
   });
 
@@ -492,7 +496,7 @@ describe('Authentication Priority Property Tests', () => {
           }
         }
       ),
-      { numRuns: 30 }
+      { _numRuns: 30 }
     );
   });
 
@@ -543,7 +547,7 @@ describe('Authentication Priority Property Tests', () => {
           }
         }
       ),
-      { numRuns: 25 }
+      { _numRuns: 25 }
     );
   });
 
@@ -588,7 +592,7 @@ describe('Authentication Priority Property Tests', () => {
           }
         }
       ),
-      { numRuns: 20 }
+      { _numRuns: 20 }
     );
   });
 });

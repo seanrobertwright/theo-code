@@ -37,13 +37,13 @@ describe('SessionStorage Backup Integrity Property Tests', () => {
     const { getSessionsDir } = await import('../../../config/loader.js');
     vi.mocked(getSessionsDir).mockReturnValue(tempDir);
     
-    storage = new SessionStorage({ createBackups: true });
+    storage = new SessionStorage({ _createBackups: true });
   });
 
   afterEach(async () => {
     // Clean up temp directory
     try {
-      await fs.rm(tempDir, { recursive: true, force: true });
+      await fs.rm(tempDir, { _recursive: true, _force: true });
     } catch {
       // Ignore cleanup errors
     }
@@ -64,12 +64,12 @@ describe('SessionStorage Backup Integrity Property Tests', () => {
         // Generate diverse session data
         fc.record({
           model: fc.constantFrom('gpt-4o', 'gpt-3.5-turbo', 'claude-3-sonnet', 'claude-3-haiku'),
-          messageCount: fc.integer({ min: 1, max: 25 }),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 100 }),
-          tags: fc.array(fc.string({ minLength: 1, maxLength: 20 }), { maxLength: 8 }),
-          contextFiles: fc.array(fc.string({ minLength: 5, maxLength: 50 }), { maxLength: 10 }),
-          title: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
-          notes: fc.option(fc.string({ minLength: 1, maxLength: 200 })),
+          messageCount: fc.integer({ _min: 1, _max: 25 }),
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 100 }),
+          tags: fc.array(fc.string({ _minLength: 1, _maxLength: 20 }), { _maxLength: 8 }),
+          contextFiles: fc.array(fc.string({ _minLength: 5, _maxLength: 50 }), { _maxLength: 10 }),
+          title: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
+          notes: fc.option(fc.string({ _minLength: 1, _maxLength: 200 })),
         }),
         async (config) => {
           const sessionId = createSessionId();
@@ -77,10 +77,10 @@ describe('SessionStorage Backup Integrity Property Tests', () => {
           
           // Create session with generated data
           const originalSession: Session = {
-            id: sessionId,
+            _id: sessionId,
             version: '1.0.0',
             created: now - Math.floor(Math.random() * 86400000), // Random time in last 24h
-            lastModified: now,
+            _lastModified: now,
             model: config.model,
             workspaceRoot: config.workspaceRoot,
             tokenCount: { 
@@ -97,8 +97,8 @@ describe('SessionStorage Backup Integrity Property Tests', () => {
             })),
             contextFiles: config.contextFiles,
             tags: config.tags,
-            title: config.title || undefined,
-            notes: config.notes || undefined,
+            title: config.title ?? undefined,
+            notes: config.notes ?? undefined,
           };
 
           // Write original session
@@ -153,7 +153,7 @@ describe('SessionStorage Backup Integrity Property Tests', () => {
           expect(metadata.tags).toEqual(originalSession.tags);
         }
       ),
-      { numRuns: 25 } // Run multiple iterations to test various session configurations
+      { _numRuns: 25 } // Run multiple iterations to test various session configurations
     );
   });
 
@@ -164,8 +164,8 @@ describe('SessionStorage Backup Integrity Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          cycles: fc.integer({ min: 2, max: 4 }),
-          initialMessageCount: fc.integer({ min: 1, max: 8 }),
+          cycles: fc.integer({ _min: 2, _max: 4 }),
+          initialMessageCount: fc.integer({ _min: 1, _max: 8 }),
         }),
         async ({ cycles, initialMessageCount }) => {
           const sessionId = createSessionId();
@@ -173,15 +173,15 @@ describe('SessionStorage Backup Integrity Property Tests', () => {
           
           // Create initial session
           const initialSession: Session = {
-            id: sessionId,
+            _id: sessionId,
             version: '1.0.0',
-            created: now,
-            lastModified: now,
+            _created: now,
+            _lastModified: now,
             model: 'gpt-4o',
             workspaceRoot: '/test/workspace',
             tokenCount: { total: initialMessageCount * 10, input: initialMessageCount * 5, output: initialMessageCount * 5 },
             filesAccessed: [],
-            messages: Array.from({ length: initialMessageCount }, (_, i) => ({
+            messages: Array.from({ _length: initialMessageCount }, (_, i) => ({
               id: createMessageId(),
               role: (i % 2 === 0 ? 'user' : 'assistant') as const,
               content: `Initial message ${i}`,
@@ -261,7 +261,7 @@ describe('SessionStorage Backup Integrity Property Tests', () => {
           }
         }
       ),
-      { numRuns: 10 } // Fewer runs due to complexity
+      { _numRuns: 10 } // Fewer runs due to complexity
     );
   });
 
@@ -285,13 +285,13 @@ describe('SessionStorage Backup Integrity Property Tests', () => {
           
           // Create session with edge case data
           const session: Session = {
-            id: sessionId,
+            _id: sessionId,
             version: '1.0.0',
-            created: now,
-            lastModified: now,
+            _created: now,
+            _lastModified: now,
             model: 'gpt-4o',
             workspaceRoot: hasSpecialCharacters ? '/test/workspace with spaces & symbols!' : '/test/workspace',
-            tokenCount: { total: 0, input: 0, output: 0 },
+            tokenCount: { _total: 0, _input: 0, _output: 0 },
             filesAccessed: [],
             messages: hasEmptyMessages ? [] : [{
               id: createMessageId(),
@@ -301,7 +301,7 @@ describe('SessionStorage Backup Integrity Property Tests', () => {
                 : hasSpecialCharacters 
                   ? 'Message with special chars: 你好 🚀 "quotes" \'apostrophes\' & symbols!'
                   : 'Simple message',
-              timestamp: now,
+              _timestamp: now,
             }],
             contextFiles: hasEmptyContextFiles ? [] : hasSpecialCharacters 
               ? ['file with spaces.ts', 'file-with-symbols!@#.js']
@@ -346,7 +346,7 @@ describe('SessionStorage Backup Integrity Property Tests', () => {
           }
         }
       ),
-      { numRuns: 20 }
+      { _numRuns: 20 }
     );
   });
 });

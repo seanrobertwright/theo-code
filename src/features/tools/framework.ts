@@ -18,8 +18,6 @@ import {
   ToolExecutionError,
   ToolValidationError,
 } from '../../shared/types/tools.js';
-import { logger } from '../../shared/utils/index.js';
-
 // =============================================================================
 // TOOL REGISTRY
 // =============================================================================
@@ -41,16 +39,16 @@ export class ToolRegistry {
    * @param tool - Tool to register
    * @param version - Tool version for tracking
    */
-  register(tool: Tool, version = '1.0.0'): void {
+  register(_tool: Tool, version = '1.0.0'): void {
     const name = tool.definition.name;
 
-    if (this.tools.has(name)) {
+    if (this.tools.has(name) {
       logger.warn(`Tool '${name}' is already registered, overwriting`);
     }
 
     this.tools.set(name, {
       tool,
-      enabled: true,
+      _enabled: true,
       metadata: {
         registeredAt: new Date(),
         version,
@@ -65,7 +63,7 @@ export class ToolRegistry {
    *
    * @param name - Tool name to unregister
    */
-  unregister(name: string): boolean {
+  unregister(_name: string): boolean {
     const success = this.tools.delete(name);
     if (success) {
       logger.debug(`Unregistered tool '${name}'`);
@@ -79,7 +77,7 @@ export class ToolRegistry {
    * @param name - Tool name
    * @param enabled - Whether to enable the tool
    */
-  setEnabled(name: string, enabled: boolean): void {
+  setEnabled(_name: string, _enabled: boolean): void {
     const entry = this.tools.get(name);
     if (entry) {
       entry.enabled = enabled;
@@ -112,7 +110,7 @@ export class ToolRegistry {
    *
    * @param category - Tool category to filter by
    */
-  getToolsByCategory(category: ToolCategory): Tool[] {
+  getToolsByCategory(_category: ToolCategory): Tool[] {
     return Array.from(this.tools.values())
       .filter((entry) => entry.enabled && entry.tool.category === category)
       .map((entry) => entry.tool);
@@ -123,7 +121,7 @@ export class ToolRegistry {
    *
    * @param name - Tool name
    */
-  getToolDefinition(name: string): Tool['definition'] | undefined {
+  getToolDefinition(_name: string): Tool['definition'] | undefined {
     const entry = this.tools.get(name);
     return entry?.enabled === true ? entry.tool.definition : undefined;
   }
@@ -142,7 +140,7 @@ export class ToolRegistry {
    *
    * @param name - Tool name to check
    */
-  hasEnabledTool(name: string): boolean {
+  hasEnabledTool(_name: string): boolean {
     const entry = this.tools.get(name);
     return Boolean(entry?.enabled);
   }
@@ -160,9 +158,9 @@ export class ToolRegistry {
    * @returns Promise resolving to execution result
    */
   async execute(
-    name: string,
-    input: unknown,
-    context: ToolContext
+    _name: string,
+    _input: unknown,
+    _context: ToolContext
   ): Promise<ToolExecutionResult> {
     const startTime = Date.now();
     
@@ -175,7 +173,7 @@ export class ToolRegistry {
       const shouldExecute = await this.requestConfirmationIfNeeded(tool, context, name, validatedInput);
       if (!shouldExecute) {
         return {
-          success: false,
+          _success: false,
           output: 'Tool execution cancelled by user',
         };
       }
@@ -186,7 +184,7 @@ export class ToolRegistry {
       logger.debug(`Tool '${name}' completed in ${duration}ms`);
 
       return {
-        success: true,
+        _success: true,
         output: typeof output === 'string' ? output : JSON.stringify(output),
       };
 
@@ -195,7 +193,7 @@ export class ToolRegistry {
       logger.error(`Tool '${name}' failed after ${duration}ms`, error);
 
       return {
-        success: false,
+        _success: false,
         output: error instanceof Error ? error.message : String(error),
         error: error instanceof Error ? error.message : String(error),
       };
@@ -205,7 +203,7 @@ export class ToolRegistry {
   /**
    * Validate tool exists and is enabled, return tool instance.
    */
-  private async validateAndGetTool(name: string, _input: unknown): Promise<Tool> {
+  private async validateAndGetTool(_name: string, _input: unknown): Promise<Tool> {
     const entry = this.tools.get(name);
     if (!entry) {
       throw new ToolExecutionError(name, `Tool '${name}' not found in registry`);
@@ -221,7 +219,7 @@ export class ToolRegistry {
   /**
    * Validate input against tool schema.
    */
-  private validateInput(tool: Tool, input: unknown): unknown {
+  private validateInput(_tool: Tool, _input: unknown): unknown {
     try {
       return tool.inputSchema.parse(input);
     } catch (error) {
@@ -236,9 +234,9 @@ export class ToolRegistry {
    * Perform pre-execution validation if tool has validate method.
    */
   private async performPreExecutionValidation(
-    tool: Tool,
-    context: ToolContext,
-    name: string
+    _tool: Tool,
+    _context: ToolContext,
+    _name: string
   ): Promise<void> {
     if (typeof tool.validate === 'function') {
       const validation = await tool.validate(context);
@@ -262,10 +260,10 @@ export class ToolRegistry {
    * Request confirmation if tool requires it.
    */
   private async requestConfirmationIfNeeded(
-    tool: Tool,
-    context: ToolContext,
-    name: string,
-    validatedInput: unknown
+    _tool: Tool,
+    _context: ToolContext,
+    _name: string,
+    _validatedInput: unknown
   ): Promise<boolean> {
     if (!tool.requiresConfirmation) {
       return true;
@@ -281,12 +279,12 @@ export class ToolRegistry {
    * Execute the tool and validate output.
    */
   private async executeTool(
-    tool: Tool,
-    validatedInput: unknown,
-    context: ToolContext,
-    name: string
+    _tool: Tool,
+    _validatedInput: unknown,
+    _context: ToolContext,
+    _name: string
   ): Promise<unknown> {
-    logger.debug(`Executing tool '${name}'`, { input: validatedInput });
+    logger.debug(`Executing tool '${name}'`, { _input: validatedInput });
     
     const output = await tool.execute(validatedInput, context);
 

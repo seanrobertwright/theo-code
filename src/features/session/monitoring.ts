@@ -14,8 +14,6 @@ import type {
   SessionMetadata,
 } from '../../shared/types/index.js';
 import type { PerformanceMetrics } from './performance.js';
-import { getAuditLogger, logOperation } from './audit.js';
-
 // =============================================================================
 // INTERFACES
 // =============================================================================
@@ -291,7 +289,7 @@ export class SessionMetricsCollector {
    * @param operation - Operation name
    * @returns Operation tracking token
    */
-  startOperation(operation: string): string {
+  startOperation(_operation: string): string {
     const token = `${operation}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     return token;
   }
@@ -304,13 +302,13 @@ export class SessionMetricsCollector {
    * @param success - Whether operation succeeded
    * @param duration - Operation duration in milliseconds
    */
-  endOperation(operation: string, _token: string, success: boolean, duration: number): void {
-    if (!this.operationMetrics.has(operation)) {
+  endOperation(_operation: string, _token: string, _success: boolean, _duration: number): void {
+    if (!this.operationMetrics.has(operation) {
       this.operationMetrics.set(operation, {
         times: [],
-        successes: 0,
-        failures: 0,
-        lastOperation: 0,
+        _successes: 0,
+        _failures: 0,
+        _lastOperation: 0,
       });
     }
     
@@ -338,7 +336,7 @@ export class SessionMetricsCollector {
    * @param totalSessions - Total number of sessions
    * @param totalSize - Total storage size in bytes
    */
-  recordStorageUsage(totalSessions: number, totalSize: number): void {
+  recordStorageUsage(_totalSessions: number, _totalSize: number): void {
     this.storageHistory.push({
       timestamp: Date.now(),
       totalSessions,
@@ -357,7 +355,7 @@ export class SessionMetricsCollector {
    * @param operation - Operation name
    * @returns Operation metrics or null if not found
    */
-  getOperationMetrics(operation: string): SessionOperationMetrics | null {
+  getOperationMetrics(_operation: string): SessionOperationMetrics | null {
     const metrics = this.operationMetrics.get(operation);
     if (!metrics) {
       return null;
@@ -429,7 +427,7 @@ export class SessionMetricsCollector {
     // Calculate total size and size distribution
     let totalSize = 0;
     let largestSessionSize = 0;
-    const sizeDistribution = { small: 0, medium: 0, large: 0, extraLarge: 0 };
+    const sizeDistribution = { _small: 0, _medium: 0, _large: 0, _extraLarge: 0 };
     
     for (const session of sessions) {
       // Estimate session size
@@ -452,7 +450,7 @@ export class SessionMetricsCollector {
     const averageSessionSize = totalSessions > 0 ? totalSize / totalSessions : 0;
     
     // Calculate age distribution
-    const ageDistribution = { last24Hours: 0, lastWeek: 0, lastMonth: 0, older: 0 };
+    const ageDistribution = { _last24Hours: 0, _lastWeek: 0, _lastMonth: 0, _older: 0 };
     const oneDayAgo = now - (24 * 60 * 60 * 1000);
     const oneWeekAgo = now - (7 * 24 * 60 * 60 * 1000);
     const oneMonthAgo = now - (30 * 24 * 60 * 60 * 1000);
@@ -529,7 +527,7 @@ export class SessionMetricsCollector {
    * @param session - Session metadata
    * @returns Estimated size in bytes
    */
-  private estimateSessionSize(session: SessionMetadata): number {
+  private estimateSessionSize(_session: SessionMetadata): number {
     // Base size for metadata
     let size = 1000; // 1KB base
     
@@ -543,8 +541,12 @@ export class SessionMetricsCollector {
     size += session.contextFiles.length * 100;
     
     // Add size for title and preview
-    if (session.title) size += session.title.length * 2;
-    if (session.preview) size += session.preview.length * 2;
+    if (session.title) {
+    size += session.title.length * 2;
+  }
+    if (session.preview) {
+    size += session.preview.length * 2;
+  }
     
     return size;
   }
@@ -566,20 +568,20 @@ export class SystemHealthMonitor {
   
   constructor(
     config: Partial<MonitoringConfig> = {},
-    metricsCollector: SessionMetricsCollector
+    _metricsCollector: SessionMetricsCollector
   ) {
     this.config = {
       enabled: config.enabled ?? true,
       metricsInterval: config.metricsInterval ?? 60000, // 1 minute
       healthCheckInterval: config.healthCheckInterval ?? 300000, // 5 minutes
       storageThresholds: {
-        warningPercentage: 80,
-        criticalPercentage: 95,
-        lowDiskSpaceGB: 1,
+        _warningPercentage: 80,
+        _criticalPercentage: 95,
+        _lowDiskSpaceGB: 1,
         ...config.storageThresholds,
       },
       performanceThresholds: {
-        slowOperationMs: 5000,
+        _slowOperationMs: 5000,
         highFailureRate: 0.1, // 10%
         lowCacheHitRate: 0.5, // 50%
         ...config.performanceThresholds,
@@ -659,19 +661,19 @@ export class SystemHealthMonitor {
     const memory = {
       used: process.memoryUsage?.()?.heapUsed || 0,
       available: process.memoryUsage?.()?.heapTotal || 0,
-      percentage: 0,
+      _percentage: 0,
     };
     memory.percentage = memory.available > 0 ? (memory.used / memory.available) * 100 : 0;
     
     const healthStatus: SystemHealthStatus = {
-      status: overallStatus,
-      score: overallScore,
-      lastCheck: now,
+      _status: overallStatus,
+      _score: overallScore,
+      _lastCheck: now,
       components: {
-        storage: storageHealth,
-        cache: cacheHealth,
-        backgroundTasks: backgroundTasksHealth,
-        performance: performanceHealth,
+        _storage: storageHealth,
+        _cache: cacheHealth,
+        _backgroundTasks: backgroundTasksHealth,
+        _performance: performanceHealth,
       },
       alerts: this.getActiveAlerts(),
       uptime: this.metricsCollector.getUptime(),
@@ -688,7 +690,9 @@ export class SystemHealthMonitor {
    */
   async getHealthStatus(): Promise<SystemHealthStatus> {
     // Return cached status if recent, otherwise perform new check
-    if (Date.now() - this.lastHealthCheck < this.config.healthCheckInterval / 2) {
+    if (Date.now() {
+    - this.lastHealthCheck < this.config.healthCheckInterval / 2) {
+  }
       // Return a simplified status based on current alerts
       const activeAlerts = this.getActiveAlerts();
       const criticalAlerts = activeAlerts.filter(a => a.severity === 'critical');
@@ -713,14 +717,14 @@ export class SystemHealthMonitor {
         score,
         lastCheck: this.lastHealthCheck,
         components: {
-          storage: { status: 'unknown', score: 0, message: 'Not checked', lastCheck: 0, metrics: {} },
-          cache: { status: 'unknown', score: 0, message: 'Not checked', lastCheck: 0, metrics: {} },
-          backgroundTasks: { status: 'unknown', score: 0, message: 'Not checked', lastCheck: 0, metrics: {} },
-          performance: { status: 'unknown', score: 0, message: 'Not checked', lastCheck: 0, metrics: {} },
+          storage: { status: 'unknown', _score: 0, message: 'Not checked', _lastCheck: 0, metrics: {} },
+          cache: { status: 'unknown', _score: 0, message: 'Not checked', _lastCheck: 0, metrics: {} },
+          backgroundTasks: { status: 'unknown', _score: 0, message: 'Not checked', _lastCheck: 0, metrics: {} },
+          performance: { status: 'unknown', _score: 0, message: 'Not checked', _lastCheck: 0, metrics: {} },
         },
-        alerts: activeAlerts,
+        _alerts: activeAlerts,
         uptime: this.metricsCollector.getUptime(),
-        memory: { used: 0, available: 0, percentage: 0 },
+        memory: { _used: 0, _available: 0, _percentage: 0 },
       };
     }
     
@@ -737,7 +741,7 @@ export class SystemHealthMonitor {
       ...alert,
       id: this.generateAlertId(),
       timestamp: Date.now(),
-      acknowledged: false,
+      _acknowledged: false,
     };
     
     // Check for duplicate alerts
@@ -765,7 +769,7 @@ export class SystemHealthMonitor {
    * 
    * @param alertId - Alert ID to acknowledge
    */
-  acknowledgeAlert(alertId: string): void {
+  acknowledgeAlert(_alertId: string): void {
     const alert = this.alerts.find(a => a.id === alertId);
     if (alert) {
       alert.acknowledged = true;
@@ -824,13 +828,13 @@ export class SystemHealthMonitor {
     // For now, we'll return a healthy status
     return {
       status: 'healthy',
-      score: 95,
+      _score: 95,
       message: 'Storage is operating normally',
       lastCheck: Date.now(),
       metrics: {
-        totalSessions: 0,
-        totalSize: 0,
-        utilizationPercentage: 0,
+        _totalSessions: 0,
+        _totalSize: 0,
+        _utilizationPercentage: 0,
       },
     };
   }
@@ -842,13 +846,13 @@ export class SystemHealthMonitor {
     // This would typically check cache hit rates and performance
     return {
       status: 'healthy',
-      score: 90,
+      _score: 90,
       message: 'Cache is performing well',
       lastCheck: Date.now(),
       metrics: {
         hitRate: 0.85,
         memoryUsage: 1024 * 1024, // 1MB
-        evictions: 0,
+        _evictions: 0,
       },
     };
   }
@@ -860,12 +864,12 @@ export class SystemHealthMonitor {
     // This would typically check task queue status and failure rates
     return {
       status: 'healthy',
-      score: 88,
+      _score: 88,
       message: 'Background tasks are processing normally',
       lastCheck: Date.now(),
       metrics: {
-        queuedTasks: 0,
-        runningTasks: 0,
+        _queuedTasks: 0,
+        _runningTasks: 0,
         failureRate: 0.02,
       },
     };
@@ -944,8 +948,8 @@ export class DashboardDataProvider {
   private readonly healthMonitor: SystemHealthMonitor;
   
   constructor(
-    metricsCollector: SessionMetricsCollector,
-    healthMonitor: SystemHealthMonitor
+    _metricsCollector: SessionMetricsCollector,
+    _healthMonitor: SystemHealthMonitor
   ) {
     this.metricsCollector = metricsCollector;
     this.healthMonitor = healthMonitor;
@@ -960,7 +964,7 @@ export class DashboardDataProvider {
    */
   async getDashboardData(
     sessions: SessionMetadata[],
-    performanceMetrics: PerformanceMetrics
+    _performanceMetrics: PerformanceMetrics
   ): Promise<DashboardData> {
     const healthStatus = await this.healthMonitor.getHealthStatus();
     const operationMetrics = this.metricsCollector.getAllOperationMetrics();
@@ -985,15 +989,15 @@ export class DashboardDataProvider {
         totalSessions: sessions.length,
         activeOperations: Math.round(activeOperations),
         systemHealth: healthStatus.status,
-        uptime: uptimeString,
+        _uptime: uptimeString,
       },
       recentOperations: operationMetrics.slice(0, 10), // Top 10 recent operations
-      storageUsage: storageMetrics,
-      performance: performanceMetrics,
+      _storageUsage: storageMetrics,
+      _performance: performanceMetrics,
       alerts: healthStatus.alerts,
       resources: {
         memory: healthStatus.memory.percentage,
-        cpu: 0, // Placeholder
+        _cpu: 0, // Placeholder
         disk: storageMetrics.utilizationPercentage,
       },
       timeline,

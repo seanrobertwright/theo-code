@@ -702,3 +702,16 @@ export const selectMessageCount = (state: AppState): number =>
 // =============================================================================
 
 export type { SessionId, MessageId };
+
+// UI Layout store
+export {
+  useUILayoutStore,
+  selectContextAreaWidth,
+  selectTaskSidebarCollapsed,
+  selectColorScheme,
+  selectLayoutConfig,
+  selectScrollPositions,
+  useLayoutDimensions,
+  useResponsiveLayout,
+  type UILayoutStore,
+} from './ui-layout.js';

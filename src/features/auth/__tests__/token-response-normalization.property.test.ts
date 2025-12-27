@@ -15,7 +15,7 @@ import { TokenSetSchema, type TokenSet } from '../types.js';
  * Generator for valid access tokens.
  * Ensures tokens are properly formatted without excessive whitespace.
  */
-const accessTokenArb = fc.string({ minLength: 20, maxLength: 200 })
+const accessTokenArb = fc.string({ _minLength: 20, _maxLength: 200 })
   .filter(token => {
     const trimmed = token.trim();
     // Ensure token has meaningful content (not just whitespace)
@@ -26,7 +26,7 @@ const accessTokenArb = fc.string({ minLength: 20, maxLength: 200 })
  * Generator for valid refresh tokens.
  * Ensures tokens are properly formatted without excessive whitespace.
  */
-const refreshTokenArb = fc.string({ minLength: 20, maxLength: 200 })
+const refreshTokenArb = fc.string({ _minLength: 20, _maxLength: 200 })
   .filter(token => {
     const trimmed = token.trim();
     // Ensure token has meaningful content (not just whitespace)
@@ -37,8 +37,8 @@ const refreshTokenArb = fc.string({ minLength: 20, maxLength: 200 })
  * Generator for OAuth scopes.
  */
 const scopeArb = fc.array(
-  fc.string({ minLength: 1, maxLength: 50 }).filter(s => /^[a-zA-Z0-9_:.-]+$/.test(s)),
-  { minLength: 0, maxLength: 10 }
+  fc.string({ _minLength: 1, _maxLength: 50 }).filter(s => /^[a-zA-Z0-9_:.-]+$/.test(s)),
+  { _minLength: 0, _maxLength: 10 }
 ).map(scopes => scopes.join(' '));
 
 /**
@@ -48,9 +48,9 @@ const scopeArb = fc.array(
  */
 const providerTokenResponseArb = fc.record({
   // Common OAuth 2.0 fields (snake_case as returned by providers)
-  access_token: accessTokenArb,
+  _access_token: accessTokenArb,
   token_type: fc.constantFrom('Bearer', 'bearer', 'BEARER'),
-  expires_in: fc.integer({ min: 60, max: 86400 }), // 1 minute to 24 hours
+  expires_in: fc.integer({ _min: 60, _max: 86400 }), // 1 minute to 24 hours
   refresh_token: fc.option(refreshTokenArb),
   scope: fc.option(scopeArb),
 });
@@ -62,7 +62,7 @@ const providerTokenResponseArb = fc.record({
 /**
  * Normalize provider-specific token response to standard TokenSet format.
  */
-function normalizeTokenResponse(providerResponse: any, provider: string): TokenSet {
+function normalizeTokenResponse(_providerResponse: any, _provider: string): TokenSet {
   // Extract access token (required)
   const accessToken = providerResponse.access_token;
   if (!accessToken || typeof accessToken !== 'string' || !accessToken.trim()) {
@@ -70,7 +70,7 @@ function normalizeTokenResponse(providerResponse: any, provider: string): TokenS
   }
   
   // Extract refresh token (optional)
-  const refreshToken = providerResponse.refresh_token || null;
+  const refreshToken = providerResponse.refresh_token ?? null;
   
   // Calculate expiration date
   let expiresAt: Date;
@@ -90,7 +90,7 @@ function normalizeTokenResponse(providerResponse: any, provider: string): TokenS
   }
   
   // Extract scope
-  const scope = providerResponse.scope || null;
+  const scope = providerResponse.scope ?? null;
   
   return {
     accessToken,
@@ -104,7 +104,7 @@ function normalizeTokenResponse(providerResponse: any, provider: string): TokenS
 /**
  * Validate that a TokenSet contains all required fields.
  */
-function validateTokenSet(tokenSet: TokenSet): boolean {
+function validateTokenSet(_tokenSet: TokenSet): boolean {
   try {
     TokenSetSchema.parse(tokenSet);
     return true;
@@ -166,7 +166,7 @@ describe('Token Response Normalization Properties', () => {
           }
         }
       ),
-      { numRuns: 100 }
+      { _numRuns: 100 }
     );
   });
   
@@ -180,9 +180,9 @@ describe('Token Response Normalization Properties', () => {
     fc.assert(
       fc.property(
         fc.record({
-          access_token: accessTokenArb,
+          _access_token: accessTokenArb,
           token_type: fc.constantFrom('bearer', 'BEARER', 'Bearer', 'bEaReR'),
-          expires_in: fc.integer({ min: 60, max: 86400 }),
+          expires_in: fc.integer({ _min: 60, _max: 86400 }),
         }),
         fc.constantFrom('google', 'anthropic', 'openai', 'openrouter'),
         (tokenResponse, provider) => {
@@ -192,7 +192,7 @@ describe('Token Response Normalization Properties', () => {
           expect(normalized.tokenType).toBe('Bearer');
         }
       ),
-      { numRuns: 100 }
+      { _numRuns: 100 }
     );
   });
   
@@ -206,8 +206,8 @@ describe('Token Response Normalization Properties', () => {
     fc.assert(
       fc.property(
         fc.record({
-          access_token: accessTokenArb,
-          expires_in: fc.integer({ min: 60, max: 86400 }), // 1 minute to 24 hours
+          _access_token: accessTokenArb,
+          expires_in: fc.integer({ _min: 60, _max: 86400 }), // 1 minute to 24 hours
         }),
         fc.constantFrom('google', 'anthropic', 'openai', 'openrouter'),
         (tokenResponse, provider) => {
@@ -227,7 +227,7 @@ describe('Token Response Normalization Properties', () => {
           expect(normalized.expiresAt.getTime()).toBeGreaterThan(beforeNormalization);
         }
       ),
-      { numRuns: 100 }
+      { _numRuns: 100 }
     );
   });
   
@@ -252,7 +252,7 @@ describe('Token Response Normalization Properties', () => {
           expect(normalized.accessToken.length).toBeGreaterThan(0);
         }
       ),
-      { numRuns: 100 }
+      { _numRuns: 100 }
     );
   });
   
@@ -288,7 +288,7 @@ describe('Token Response Normalization Properties', () => {
           }
         }
       ),
-      { numRuns: 100 }
+      { _numRuns: 100 }
     );
   });
   
@@ -310,7 +310,7 @@ describe('Token Response Normalization Properties', () => {
             fc.constant('   '), // whitespace only
             fc.constant('\t\n  '), // various whitespace characters
           ),
-          expires_in: fc.option(fc.integer({ min: 60, max: 86400 })),
+          expires_in: fc.option(fc.integer({ _min: 60, _max: 86400 })),
         }),
         fc.constantFrom('google', 'anthropic', 'openai', 'openrouter'),
         (invalidResponse, provider) => {
@@ -318,7 +318,7 @@ describe('Token Response Normalization Properties', () => {
           expect(() => normalizeTokenResponse(invalidResponse, provider)).toThrow('Invalid or missing access_token');
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 });

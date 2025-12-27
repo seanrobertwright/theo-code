@@ -26,25 +26,25 @@ describe('Google Tool Conversion Property Tests', () => {
               // String property
               fc.record({
                 type: fc.constant('string'),
-                description: fc.string({ minLength: 5, maxLength: 100 }),
-                enum: fc.option(fc.array(fc.string(), { minLength: 1, maxLength: 5 })),
+                description: fc.string({ _minLength: 5, _maxLength: 100 }),
+                enum: fc.option(fc.array(fc.string(), { _minLength: 1, _maxLength: 5 })),
               }),
               // Number property
               fc.record({
                 type: fc.constant('number'),
-                description: fc.string({ minLength: 5, maxLength: 100 }),
+                description: fc.string({ _minLength: 5, _maxLength: 100 }),
                 minimum: fc.option(fc.integer()),
                 maximum: fc.option(fc.integer()),
               }),
               // Boolean property
               fc.record({
                 type: fc.constant('boolean'),
-                description: fc.string({ minLength: 5, maxLength: 100 }),
+                description: fc.string({ _minLength: 5, _maxLength: 100 }),
               }),
               // Array property
               fc.record({
                 type: fc.constant('array'),
-                description: fc.string({ minLength: 5, maxLength: 100 }),
+                description: fc.string({ _minLength: 5, _maxLength: 100 }),
                 items: fc.record({
                   type: fc.oneof(fc.constant('string'), fc.constant('number')),
                 }),
@@ -52,32 +52,32 @@ describe('Google Tool Conversion Property Tests', () => {
               // Object property
               fc.record({
                 type: fc.constant('object'),
-                description: fc.string({ minLength: 5, maxLength: 100 }),
+                description: fc.string({ _minLength: 5, _maxLength: 100 }),
                 properties: fc.dictionary(
                   fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]*$/),
                   fc.record({
                     type: fc.oneof(fc.constant('string'), fc.constant('number'), fc.constant('boolean')),
-                    description: fc.string({ minLength: 5, maxLength: 50 }),
+                    description: fc.string({ _minLength: 5, _maxLength: 50 }),
                   }),
-                  { minKeys: 1, maxKeys: 3 }
+                  { _minKeys: 1, _maxKeys: 3 }
                 ),
               })
             ),
-            { minKeys: 1, maxKeys: 5 }
+            { _minKeys: 1, _maxKeys: 5 }
           ).chain(properties => {
             // Generate the full tool definition with valid required fields
             const propertyNames = Object.keys(properties);
             return fc.record({
               name: fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]*$/),
-              description: fc.string({ minLength: 10, maxLength: 200 }),
+              description: fc.string({ _minLength: 10, _maxLength: 200 }),
               parameters: fc.record({
                 type: fc.constant('object'),
                 properties: fc.constant(properties),
-                required: fc.option(fc.subarray(propertyNames, { minLength: 0, maxLength: Math.min(3, propertyNames.length) })),
+                required: fc.option(fc.subarray(propertyNames, { _minLength: 0, maxLength: Math.min(3, propertyNames.length) })),
               }),
             });
           }),
-          (toolDef: UniversalToolDefinition) => {
+          (_toolDef: UniversalToolDefinition) => {
             // Test the conversion logic
             try {
               // Since we can't directly import the conversion function,
@@ -128,7 +128,7 @@ describe('Google Tool Conversion Property Tests', () => {
             }
           }
         ),
-        { numRuns: 100 }
+        { _numRuns: 100 }
       );
     });
 
@@ -152,18 +152,18 @@ describe('Google Tool Conversion Property Tests', () => {
                 properties: fc.dictionary(
                   fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]*$/),
                   fc.record({ type: fc.constant('string') }),
-                  { minKeys: 1, maxKeys: 2 }
+                  { _minKeys: 1, _maxKeys: 2 }
                 ),
               })
             ),
-            { minKeys: 1, maxKeys: 4 }
+            { _minKeys: 1, _maxKeys: 4 }
           ).chain(properties => {
             // Generate the full schema with valid required fields
             const propertyNames = Object.keys(properties);
             return fc.record({
               type: fc.constant('object'),
               properties: fc.constant(properties),
-              required: fc.option(fc.subarray(propertyNames, { minLength: 0, maxLength: Math.min(2, propertyNames.length) })),
+              required: fc.option(fc.subarray(propertyNames, { _minLength: 0, maxLength: Math.min(2, propertyNames.length) })),
             });
           }),
           (schema) => {
@@ -196,7 +196,7 @@ describe('Google Tool Conversion Property Tests', () => {
             }
           }
         ),
-        { numRuns: 100 }
+        { _numRuns: 100 }
       );
     });
 
@@ -209,20 +209,20 @@ describe('Google Tool Conversion Property Tests', () => {
             userTools: fc.array(
               fc.record({
                 name: fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]*$/),
-                description: fc.string({ minLength: 10, maxLength: 100 }),
+                description: fc.string({ _minLength: 10, _maxLength: 100 }),
                 parameters: fc.record({
                   type: fc.constant('object'),
                   properties: fc.dictionary(
                     fc.stringMatching(/^[a-zA-Z][a-zA-Z0-9_]*$/),
                     fc.record({
                       type: fc.constant('string'),
-                      description: fc.string({ minLength: 5, maxLength: 50 }),
+                      description: fc.string({ _minLength: 5, _maxLength: 50 }),
                     }),
-                    { minKeys: 1, maxKeys: 3 }
+                    { _minKeys: 1, _maxKeys: 3 }
                   ),
                 }),
               }),
-              { minLength: 0, maxLength: 3 }
+              { _minLength: 0, _maxLength: 3 }
             ),
           }),
           (config) => {
@@ -262,7 +262,7 @@ describe('Google Tool Conversion Property Tests', () => {
             }
           }
         ),
-        { numRuns: 100 }
+        { _numRuns: 100 }
       );
     });
   });

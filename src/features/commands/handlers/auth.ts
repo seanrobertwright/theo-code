@@ -12,8 +12,6 @@ import type {
   ProviderAuthStatus,
   OAuthError 
 } from '../../auth/index.js';
-import { logger } from '../../../shared/utils/index.js';
-
 // =============================================================================
 // PROGRESS INDICATORS AND FEEDBACK
 // =============================================================================
@@ -27,7 +25,7 @@ class OAuthProgressIndicator {
   private startTime: number;
   private timeoutId: NodeJS.Timeout | null = null;
 
-  constructor(context: CommandContext, provider: ModelProvider) {
+  constructor(_context: CommandContext, _provider: ModelProvider) {
     this.context = context;
     this.provider = provider;
     this.startTime = Date.now();
@@ -159,7 +157,7 @@ class OAuthErrorHandler {
   /**
    * Handle and format OAuth errors with user-friendly messages.
    */
-  static handleOAuthError(error: any, provider: ModelProvider, operation: string): string {
+  static handleOAuthError(_error: any, _provider: ModelProvider, _operation: string): string {
     logger.error(`[AuthCommand] ${operation} failed for ${provider}:`, error);
 
     // Handle specific OAuth error types
@@ -194,7 +192,7 @@ class OAuthErrorHandler {
   /**
    * Check if error is an OAuth-specific error.
    */
-  private static isOAuthError(error: any): boolean {
+  private static isOAuthError(_error: any): boolean {
     return error && (
       error.code?.includes('oauth') ||
       error.message?.includes('oauth') ||
@@ -206,7 +204,7 @@ class OAuthErrorHandler {
   /**
    * Check if error is a network-related error.
    */
-  private static isNetworkError(error: any): boolean {
+  private static isNetworkError(_error: any): boolean {
     return error && (
       error.code === 'ENOTFOUND' ||
       error.code === 'ECONNREFUSED' ||
@@ -219,7 +217,7 @@ class OAuthErrorHandler {
   /**
    * Check if error is a timeout error.
    */
-  private static isTimeoutError(error: any): boolean {
+  private static isTimeoutError(_error: any): boolean {
     return error && (
       error.code === 'TIMEOUT' ||
       error.message?.includes('timeout') ||
@@ -230,7 +228,7 @@ class OAuthErrorHandler {
   /**
    * Check if error is a configuration error.
    */
-  private static isConfigurationError(error: any): boolean {
+  private static isConfigurationError(_error: any): boolean {
     return error && (
       error.message?.includes('client_id') ||
       error.message?.includes('configuration') ||
@@ -242,7 +240,7 @@ class OAuthErrorHandler {
   /**
    * Check if error is a token-related error.
    */
-  private static isTokenError(error: any): boolean {
+  private static isTokenError(_error: any): boolean {
     return error && (
       error.message?.includes('token') ||
       error.message?.includes('expired') ||
@@ -254,7 +252,7 @@ class OAuthErrorHandler {
   /**
    * Format OAuth-specific errors.
    */
-  private static formatOAuthError(error: any, provider: ModelProvider, operation: string): string {
+  private static formatOAuthError(_error: any, _provider: ModelProvider, _operation: string): string {
     const errorCode = error.error || error.code || 'unknown_error';
     const errorDescription = error.error_description || error.message || 'Unknown OAuth error';
 
@@ -298,7 +296,7 @@ class OAuthErrorHandler {
   /**
    * Format network errors.
    */
-  private static formatNetworkError(error: any, provider: ModelProvider, operation: string): string {
+  private static formatNetworkError(_error: any, _provider: ModelProvider, _operation: string): string {
     return `❌ **Network Error**\n\n` +
            `Failed to connect to ${provider} during ${operation}.\n\n` +
            `**Possible causes:**\n` +
@@ -315,7 +313,7 @@ class OAuthErrorHandler {
   /**
    * Format timeout errors.
    */
-  private static formatTimeoutError(error: any, provider: ModelProvider, operation: string): string {
+  private static formatTimeoutError(_error: any, _provider: ModelProvider, _operation: string): string {
     return `⏱️ **Authentication Timeout**\n\n` +
            `The ${operation} process timed out after 5 minutes.\n\n` +
            `**What happened:**\n` +
@@ -332,7 +330,7 @@ class OAuthErrorHandler {
   /**
    * Format configuration errors.
    */
-  private static formatConfigurationError(error: any, provider: ModelProvider, operation: string): string {
+  private static formatConfigurationError(_error: any, _provider: ModelProvider, _operation: string): string {
     return `⚙️ **Configuration Error**\n\n` +
            `OAuth is not properly configured for ${provider}.\n\n` +
            `**Error details:** ${error.message}\n\n` +
@@ -350,7 +348,7 @@ class OAuthErrorHandler {
   /**
    * Format token errors.
    */
-  private static formatTokenError(error: any, provider: ModelProvider, operation: string): string {
+  private static formatTokenError(_error: any, _provider: ModelProvider, _operation: string): string {
     return `🔑 **Token Error**\n\n` +
            `There was an issue with your authentication tokens for ${provider}.\n\n` +
            `**Error details:** ${error.message}\n\n` +
@@ -369,7 +367,7 @@ class OAuthErrorHandler {
   /**
    * Format generic errors.
    */
-  private static formatGenericError(error: any, provider: ModelProvider, operation: string): string {
+  private static formatGenericError(_error: any, _provider: ModelProvider, _operation: string): string {
     const errorMessage = error.message || error.toString() || 'Unknown error';
     
     return `❌ **${operation} Failed**\n\n` +
@@ -398,7 +396,7 @@ class SuccessMessageFormatter {
   /**
    * Format successful login message.
    */
-  static formatLoginSuccess(provider: ModelProvider, tokens: any): string {
+  static formatLoginSuccess(_provider: ModelProvider, _tokens: any): string {
     const expiresIn = tokens?.expiresAt ? 
       Math.round((tokens.expiresAt.getTime() - Date.now()) / (1000 * 60)) : 
       null;
@@ -428,7 +426,7 @@ class SuccessMessageFormatter {
   /**
    * Format successful logout message.
    */
-  static formatLogoutSuccess(provider: ModelProvider): string {
+  static formatLogoutSuccess(_provider: ModelProvider): string {
     return `✅ **Logout Successful**\n\n` +
            `Successfully logged out from \`${provider}\`.\n\n` +
            `**What was cleared:**\n` +
@@ -444,7 +442,7 @@ class SuccessMessageFormatter {
   /**
    * Format successful refresh message.
    */
-  static formatRefreshSuccess(provider: ModelProvider, tokens: any): string {
+  static formatRefreshSuccess(_provider: ModelProvider, _tokens: any): string {
     const expiresIn = Math.round((tokens.expiresAt.getTime() - Date.now()) / (1000 * 60));
     
     return `✅ **Tokens Refreshed Successfully**\n\n` +
@@ -522,7 +520,7 @@ export const authCommandHandler: CommandHandler = async (args, context) => {
 /**
  * Handles /auth login <provider> command.
  */
-async function handleAuthLogin(args: string[], context: CommandContext): Promise<void> {
+async function handleAuthLogin(args: string[], _context: CommandContext): Promise<void> {
   const { addMessage, setError } = context;
   
   if (args.length === 0) {
@@ -546,7 +544,7 @@ async function handleAuthLogin(args: string[], context: CommandContext): Promise
     }
     
     // Check if provider supports OAuth
-    if (!oauthManager.supportsOAuth(provider)) {
+    if (!oauthManager.supportsOAuth(provider) {
       const supportedProviders = oauthManager.getSupportedProviders();
       addMessage({
         role: 'assistant',
@@ -624,7 +622,7 @@ async function handleAuthLogin(args: string[], context: CommandContext): Promise
       const successMessage = SuccessMessageFormatter.formatLoginSuccess(provider, result.tokens);
       addMessage({
         role: 'assistant',
-        content: successMessage
+        _content: successMessage
       });
     } else {
       // Handle OAuth flow failure with detailed error information
@@ -635,11 +633,11 @@ async function handleAuthLogin(args: string[], context: CommandContext): Promise
       );
       addMessage({
         role: 'assistant',
-        content: errorMessage
+        _content: errorMessage
       });
     }
     
-  } catch (error: any) {
+  } catch (_error: any) {
     // Clear progress indicator on error
     if (progressIndicator) {
       progressIndicator.clearTimeoutWarning();
@@ -652,7 +650,7 @@ async function handleAuthLogin(args: string[], context: CommandContext): Promise
     const errorMessage = OAuthErrorHandler.handleOAuthError(error, provider, 'Authentication');
     addMessage({
       role: 'assistant',
-      content: errorMessage
+      _content: errorMessage
     });
   }
 }
@@ -660,7 +658,7 @@ async function handleAuthLogin(args: string[], context: CommandContext): Promise
 /**
  * Handles /auth logout <provider> command.
  */
-async function handleAuthLogout(args: string[], context: CommandContext): Promise<void> {
+async function handleAuthLogout(args: string[], _context: CommandContext): Promise<void> {
   const { addMessage, setError, showConfirmation } = context;
   
   if (args.length === 0) {
@@ -739,10 +737,10 @@ async function handleAuthLogout(args: string[], context: CommandContext): Promis
     const successMessage = SuccessMessageFormatter.formatLogoutSuccess(provider);
     addMessage({
       role: 'assistant',
-      content: successMessage
+      _content: successMessage
     });
     
-  } catch (error: any) {
+  } catch (_error: any) {
     logger.error(`[AuthCommand] Logout failed for provider ${provider}:`, error);
     setError(`Logout failed: ${error.message}`);
     
@@ -760,7 +758,7 @@ async function handleAuthLogout(args: string[], context: CommandContext): Promis
 /**
  * Handles /auth status command.
  */
-async function handleAuthStatus(args: string[], context: CommandContext): Promise<void> {
+async function handleAuthStatus(args: string[], _context: CommandContext): Promise<void> {
   const { addMessage, setError } = context;
   
   try {
@@ -819,10 +817,10 @@ async function handleAuthStatus(args: string[], context: CommandContext): Promis
     
     addMessage({
       role: 'assistant',
-      content: message
+      _content: message
     });
     
-  } catch (error: any) {
+  } catch (_error: any) {
     logger.error('[AuthCommand] Failed to get authentication status:', error);
     setError(`Failed to get status: ${error.message}`);
     
@@ -836,7 +834,7 @@ async function handleAuthStatus(args: string[], context: CommandContext): Promis
 /**
  * Handles /auth refresh <provider> command.
  */
-async function handleAuthRefresh(args: string[], context: CommandContext): Promise<void> {
+async function handleAuthRefresh(args: string[], _context: CommandContext): Promise<void> {
   const { addMessage, setError } = context;
   
   if (args.length === 0) {
@@ -928,10 +926,10 @@ async function handleAuthRefresh(args: string[], context: CommandContext): Promi
     const successMessage = SuccessMessageFormatter.formatRefreshSuccess(provider, tokens);
     addMessage({
       role: 'assistant',
-      content: successMessage
+      _content: successMessage
     });
     
-  } catch (error: any) {
+  } catch (_error: any) {
     logger.error(`[AuthCommand] Token refresh failed for provider ${provider}:`, error);
     setError(`Token refresh failed: ${error.message}`);
     
@@ -947,7 +945,7 @@ async function handleAuthRefresh(args: string[], context: CommandContext): Promi
     
     addMessage({
       role: 'assistant',
-      content: errorMessage
+      _content: errorMessage
     });
   }
 }
@@ -955,7 +953,7 @@ async function handleAuthRefresh(args: string[], context: CommandContext): Promi
 /**
  * Handles /auth list command.
  */
-async function handleAuthList(args: string[], context: CommandContext): Promise<void> {
+async function handleAuthList(args: string[], _context: CommandContext): Promise<void> {
   const { addMessage, setError } = context;
   
   try {
@@ -1025,10 +1023,10 @@ async function handleAuthList(args: string[], context: CommandContext): Promise<
     
     addMessage({
       role: 'assistant',
-      content: message
+      _content: message
     });
     
-  } catch (error: any) {
+  } catch (_error: any) {
     logger.error('[AuthCommand] Failed to list authentication methods:', error);
     setError(`Failed to list methods: ${error.message}`);
     
@@ -1046,7 +1044,7 @@ async function handleAuthList(args: string[], context: CommandContext): Promise<
 /**
  * Shows help for auth commands.
  */
-async function showAuthHelp(context: CommandContext): Promise<void> {
+async function showAuthHelp(_context: CommandContext): Promise<void> {
   const helpText = `🔐 **OAuth Authentication Commands**
 
 **Usage:** \`/auth <subcommand> [options]\`
@@ -1099,7 +1097,7 @@ async function showAuthHelp(context: CommandContext): Promise<void> {
 • Use \`/auth status\` to diagnose issues
 • Try logout/login if refresh fails`;
 
-  context.addMessage({ role: 'assistant', content: helpText });
+  context.addMessage({ role: 'assistant', _content: helpText });
 }
 
 /**
@@ -1110,7 +1108,7 @@ export const authContextHelpers = {
    * Get OAuth manager from context.
    * Note: In a real implementation, this would be properly injected.
    */
-  getOAuthManager(context: CommandContext): IOAuthManager | null {
+  getOAuthManager(_context: CommandContext): IOAuthManager | null {
     // TODO: Implement proper dependency injection
     // For now, return null to indicate service not available
     return null;
@@ -1120,7 +1118,7 @@ export const authContextHelpers = {
    * Get authentication manager from context.
    * Note: In a real implementation, this would be properly injected.
    */
-  getAuthenticationManager(context: CommandContext): AuthenticationManager | null {
+  getAuthenticationManager(_context: CommandContext): AuthenticationManager | null {
     // TODO: Implement proper dependency injection
     // For now, return null to indicate service not available
     return null;
@@ -1130,7 +1128,7 @@ export const authContextHelpers = {
 /**
  * Format time until token expiration.
  */
-function formatTimeUntilExpiration(expiresAt: Date): string {
+function formatTimeUntilExpiration(_expiresAt: Date): string {
   const now = Date.now();
   const expiresAtMs = expiresAt.getTime();
   const diffMs = expiresAtMs - now;
@@ -1155,7 +1153,7 @@ function formatTimeUntilExpiration(expiresAt: Date): string {
 /**
  * Get display text for available authentication methods.
  */
-function getAvailableMethodsDisplay(status: ProviderAuthStatus): string {
+function getAvailableMethodsDisplay(_status: ProviderAuthStatus): string {
   const methods: string[] = [];
   
   if (status.oauthStatus) {

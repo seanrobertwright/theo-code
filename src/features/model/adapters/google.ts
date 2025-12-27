@@ -42,8 +42,6 @@ import {
   registerAdapter,
 } from './types.js';
 import type { AuthenticationManager } from '../../auth/authentication-manager.js';
-import { logger } from '../../../shared/utils/index.js';
-
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -157,7 +155,7 @@ interface MultimodalPart {
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(message: Message): string {
+function getMessageContent(_message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -176,7 +174,7 @@ function convertMultimodalContent(
   _mediaResolution?: 'low' | 'medium' | 'high' | 'ultra_high'
 ): Part[] {
   if (typeof content === 'string') {
-    return [{ text: content }];
+    return [{ _text: content }];
   }
 
   const parts: Part[] = [];
@@ -239,8 +237,8 @@ function convertMultimodalContent(
  * Gets optimal media resolution based on content type and model capabilities.
  */
 function getOptimalMediaResolution(
-  mediaType: MediaType,
-  model: string,
+  _mediaType: MediaType,
+  _model: string,
   userPreference?: 'low' | 'medium' | 'high' | 'ultra_high'
 ): 'low' | 'medium' | 'high' | 'ultra_high' {
   // Use user preference if provided
@@ -249,7 +247,7 @@ function getOptimalMediaResolution(
   }
   
   // Default recommendations based on media type and model
-  if (model.includes('gemini-3')) {
+  if (model.includes('gemini-3') {
     // Gemini 3.0 models support ultra_high resolution
     switch (mediaType) {
       case 'image':
@@ -271,14 +269,14 @@ function getOptimalMediaResolution(
  * Estimates token allocation for different media resolutions.
  */
 function estimateMediaTokens(
-  mediaType: MediaType,
+  _mediaType: MediaType,
   resolution: 'low' | 'medium' | 'high' | 'ultra_high',
   durationOrSize?: number
 ): number {
   const baseTokens = {
-    image: { low: 85, medium: 258, high: 516, ultra_high: 1032 },
-    video: { low: 150, medium: 300, high: 600, ultra_high: 1200 },
-    audio: { low: 100, medium: 200, high: 400, ultra_high: 800 },
+    image: { _low: 85, _medium: 258, _high: 516, _ultra_high: 1032 },
+    video: { _low: 150, _medium: 300, _high: 600, _ultra_high: 1200 },
+    audio: { _low: 100, _medium: 200, _high: 400, _ultra_high: 800 },
   };
   
   const base = baseTokens[mediaType][resolution];
@@ -321,7 +319,7 @@ function convertMessages(
       // Add text content if present
       const textContent = getMessageContent(message);
       if (textContent.length > 0) {
-        parts.push({ text: textContent });
+        parts.push({ _text: textContent });
       }
       
       // Add function calls if present
@@ -340,7 +338,7 @@ function convertMessages(
           parts.push({
             functionCall: {
               name: toolCall.name,
-              args: parsedArgs,
+              _args: parsedArgs,
             },
           });
         }
@@ -401,7 +399,7 @@ function convertTools(tools: UniversalToolDefinition[]): Tool[] {
       description: tool.description,
       parameters: {
         type: SchemaType.OBJECT,
-        properties: convertedProperties,
+        _properties: convertedProperties,
         required: tool.parameters.required ?? [],
       },
     };
@@ -413,7 +411,7 @@ function convertTools(tools: UniversalToolDefinition[]): Tool[] {
 /**
  * Converts JSON Schema property to Google's format.
  */
-function convertJsonSchemaToGoogle(schema: any): any {
+function convertJsonSchemaToGoogle(_schema: any): any {
   if (typeof schema !== 'object' || schema === null) {
     return schema;
   }
@@ -511,7 +509,7 @@ function mergeWithBuiltInTools(userTools: Tool[], includeBuiltIn: boolean = fals
 /**
  * Validates and parses function call arguments.
  */
-function parseFunctionCallArguments(args: any, functionName: string): any {
+function parseFunctionCallArguments(_args: any, _functionName: string): any {
   if (!args) {
     return {};
   }
@@ -521,7 +519,7 @@ function parseFunctionCallArguments(args: any, functionName: string): any {
     return typeof args === 'string' ? JSON.parse(args) : args;
   } catch (error) {
     logger.warn(`[Google] Failed to parse function call arguments for ${functionName}:`, error);
-    return { raw_input: args };
+    return { _raw_input: args };
   }
 }
 
@@ -532,7 +530,7 @@ function parseFunctionCallArguments(args: any, functionName: string): any {
 /**
  * Maps Google API errors to StreamChunk error format.
  */
-function handleApiError(error: unknown): StreamChunk {
+function handleApiError(_error: unknown): StreamChunk {
   if (error && typeof error === 'object' && 'status' in error) {
     const status = (error as any).status;
     const message = (error as any).message || 'Unknown Google API error';
@@ -565,7 +563,7 @@ function handleApiError(error: unknown): StreamChunk {
  * Counts tokens using Google's countTokens API (when available).
  */
 async function countTokensWithAPI(
-  model: GenerativeModel, 
+  _model: GenerativeModel, 
   messages: Message[], 
   mediaResolution?: 'low' | 'medium' | 'high' | 'ultra_high'
 ): Promise<number> {
@@ -594,11 +592,11 @@ async function countTokensWithAPI(
  * Enhanced token counting cache with TTL and size limits.
  */
 class TokenCountCache {
-  private cache = new Map<string, { count: number; timestamp: number }>();
+  private cache = new Map<string, { count: number; _timestamp: number }>();
   private readonly maxSize = 1000;
   private readonly ttlMs = 5 * 60 * 1000; // 5 minutes
 
-  get(key: string): number | undefined {
+  get(_key: string): number | undefined {
     const entry = this.cache.get(key);
     if (!entry) {
       return undefined;
@@ -613,7 +611,7 @@ class TokenCountCache {
     return entry.count;
   }
 
-  set(key: string, count: number): void {
+  set(_key: string, _count: number): void {
     // Clean up expired entries if cache is getting large
     if (this.cache.size >= this.maxSize) {
       this.cleanup();
@@ -721,12 +719,12 @@ function estimateTokens(messages: Message[]): number {
  *   apiKey: process.env.GOOGLE_API_KEY,
  *   gemini: {
  *     thinkingLevel: 'high',
- *     thoughtSignatures: true,
+ *     _thoughtSignatures: true,
  *   },
  * }, authManager);
  *
  * for await (const chunk of adapter.generateStream(messages, tools)) {
- *   console.log(chunk);
+ *   console.warn(chunk);
  * }
  * ```
  */
@@ -746,7 +744,7 @@ export class GoogleAdapter implements IModelAdapter {
   /**
    * Creates a new Google adapter.
    */
-  constructor(config: GoogleModelConfig, authManager?: AuthenticationManager) {
+  constructor(_config: GoogleModelConfig, authManager?: AuthenticationManager) {
     this.config = config;
     this.model = config.model;
     this.contextLimit = config.contextLimit ?? MODEL_CONTEXT_LIMITS[config.model] ?? 1000000;
@@ -811,12 +809,12 @@ export class GoogleAdapter implements IModelAdapter {
    * Validates the adapter configuration.
    */
   validateConfig(): void {
-    if (!this.config.model || this.config.model === '') {
+    if (!this.config.model ?? this.config.model === '') {
       throw new AdapterError('INVALID_CONFIG', 'google', 'Model name is required');
     }
 
     // Validate Gemini 3.0 specific configuration
-    if (this.config.gemini?.thinkingLevel && !THINKING_MODELS.has(this.config.model)) {
+    if (this.config.gemini?.thinkingLevel && !THINKING_MODELS.has(this.config.model) {
       throw new AdapterError(
         'INVALID_CONFIG',
         'google',
@@ -824,7 +822,7 @@ export class GoogleAdapter implements IModelAdapter {
       );
     }
 
-    if (this.config.gemini?.imageGeneration && !IMAGE_GENERATION_MODELS.has(this.config.model)) {
+    if (this.config.gemini?.imageGeneration && !IMAGE_GENERATION_MODELS.has(this.config.model) {
       throw new AdapterError(
         'INVALID_CONFIG',
         'google',
@@ -889,7 +887,7 @@ export class GoogleAdapter implements IModelAdapter {
     };
 
     // Add Gemini 3.0 specific configuration
-    if (this.config.gemini?.thinkingLevel && THINKING_MODELS.has(this.config.model)) {
+    if (this.config.gemini?.thinkingLevel && THINKING_MODELS.has(this.config.model) {
       (generationConfig as any).thinkingLevel = this.config.gemini.thinkingLevel;
     }
 
@@ -953,7 +951,7 @@ export class GoogleAdapter implements IModelAdapter {
    */
   async generateStructured(
     messages: Message[],
-    schema: any,
+    _schema: any,
     options?: GenerateOptions
   ): Promise<any> {
     const mediaResolution = this.config.gemini?.mediaResolution || 'medium';
@@ -1086,7 +1084,7 @@ export class GoogleAdapter implements IModelAdapter {
    */
   async optimizeTokenUsage(
     messages: Message[],
-    maxTokens: number,
+    _maxTokens: number,
     options?: {
       preserveLatestMessages?: number;
       allowResolutionReduction?: boolean;
@@ -1103,8 +1101,8 @@ export class GoogleAdapter implements IModelAdapter {
     
     if (currentTokens <= maxTokens) {
       return {
-        optimizedMessages: currentMessages,
-        tokenCount: currentTokens,
+        _optimizedMessages: currentMessages,
+        _tokenCount: currentTokens,
         optimizations: [],
       };
     }
@@ -1116,7 +1114,9 @@ export class GoogleAdapter implements IModelAdapter {
       
       for (let i = currentResIndex - 1; i >= 0; i--) {
         const testResolution = resolutions[i];
-        if (!testResolution) continue;
+        if (!testResolution) {
+    continue;
+  }
         
         const originalResolution = this.config.gemini?.mediaResolution;
         
@@ -1154,7 +1154,9 @@ export class GoogleAdapter implements IModelAdapter {
           }
         }
         
-        if (removedIndex === -1) break; // No more messages to remove
+        if (removedIndex === -1) {
+    break;
+  } // No more messages to remove
         
         currentTokens = await this.countTokensAsync(currentMessages);
         optimizations.push(`Removed message at index ${removedIndex}`);
@@ -1165,7 +1167,9 @@ export class GoogleAdapter implements IModelAdapter {
     if (options?.allowContentTruncation && currentTokens > maxTokens) {
       for (let i = currentMessages.length - 1; i >= 0; i--) {
         const message = currentMessages[i];
-        if (!message || message.role === 'system') continue; // Don't truncate system messages
+        if (!message || message.role === 'system') {
+    continue;
+  } // Don't truncate system messages
         
         const content = getMessageContent(message);
         if (content.length > 500) { // Only truncate long messages
@@ -1173,7 +1177,7 @@ export class GoogleAdapter implements IModelAdapter {
           
           if (typeof message.content === 'string') {
             message.content = truncatedContent;
-          } else if (Array.isArray(message.content)) {
+          } else if (Array.isArray(message.content) {
             // Find and truncate text blocks
             for (const block of message.content) {
               if (block.type === 'text') {
@@ -1186,14 +1190,16 @@ export class GoogleAdapter implements IModelAdapter {
           currentTokens = await this.countTokensAsync(currentMessages);
           optimizations.push(`Truncated content in message ${i}`);
           
-          if (currentTokens <= maxTokens) break;
+          if (currentTokens <= maxTokens) {
+    break;
+  }
         }
       }
     }
     
     return {
-      optimizedMessages: currentMessages,
-      tokenCount: currentTokens,
+      _optimizedMessages: currentMessages,
+      _tokenCount: currentTokens,
       optimizations,
     };
   }
@@ -1209,7 +1215,7 @@ export class GoogleAdapter implements IModelAdapter {
     return {
       cacheSize: this.tokenCountCache.size(),
       // Note: Hit rate tracking would require additional instrumentation
-      estimationFallbacks: 0, // Would need to track this
+      _estimationFallbacks: 0, // Would need to track this
     };
   }
 
@@ -1243,7 +1249,7 @@ export class GoogleAdapter implements IModelAdapter {
   /**
    * Gets optimal media resolution recommendation for a specific media type.
    */
-  getOptimalMediaResolution(mediaType: MediaType): 'low' | 'medium' | 'high' | 'ultra_high' {
+  getOptimalMediaResolution(_mediaType: MediaType): 'low' | 'medium' | 'high' | 'ultra_high' {
     return getOptimalMediaResolution(mediaType, this.model, this.config.gemini?.mediaResolution);
   }
 
@@ -1253,7 +1259,7 @@ export class GoogleAdapter implements IModelAdapter {
   estimateMultimodalTokens(
     messages: Message[],
     mediaResolutionOverride?: 'low' | 'medium' | 'high' | 'ultra_high'
-  ): { textTokens: number; mediaTokens: number; totalTokens: number } {
+  ): { textTokens: number; mediaTokens: number; _totalTokens: number } {
     let textTokens = 0;
     let mediaTokens = 0;
     
@@ -1315,7 +1321,9 @@ export class GoogleAdapter implements IModelAdapter {
         
         for (let i = currentIndex - 1; i >= 0; i--) {
           const testResolution = resolutions[i];
-          if (!testResolution) continue;
+          if (!testResolution) {
+    continue;
+  }
           
           const testEstimate = this.estimateMultimodalTokens(messages, testResolution);
           
@@ -1340,7 +1348,7 @@ export class GoogleAdapter implements IModelAdapter {
     return {
       processedMessages,
       tokenEstimate: finalEstimate.totalTokens,
-      resolution: currentResolution,
+      _resolution: currentResolution,
     };
   }
 
@@ -1348,7 +1356,7 @@ export class GoogleAdapter implements IModelAdapter {
    * Sets the thinking level for reasoning control.
    */
   setThinkingLevel(level: 'low' | 'medium' | 'high'): void {
-    if (!THINKING_MODELS.has(this.model)) {
+    if (!THINKING_MODELS.has(this.model) {
       throw new AdapterError(
         'INVALID_CONFIG',
         'google',
@@ -1374,8 +1382,8 @@ export class GoogleAdapter implements IModelAdapter {
   /**
    * Enables or disables thought signatures for reasoning continuity.
    */
-  setThoughtSignatures(enabled: boolean): void {
-    if (!THINKING_MODELS.has(this.model)) {
+  setThoughtSignatures(_enabled: boolean): void {
+    if (!THINKING_MODELS.has(this.model) {
       logger.warn(`[Google] Thought signatures may not be fully supported for model: ${this.model}`);
     }
     
@@ -1398,7 +1406,7 @@ export class GoogleAdapter implements IModelAdapter {
    * Sets a thought signature from a previous conversation turn.
    * Useful for migrating conversations from other models or sessions.
    */
-  setThoughtSignature(signature: ThoughtSignature): void {
+  setThoughtSignature(_signature: ThoughtSignature): void {
     if (!this.config.gemini?.thoughtSignatures) {
       logger.warn('[Google] Thought signatures are not enabled. Enable them first with setThoughtSignatures(true)');
       return;
@@ -1451,7 +1459,7 @@ export class GoogleAdapter implements IModelAdapter {
    */
   async handleParallelFunctionCalls(
     messages: Message[],
-    functionCalls: Array<{ name: string; arguments: any }>,
+    functionCalls: Array<{ name: string; _arguments: any }>,
     options?: GenerateOptions
   ): Promise<{ results: any[]; thoughtSignature?: ThoughtSignature }> {
     // Store current thought signature
@@ -1463,7 +1471,7 @@ export class GoogleAdapter implements IModelAdapter {
         functionCalls.map(async (call, index) => {
           // Create a temporary signature for this parallel call
           const parallelSignature: ThoughtSignature = {
-            signature: currentSignature?.signature || '',
+            signature: currentSignature?.signature ?? '',
             turnId: `${currentSignature?.turnId || 'parallel'}_${index}`,
           };
           
@@ -1493,7 +1501,7 @@ export class GoogleAdapter implements IModelAdapter {
           }
           
           return {
-            callIndex: index,
+            _callIndex: index,
             functionName: call.name,
             chunks,
             thoughtSignature: this.thoughtSignature,
@@ -1529,7 +1537,7 @@ export class GoogleAdapter implements IModelAdapter {
    * Generates images using Gemini 3.0 Pro Image model.
    */
   async generateImage(
-    prompt: string,
+    _prompt: string,
     options?: {
       aspectRatio?: string;
       imageSize?: '1K' | '2K' | '4K';
@@ -1546,7 +1554,7 @@ export class GoogleAdapter implements IModelAdapter {
       generatedAt: string;
     };
   }> {
-    if (!IMAGE_GENERATION_MODELS.has(this.model)) {
+    if (!IMAGE_GENERATION_MODELS.has(this.model) {
       throw new AdapterError(
         'INVALID_CONFIG',
         'google',
@@ -1575,7 +1583,7 @@ export class GoogleAdapter implements IModelAdapter {
       // Create generation config with image-specific settings
       const generationConfig: GenerationConfig = {
         temperature: 0.7,
-        maxOutputTokens: 1024, // Images don't need many output tokens
+        _maxOutputTokens: 1024, // Images don't need many output tokens
       };
 
       // Add image generation specific config
@@ -1591,7 +1599,7 @@ export class GoogleAdapter implements IModelAdapter {
       const contents: Content[] = [
         {
           role: 'user',
-          parts: [{ text: fullPrompt }],
+          parts: [{ _text: fullPrompt }],
         },
       ];
 
@@ -1634,7 +1642,7 @@ export class GoogleAdapter implements IModelAdapter {
             }
             
             // Check for text response that might contain image references
-            if (part.text && part.text.includes('image')) {
+            if (part.text && part.text.includes('image') {
               logger.warn('[Google] Image generation returned text response instead of image data:', part.text);
             }
           }
@@ -1664,9 +1672,9 @@ export class GoogleAdapter implements IModelAdapter {
    * Edits an existing image using conversational instructions.
    */
   async editImage(
-    imageData: string,
-    mimeType: string,
-    editInstructions: string,
+    _imageData: string,
+    _mimeType: string,
+    _editInstructions: string,
     options?: {
       preserveAspectRatio?: boolean;
       style?: string;
@@ -1680,7 +1688,7 @@ export class GoogleAdapter implements IModelAdapter {
       originalPreserved: boolean;
     };
   }> {
-    if (!IMAGE_GENERATION_MODELS.has(this.model)) {
+    if (!IMAGE_GENERATION_MODELS.has(this.model) {
       throw new AdapterError(
         'INVALID_CONFIG',
         'google',
@@ -1717,11 +1725,11 @@ export class GoogleAdapter implements IModelAdapter {
             {
               inlineData: {
                 mimeType,
-                data: imageData,
+                _data: imageData,
               },
             },
             {
-              text: fullPrompt,
+              _text: fullPrompt,
             },
           ],
         },
@@ -1731,7 +1739,7 @@ export class GoogleAdapter implements IModelAdapter {
         contents,
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1024,
+          _maxOutputTokens: 1024,
         },
       };
 
@@ -1785,7 +1793,7 @@ export class GoogleAdapter implements IModelAdapter {
    * Generates images with Google Search grounding for enhanced context.
    */
   async generateImageWithGrounding(
-    prompt: string,
+    _prompt: string,
     searchQuery?: string,
     options?: {
       aspectRatio?: string;
@@ -1803,7 +1811,7 @@ export class GoogleAdapter implements IModelAdapter {
       generatedAt: string;
     };
   }> {
-    if (!IMAGE_GENERATION_MODELS.has(this.model)) {
+    if (!IMAGE_GENERATION_MODELS.has(this.model) {
       throw new AdapterError(
         'INVALID_CONFIG',
         'google',
@@ -1821,7 +1829,7 @@ export class GoogleAdapter implements IModelAdapter {
       // Use the regular image generation with search grounding enabled
       const result = await this.generateImage(fullPrompt, {
         ...options,
-        includeSearchGrounding: true,
+        _includeSearchGrounding: true,
       });
 
       const returnValue: {
@@ -1838,7 +1846,7 @@ export class GoogleAdapter implements IModelAdapter {
         ...result,
         metadata: {
           ...result.metadata!,
-          searchGrounded: true,
+          _searchGrounded: true,
         },
       };
       
@@ -1880,7 +1888,7 @@ export class GoogleAdapter implements IModelAdapter {
       .join('|');
     
     return {
-      signature: mergedSignature,
+      _signature: mergedSignature,
       turnId: `merged_${Date.now()}`,
     };
   }
@@ -1929,7 +1937,7 @@ export class GoogleAdapter implements IModelAdapter {
 
     const request: GenerateContentRequest = {
       contents,
-      ...(finalTools !== undefined ? { tools: finalTools } : {}),
+      ...(finalTools !== undefined ? { _tools: finalTools } : {}),
     };
 
     // Add generation config overrides from options
@@ -1965,7 +1973,9 @@ export class GoogleAdapter implements IModelAdapter {
         }
       }
 
-      if (Object.keys(generationConfig).length > 0) {
+      if (Object.keys(generationConfig){
+    .length > 0) {
+  }
         request.generationConfig = generationConfig;
       }
     }
@@ -1990,7 +2000,7 @@ export class GoogleAdapter implements IModelAdapter {
   /**
    * Creates a migration prompt to help preserve context from other models.
    */
-  private createMigrationPrompt(migrationContext: any): string {
+  private createMigrationPrompt(_migrationContext: any): string {
     const parts: string[] = [];
     
     if (migrationContext.previousModel) {
@@ -2017,7 +2027,7 @@ export class GoogleAdapter implements IModelAdapter {
    * Processes the streaming response and yields chunks.
    */
   private async *processStream(
-    stream: GenerateContentStreamResult
+    _stream: GenerateContentStreamResult
   ): AsyncGenerator<StreamChunk> {
     const toolCallAccumulators = new Map<string, ToolCallAccumulator>();
     let hasStarted = false;
@@ -2044,7 +2054,9 @@ export class GoogleAdapter implements IModelAdapter {
         if (chunk.candidates && chunk.candidates.length > 0) {
           const candidate = chunk.candidates[0];
           
-          if (!candidate) continue;
+          if (!candidate) {
+    continue;
+  }
           
           // Handle safety ratings and blocks
           if (candidate.safetyRatings) {
@@ -2074,10 +2086,10 @@ export class GoogleAdapter implements IModelAdapter {
                 const toolCallId = `${functionCall.name}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                 
                 // Check if this is a partial function call that needs accumulation
-                if (functionCall.args === undefined || functionCall.args === null) {
+                if (functionCall.args === undefined ?? functionCall.args === null) {
                   // Start accumulating this function call
                   toolCallAccumulators.set(toolCallId, {
-                    id: toolCallId,
+                    _id: toolCallId,
                     name: functionCall.name,
                     args: '',
                   });
@@ -2092,7 +2104,7 @@ export class GoogleAdapter implements IModelAdapter {
                     const parsedArgs = parseFunctionCallArguments(functionCall.args, functionCall.name);
                     yield {
                       type: 'tool_call',
-                      id: toolCallId,
+                      _id: toolCallId,
                       name: functionCall.name,
                       arguments: JSON.stringify(parsedArgs),
                     };
@@ -2103,7 +2115,9 @@ export class GoogleAdapter implements IModelAdapter {
           }
           
           // Handle thought signature streaming for Gemini 3.0
-          if (this.config.gemini?.thoughtSignatures && (candidate as any).thoughtSignature) {
+          if (this.config.gemini?.thoughtSignatures && (candidate as any){
+    .thoughtSignature) {
+  }
             const newSignature = (candidate as any).thoughtSignature;
             if (newSignature !== accumulatedThoughtSignature) {
               accumulatedThoughtSignature = newSignature;
@@ -2135,7 +2149,7 @@ export class GoogleAdapter implements IModelAdapter {
             // Store final thought signature for next turn
             if (this.config.gemini?.thoughtSignatures && accumulatedThoughtSignature) {
               this.thoughtSignature = {
-                signature: accumulatedThoughtSignature,
+                _signature: accumulatedThoughtSignature,
                 turnId: `turn_${Date.now()}`,
               };
               logger.debug('[Google] Thought signature stored for next turn');
@@ -2170,7 +2184,7 @@ export class GoogleAdapter implements IModelAdapter {
                     outputTokens: chunk.usageMetadata.candidatesTokenCount ?? 0 
                   }
                 : undefined,
-              ...(finishMessage ? { finishReason: finishMessage } : {}),
+              ...(finishMessage ? { _finishReason: finishMessage } : {}),
             };
             hasFinished = true;
             break;
@@ -2227,7 +2241,7 @@ export class GoogleAdapter implements IModelAdapter {
         const errorObj = error as any;
         
         // Handle quota exceeded errors
-        if (errorObj.status === 'RESOURCE_EXHAUSTED' || errorObj.message?.includes('quota')) {
+        if (errorObj.status === 'RESOURCE_EXHAUSTED' || errorObj.message?.includes('quota') {
           yield {
             type: 'error',
             error: {
@@ -2251,7 +2265,9 @@ export class GoogleAdapter implements IModelAdapter {
         }
         
         // Handle model not found errors
-        if (errorObj.message?.includes('model') && errorObj.message?.includes('not found')) {
+        if (errorObj.message?.includes('model') {
+    && errorObj.message?.includes('not found')) {
+  }
           yield {
             type: 'error',
             error: {
@@ -2275,7 +2291,7 @@ export class GoogleAdapter implements IModelAdapter {
 /**
  * Creates a Google adapter from configuration.
  */
-function createGoogleAdapter(config: ModelConfig, authManager?: AuthenticationManager): IModelAdapter {
+function createGoogleAdapter(_config: ModelConfig, authManager?: AuthenticationManager): IModelAdapter {
   return new GoogleAdapter(config as GoogleModelConfig, authManager);
 }
 

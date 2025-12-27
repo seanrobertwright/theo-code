@@ -15,8 +15,6 @@ import type {
 } from '../../shared/types/models.js';
 import type { ToolCall } from '../../shared/types/index.js';
 import { createToolCallId } from '../../shared/types/schemas.js';
-import { logger } from '../../shared/utils/index.js';
-
 // =============================================================================
 // PROVIDER-SPECIFIC RESPONSE TYPES
 // =============================================================================
@@ -235,10 +233,10 @@ export class ToolCallAccumulatorManager {
    * Adds or updates a tool call accumulator.
    */
   addOrUpdate(
-    id: string,
-    name: string,
-    argumentsFragment: string,
-    provider: string
+    _id: string,
+    _name: string,
+    _argumentsFragment: string,
+    _provider: string
   ): void {
     const existing = this.accumulators.get(id);
     if (existing) {
@@ -247,7 +245,7 @@ export class ToolCallAccumulatorManager {
       this.accumulators.set(id, {
         id,
         name,
-        arguments: argumentsFragment,
+        _arguments: argumentsFragment,
         provider,
       });
     }
@@ -296,8 +294,8 @@ export class ToolCallAccumulatorManager {
  * Converts OpenAI streaming response to standardized StreamChunk.
  */
 export function convertOpenAIResponse(
-  chunk: OpenAIStreamChunk,
-  accumulators: ToolCallAccumulatorManager
+  _chunk: OpenAIStreamChunk,
+  _accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const chunks: StreamChunk[] = [];
   
@@ -324,15 +322,15 @@ export function convertOpenAIResponse(
   if (delta.tool_calls) {
     for (const toolCall of delta.tool_calls) {
       const id = toolCall.id || `tool_${toolCall.index}`;
-      const name = toolCall.function?.name || '';
-      const args = toolCall.function?.arguments || '';
+      const name = toolCall.function?.name ?? '';
+      const args = toolCall.function?.arguments ?? '';
       
       accumulators.addOrUpdate(id, name, args, 'openai');
     }
   }
   
   // Handle completion
-  if (choice && choice.finish_reason) {
+  if (choice?.finish_reason) {
     // Emit accumulated tool calls
     chunks.push(...accumulators.getToolCallChunks());
     accumulators.clear();
@@ -354,8 +352,8 @@ export function convertOpenAIResponse(
  * Converts Anthropic streaming response to standardized StreamChunk.
  */
 export function convertAnthropicResponse(
-  event: AnthropicStreamEvent,
-  accumulators: ToolCallAccumulatorManager
+  _event: AnthropicStreamEvent,
+  _accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const chunks: StreamChunk[] = [];
   
@@ -376,7 +374,7 @@ export function convertAnthropicResponse(
     case 'content_block_start':
       if (event.content_block?.type === 'tool_use') {
         const id = event.content_block.id || event.index?.toString() || '0';
-        const name = event.content_block.name || '';
+        const name = event.content_block.name ?? '';
         accumulators.addOrUpdate(id, name, '', 'anthropic');
       }
       break;
@@ -429,8 +427,8 @@ export function convertAnthropicResponse(
  * Converts Google streaming response to standardized StreamChunk.
  */
 export function convertGoogleResponse(
-  chunk: GoogleStreamChunk,
-  accumulators: ToolCallAccumulatorManager
+  _chunk: GoogleStreamChunk,
+  _accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const chunks: StreamChunk[] = [];
   
@@ -486,7 +484,7 @@ export function convertGoogleResponse(
           type: 'tool_call',
           id,
           name: part.functionCall.name,
-          arguments: args,
+          _arguments: args,
         });
       }
     }
@@ -516,8 +514,8 @@ export function convertGoogleResponse(
  * Uses OpenAI format since OpenRouter is OpenAI-compatible.
  */
 export function convertOpenRouterResponse(
-  chunk: OpenRouterStreamChunk,
-  accumulators: ToolCallAccumulatorManager
+  _chunk: OpenRouterStreamChunk,
+  _accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   return convertOpenAIResponse(chunk, accumulators);
 }
@@ -526,8 +524,8 @@ export function convertOpenRouterResponse(
  * Converts Cohere streaming response to standardized StreamChunk.
  */
 export function convertCohereResponse(
-  chunk: CohereStreamChunk,
-  accumulators: ToolCallAccumulatorManager
+  _chunk: CohereStreamChunk,
+  _accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const chunks: StreamChunk[] = [];
   
@@ -579,8 +577,8 @@ export function convertCohereResponse(
  * Converts Mistral streaming response to standardized StreamChunk.
  */
 export function convertMistralResponse(
-  chunk: MistralStreamChunk,
-  accumulators: ToolCallAccumulatorManager
+  _chunk: MistralStreamChunk,
+  _accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   // Mistral uses OpenAI-compatible format
   return convertOpenAIResponse(chunk as OpenAIStreamChunk, accumulators);
@@ -590,8 +588,8 @@ export function convertMistralResponse(
  * Converts Together streaming response to standardized StreamChunk.
  */
 export function convertTogetherResponse(
-  chunk: TogetherStreamChunk,
-  accumulators: ToolCallAccumulatorManager
+  _chunk: TogetherStreamChunk,
+  _accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   // Together uses OpenAI-compatible format
   return convertOpenAIResponse(chunk as OpenAIStreamChunk, accumulators);
@@ -601,8 +599,8 @@ export function convertTogetherResponse(
  * Converts Perplexity streaming response to standardized StreamChunk.
  */
 export function convertPerplexityResponse(
-  chunk: PerplexityStreamChunk,
-  accumulators: ToolCallAccumulatorManager
+  _chunk: PerplexityStreamChunk,
+  _accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const chunks: StreamChunk[] = [];
   
@@ -648,8 +646,8 @@ export function convertPerplexityResponse(
  * Converts Ollama streaming response to standardized StreamChunk.
  */
 export function convertOllamaResponse(
-  chunk: OllamaStreamChunk,
-  accumulators: ToolCallAccumulatorManager
+  _chunk: OllamaStreamChunk,
+  _accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const chunks: StreamChunk[] = [];
   
@@ -688,8 +686,8 @@ export function convertOllamaResponse(
  * Provider-specific response converter function type.
  */
 export type ResponseConverter<T = any> = (
-  chunk: T,
-  accumulators: ToolCallAccumulatorManager
+  _chunk: T,
+  _accumulators: ToolCallAccumulatorManager
 ) => StreamChunk[];
 
 /**
@@ -711,9 +709,9 @@ export const responseConverters = new Map<string, ResponseConverter>([
  * Converts provider-specific response to standardized StreamChunk format.
  */
 export function convertProviderResponse(
-  provider: string,
-  chunk: any,
-  accumulators: ToolCallAccumulatorManager
+  _provider: string,
+  _chunk: any,
+  _accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const converter = responseConverters.get(provider);
   
@@ -750,11 +748,11 @@ export function convertProviderResponse(
  * Standardizes tool call format across providers.
  */
 export function standardizeToolCall(
-  toolCall: any,
-  provider: string
+  _toolCall: any,
+  _provider: string
 ): ToolCall {
   // Helper function to ensure we always have a valid ID
-  const ensureValidId = (id: any, fallbackName: string): string => {
+  const ensureValidId = (_id: any, _fallbackName: string): string => {
     if (id && typeof id === 'string' && id.length > 0) {
       return id;
     }
@@ -769,7 +767,7 @@ export function standardizeToolCall(
       const openaiName = toolCall.function?.name || toolCall.name || 'unknown';
       return {
         id: createToolCallId(ensureValidId(toolCall.id, openaiName)),
-        name: openaiName,
+        _name: openaiName,
         arguments: parseToolCallArguments(toolCall.function?.arguments || toolCall.arguments),
       };
       
@@ -777,7 +775,7 @@ export function standardizeToolCall(
       const anthropicName = toolCall.name || 'unknown';
       return {
         id: createToolCallId(ensureValidId(toolCall.id, anthropicName)),
-        name: anthropicName,
+        _name: anthropicName,
         arguments: parseToolCallArguments(toolCall.input || toolCall.arguments),
       };
       
@@ -785,7 +783,7 @@ export function standardizeToolCall(
       const googleName = toolCall.name || 'unknown';
       return {
         id: createToolCallId(ensureValidId(toolCall.id, googleName)),
-        name: googleName,
+        _name: googleName,
         arguments: parseToolCallArguments(toolCall.args || toolCall.arguments),
       };
       
@@ -793,7 +791,7 @@ export function standardizeToolCall(
       const cohereName = toolCall.name || 'unknown';
       return {
         id: createToolCallId(ensureValidId(toolCall.id, cohereName)),
-        name: cohereName,
+        _name: cohereName,
         arguments: parseToolCallArguments(toolCall.parameters || toolCall.arguments),
       };
       
@@ -802,7 +800,7 @@ export function standardizeToolCall(
       const localName = toolCall.name || 'unknown';
       return {
         id: createToolCallId(ensureValidId(toolCall.id, localName)),
-        name: localName,
+        _name: localName,
         arguments: parseToolCallArguments(toolCall.arguments),
       };
       
@@ -811,7 +809,7 @@ export function standardizeToolCall(
       const unknownName = toolCall.name || 'unknown';
       return {
         id: createToolCallId(ensureValidId(toolCall.id, unknownName)),
-        name: unknownName,
+        _name: unknownName,
         arguments: parseToolCallArguments(toolCall.arguments || {}),
       };
   }
@@ -820,8 +818,8 @@ export function standardizeToolCall(
 /**
  * Parses tool call arguments from various formats.
  */
-function parseToolCallArguments(args: any): any {
-  if (args === null || args === undefined) {
+function parseToolCallArguments(_args: any): any {
+  if (args === null ?? args === undefined) {
     return {};
   }
   
@@ -832,12 +830,12 @@ function parseToolCallArguments(args: any): any {
       if (typeof parsed === 'object' && parsed !== null) {
         return parsed;
       } else {
-        return { value: parsed };
+        return { _value: parsed };
       }
     } catch (error) {
       logger.warn('[ResponseFormat] Failed to parse tool call arguments as JSON:', error);
       // Preserve the original string as raw_input, even if it's whitespace
-      return { raw_input: args };
+      return { _raw_input: args };
     }
   }
   
@@ -846,7 +844,7 @@ function parseToolCallArguments(args: any): any {
   }
   
   // For primitives, wrap them in an object
-  return { value: args };
+  return { _value: args };
 }
 
 // =============================================================================
@@ -856,7 +854,7 @@ function parseToolCallArguments(args: any): any {
 /**
  * Maps Anthropic error codes to standard error codes.
  */
-function mapAnthropicErrorCode(errorType: string): string {
+function mapAnthropicErrorCode(_errorType: string): string {
   const errorMap: Record<string, string> = {
     'authentication_error': 'AUTH_FAILED',
     'permission_error': 'AUTH_FAILED',
@@ -872,7 +870,7 @@ function mapAnthropicErrorCode(errorType: string): string {
 /**
  * Maps Google error codes to standard error codes.
  */
-function mapGoogleErrorCode(status: string): string {
+function mapGoogleErrorCode(_status: string): string {
   const errorMap: Record<string, string> = {
     'PERMISSION_DENIED': 'AUTH_FAILED',
     'UNAUTHENTICATED': 'AUTH_FAILED',
@@ -891,7 +889,7 @@ function mapGoogleErrorCode(status: string): string {
 /**
  * Maps HTTP status codes to standard error codes.
  */
-function mapHttpStatusToErrorCode(status: number): string {
+function mapHttpStatusToErrorCode(_status: number): string {
   const statusMap: Record<number, string> = {
     401: 'AUTH_FAILED',
     403: 'AUTH_FAILED',
@@ -912,9 +910,9 @@ function mapHttpStatusToErrorCode(status: number): string {
  * Maps provider-specific error to standard error code.
  */
 export function mapProviderError(
-  error: any,
-  provider: string
-): { code: string; message: string } {
+  _error: any,
+  _provider: string
+): { code: string; _message: string } {
   switch (provider) {
     case 'anthropic':
       return {

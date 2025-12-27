@@ -37,7 +37,7 @@ import {
  */
 export const sessionsCommandHandler: CommandHandler = async (
   args: string[],
-  context: CommandContext
+  _context: CommandContext
 ): Promise<void> => {
   const { addMessage, setError } = context;
   
@@ -117,7 +117,7 @@ export const sessionsCommandHandler: CommandHandler = async (
  */
 async function handleSessionsList(
   args: string[],
-  context: CommandContext
+  _context: CommandContext
 ): Promise<void> {
   const { addMessage, sessionActions } = context;
   
@@ -193,7 +193,7 @@ async function handleSessionsList(
  */
 async function handleSessionsDelete(
   args: string[],
-  context: CommandContext
+  _context: CommandContext
 ): Promise<void> {
   const { addMessage, showConfirmation, sessionActions } = context;
   
@@ -221,8 +221,8 @@ async function handleSessionsDelete(
     }
     
     // Get session metadata for confirmation
-    const sessions = await sessionManager.listSessions({ limit: 1000 });
-    const sessionMetadata = sessions.find((s: SessionMetadata) => s.id === sessionId);
+    const sessions = await sessionManager.listSessions({ _limit: 1000 });
+    const sessionMetadata = sessions.find((_s: SessionMetadata) => s.id === sessionId);
     
     if (!sessionMetadata) {
       throw new Error(`Session metadata not found for ${sessionId}`);
@@ -276,14 +276,14 @@ async function handleSessionsDelete(
  */
 async function handleSessionsExport(
   args: string[],
-  context: CommandContext
+  _context: CommandContext
 ): Promise<void> {
   const { addMessage, workspaceRoot, sessionActions } = context;
   
   if (args.length === 0) {
     addMessage({
       role: 'assistant',
-      content: `❌ **Missing Session ID**\n\nUsage: \`/sessions export <session-id> [format]\`\n\nFormats: json, json-pretty (default), json-compact\n\nUse \`/sessions list\` to see available sessions.`,
+      content: `❌ **Missing Session ID**\n\nUsage: \`/sessions export <session-id> [format]\`\n\_nFormats: json, json-pretty (default), json-compact\n\nUse \`/sessions list\` to see available sessions.`,
     });
     return;
   }
@@ -310,9 +310,9 @@ async function handleSessionsExport(
     // Export the session
     const exportResult = await sessionManager.exportSession(sessionId, {
       format,
-      sanitize: true,
-      includeContent: true,
-      metadataOnly: false,
+      _sanitize: true,
+      _includeContent: true,
+      _metadataOnly: false,
     });
     
     // Generate filename
@@ -327,7 +327,7 @@ async function handleSessionsExport(
                   `🔧 **Format:** ${exportResult.format}\n` +
                   `🔒 **Sanitized:** ${exportResult.sanitized ? 'Yes' : 'No'}\n\n` +
                   `${exportResult.warnings.length > 0 ? 
-                    `⚠️ **Warnings:**\n${exportResult.warnings.map((w: string) => `• ${w}`).join('\n')}\n\n` : 
+                    `⚠️ **Warnings:**\n${exportResult.warnings.map((_w: string) => `• ${w}`).join('\n')}\n\n` : 
                     ''
                   }` +
                   `💡 **Tip:** The exported file can be shared or imported into another theo-code instance.`;
@@ -361,7 +361,7 @@ async function handleSessionsExport(
  */
 async function handleSessionsSearch(
   args: string[],
-  context: CommandContext
+  _context: CommandContext
 ): Promise<void> {
   const { addMessage, sessionActions } = context;
   
@@ -383,11 +383,11 @@ async function handleSessionsSearch(
     
     // Perform search
     const searchResults = await sessionManager.searchSessions(query, {
-      limit: 20,
+      _limit: 20,
       minRelevance: 0.1,
-      includeContent: true,
-      includeMetadata: true,
-      includeFilenames: true,
+      _includeContent: true,
+      _includeMetadata: true,
+      _includeFilenames: true,
       sortBy: 'relevance',
     });
     
@@ -401,10 +401,10 @@ async function handleSessionsSearch(
     
     // Format and display results
     const formattedResults = formatSearchResults(searchResults, query, {
-      highlightMatches: true,
-      contextLength: 100,
-      maxSessions: 20,
-      showDetails: true,
+      _highlightMatches: true,
+      _contextLength: 100,
+      _maxSessions: 20,
+      _showDetails: true,
     });
     
     // Add storage limit notifications if needed
@@ -435,7 +435,7 @@ async function handleSessionsSearch(
  */
 async function handleSessionsFilter(
   args: string[],
-  context: CommandContext
+  _context: CommandContext
 ): Promise<void> {
   const { addMessage, sessionActions } = context;
   
@@ -472,15 +472,15 @@ async function handleSessionsFilter(
     
     // Format and display results
     const formattedResults = formatFilterResults(filteredSessions, filters, {
-      showFilterCriteria: true,
-      maxSessions: 20,
-      showDetails: true,
-      showPreviews: true,
+      _showFilterCriteria: true,
+      _maxSessions: 20,
+      _showDetails: true,
+      _showPreviews: true,
     });
     
     addMessage({
       role: 'assistant',
-      content: formattedResults,
+      _content: formattedResults,
     });
     
   } catch (error) {
@@ -500,7 +500,7 @@ async function handleSessionsFilter(
  */
 async function handleSessionsCleanup(
   args: string[],
-  context: CommandContext
+  _context: CommandContext
 ): Promise<void> {
   const { addMessage, showConfirmation, sessionActions } = context;
   
@@ -516,7 +516,7 @@ async function handleSessionsCleanup(
     // First, do a dry run to show what would be deleted
     const dryRunResult = await sessionManager.cleanupOldSessions({
       ...options,
-      dryRun: true,
+      _dryRun: true,
     });
     
     if (dryRunResult.deletedSessions.length === 0) {
@@ -557,7 +557,7 @@ async function handleSessionsCleanup(
     // Perform actual cleanup
     const cleanupResult = await sessionManager.cleanupOldSessions({
       ...options,
-      dryRun: false,
+      _dryRun: false,
     });
     
     if (cleanupResult.errors.length > 0) {
@@ -567,7 +567,7 @@ async function handleSessionsCleanup(
                  `✅ Deleted: ${cleanupResult.deletedSessions.length - cleanupResult.errors.length} sessions\n` +
                  `❌ Errors: ${cleanupResult.errors.length} sessions\n` +
                  `💾 Space freed: ~${formatFileSize(cleanupResult.spaceFree)}\n\n` +
-                 `**Errors:**\n${cleanupResult.errors.map((e: any) => `• ${e.sessionId}: ${e.error}`).join('\n')}`,
+                 `**Errors:**\n${cleanupResult.errors.map((_e: any) => `• ${e.sessionId}: ${e.error}`).join('\n')}`,
       });
     } else {
       addMessage({
@@ -596,7 +596,7 @@ async function handleSessionsCleanup(
  */
 async function handleSessionsConfig(
   args: string[],
-  context: CommandContext
+  _context: CommandContext
 ): Promise<void> {
   const { addMessage, showConfirmation, sessionActions } = context;
   
@@ -654,7 +654,7 @@ async function handleSessionsConfig(
  * 
  * @param context - Command execution context
  */
-async function showCurrentConfig(context: CommandContext): Promise<void> {
+async function showCurrentConfig(_context: CommandContext): Promise<void> {
   const { addMessage, sessionActions } = context;
   
   try {
@@ -684,7 +684,7 @@ async function showCurrentConfig(context: CommandContext): Promise<void> {
     
     addMessage({
       role: 'assistant',
-      content: configMessage,
+      _content: configMessage,
     });
     
   } catch (error) {
@@ -702,7 +702,7 @@ async function showCurrentConfig(context: CommandContext): Promise<void> {
  * @param args - Configuration arguments [key, value]
  * @param context - Command execution context
  */
-async function setConfigValue(args: string[], context: CommandContext): Promise<void> {
+async function setConfigValue(args: string[], _context: CommandContext): Promise<void> {
   const { addMessage, showConfirmation, sessionActions } = context;
   
   if (args.length < 2) {
@@ -782,7 +782,7 @@ async function setConfigValue(args: string[], context: CommandContext): Promise<
  * @param args - Optional specific key to reset
  * @param context - Command execution context
  */
-async function resetConfig(args: string[], context: CommandContext): Promise<void> {
+async function resetConfig(args: string[], _context: CommandContext): Promise<void> {
   const { addMessage, showConfirmation, sessionActions } = context;
   
   const key = args[0]; // Optional specific key
@@ -845,7 +845,7 @@ async function resetConfig(args: string[], context: CommandContext): Promise<voi
  * 
  * @param context - Command execution context
  */
-async function validateConfig(context: CommandContext): Promise<void> {
+async function validateConfig(_context: CommandContext): Promise<void> {
   const { addMessage, sessionActions } = context;
   
   try {
@@ -871,7 +871,7 @@ async function validateConfig(context: CommandContext): Promise<void> {
       
       if (issues.length > 0) {
         message += `**Errors:**\n`;
-        issues.forEach((issue: any) => {
+        issues.forEach((_issue: any) => {
           message += `• ${issue.setting}: ${issue.error}\n`;
         });
         message += '\n';
@@ -879,7 +879,7 @@ async function validateConfig(context: CommandContext): Promise<void> {
       
       if (warnings.length > 0) {
         message += `**Warnings:**\n`;
-        warnings.forEach((warning: any) => {
+        warnings.forEach((_warning: any) => {
           message += `• ${warning.setting}: ${warning.message}\n`;
         });
         message += '\n';
@@ -889,7 +889,7 @@ async function validateConfig(context: CommandContext): Promise<void> {
       
       addMessage({
         role: 'assistant',
-        content: message,
+        _content: message,
       });
     }
     
@@ -907,7 +907,7 @@ async function validateConfig(context: CommandContext): Promise<void> {
  * 
  * @param context - Command execution context
  */
-async function handleSessionsHelp(context: CommandContext): Promise<void> {
+async function handleSessionsHelp(_context: CommandContext): Promise<void> {
   const { addMessage } = context;
   
   const helpMessage = `📚 **Sessions Commands Help**\n\n` +
@@ -944,7 +944,7 @@ async function handleSessionsHelp(context: CommandContext): Promise<void> {
   
   addMessage({
     role: 'assistant',
-    content: helpMessage,
+    _content: helpMessage,
   });
 }
 
@@ -969,11 +969,11 @@ function parseListOptions(args: string[]): {
   showPreviews?: boolean;
 } {
   const options: any = {
-    limit: 20,
+    _limit: 20,
     sortBy: 'lastModified',
     sortOrder: 'desc',
-    showDetails: true,
-    showPreviews: true,
+    _showDetails: true,
+    _showPreviews: true,
   };
   
   for (let i = 0; i < args.length; i++) {
@@ -1092,9 +1092,9 @@ function parseCleanupOptions(args: string[]): {
   createBackups?: boolean;
 } {
   const options: any = {
-    maxCount: 50,
+    _maxCount: 50,
     maxAgeMs: 30 * 24 * 60 * 60 * 1000, // 30 days
-    createBackups: true,
+    _createBackups: true,
   };
   
   for (let i = 0; i < args.length; i++) {
@@ -1130,7 +1130,7 @@ function parseCleanupOptions(args: string[]): {
  * @param limitResult - Storage limit check result
  * @returns Formatted notification message
  */
-function formatStorageLimitNotification(limitResult: any): string {
+function formatStorageLimitNotification(_limitResult: any): string {
   if (limitResult.withinLimits && !limitResult.warningThresholdReached) {
     return '';
   }
@@ -1158,7 +1158,7 @@ function formatStorageLimitNotification(limitResult: any): string {
   // Add suggested actions
   if (limitResult.suggestedActions && limitResult.suggestedActions.length > 0) {
     message += '\n**Suggested actions:**\n';
-    limitResult.suggestedActions.forEach((action: string) => {
+    limitResult.suggestedActions.forEach((_action: string) => {
       message += `• ${action}\n`;
     });
     

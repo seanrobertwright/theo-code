@@ -15,12 +15,12 @@ import { authCommandHandler } from '../handlers/auth.js';
  * Mock Command Context for testing.
  */
 class MockCommandContext implements CommandContext {
-  public messages: Array<{ role: string; content: string }> = [];
+  public messages: Array<{ role: string; _content: string }> = [];
   public errors: string[] = [];
   public confirmationResults: boolean[] = [];
   private confirmationIndex = 0;
 
-  addMessage = vi.fn((message: { role: 'user' | 'assistant' | 'system'; content: string }) => {
+  addMessage = vi.fn((message: { role: 'user' | 'assistant' | 'system'; _content: string }) => {
     this.messages.push(message);
   });
 
@@ -30,7 +30,7 @@ class MockCommandContext implements CommandContext {
     }
   });
 
-  showConfirmation = vi.fn(async (message: string, details?: string): Promise<boolean> => {
+  showConfirmation = vi.fn(async (_message: string, details?: string): Promise<boolean> => {
     const result = this.confirmationResults[this.confirmationIndex] ?? true;
     this.confirmationIndex++;
     return result;
@@ -48,14 +48,14 @@ class MockCommandContext implements CommandContext {
 
   // Helper methods for testing
   getLastMessage(): string {
-    return this.messages[this.messages.length - 1]?.content || '';
+    return this.messages[this.messages.length - 1]?.content ?? '';
   }
 
   getMessageCount(): number {
     return this.messages.length;
   }
 
-  setConfirmationResult(result: boolean): void {
+  setConfirmationResult(_result: boolean): void {
     this.confirmationResults.push(result);
   }
 

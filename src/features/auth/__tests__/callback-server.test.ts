@@ -228,7 +228,7 @@ describe('CallbackServer', () => {
       const data = await response.json();
       expect(data).toMatchObject({
         status: 'ok',
-        port: port,
+        _port: port,
       });
       expect(data.timestamp).toBeDefined();
     });

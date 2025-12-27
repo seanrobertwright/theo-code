@@ -13,8 +13,7 @@ import { render } from 'ink';
 import React from 'react';
 import { App } from './app.js';
 import { ensureConfigDir, createDefaultConfig, loadConfig } from './config/index.js';
-import { logger, LogLevel } from './shared/utils/index.js';
-
+import { logger, LogLevel } from './shared/utils/logger.js';
 // Load .env file from current directory
 loadEnv();
 
@@ -108,7 +107,7 @@ program.action((options: { model?: string; verbose?: boolean; safeMode?: boolean
       logger.debug('Application exited cleanly');
       process.exit(0);
     })
-    .catch((error: unknown) => {
+    .catch((_error: unknown) => {
       logger.error('Application error', error);
       process.exit(1);
     });

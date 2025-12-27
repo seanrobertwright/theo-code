@@ -45,6 +45,7 @@
     "@anthropic-ai/sdk": "^0.71.2",
     "@google/generative-ai": "^0.24.1",
     "@mistralai/mistralai": "^1.11.0",
+    "@modelcontextprotocol/sdk": "^1.25.1",
     "chalk": "^5.3.0",
     "cohere-ai": "^7.20.0",
     "commander": "^12.1.0",

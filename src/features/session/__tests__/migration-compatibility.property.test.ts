@@ -157,7 +157,7 @@ describe('Migration Backward Compatibility Property Tests', () => {
           const sessionId = createSessionId();
           
           // Create a properly structured session for the specified version
-          let session: any = {
+          const session: any = {
             id: sessionId,
             version,
             created: Date.now(),
@@ -367,7 +367,7 @@ describe('Backward Compatibility Integration Tests', () => {
           const sessionId = createSessionId();
           
           // Create a properly structured session for the specified version
-          let session: any = {
+          const session: any = {
             id: sessionId,
             version,
             created: Date.now() - 86400000, // 1 day ago

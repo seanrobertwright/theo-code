@@ -68,7 +68,8 @@ export function getGlobalConfigPath(): string {
  * @returns Absolute path to sessions directory
  */
 export function getSessionsDir(): string {
-  return path.join(getGlobalConfigDir(), 'sessions');
+  // Use local session_data directory in the current working directory
+  return path.join(process.cwd(), 'session_data');
 }
 
 // =============================================================================
@@ -81,7 +82,7 @@ export function getSessionsDir(): string {
  * @param filePath - Path to the file
  * @returns File contents or undefined
  */
-function safeReadFile(filePath: string): string | undefined {
+function safeReadFile(_filePath: string): string | undefined {
   try {
     return fs.readFileSync(filePath, 'utf-8');
   } catch {
@@ -133,7 +134,7 @@ export function loadGlobalConfig(): GlobalConfig {
  * @param workspaceRoot - Root directory to search for .agentrc
  * @returns Validated project configuration or undefined
  */
-export function loadProjectConfig(workspaceRoot: string): ProjectConfig | undefined {
+export function loadProjectConfig(_workspaceRoot: string): ProjectConfig | undefined {
   const configPath = path.join(workspaceRoot, PROJECT_CONFIG_FILE);
   const content = safeReadFile(configPath);
 
@@ -151,7 +152,7 @@ export function loadProjectConfig(workspaceRoot: string): ProjectConfig | undefi
  * @param workspaceRoot - Root directory to search for AGENTS.md
  * @returns AGENTS.md content or undefined
  */
-export function loadAgentsInstructions(workspaceRoot: string): string | undefined {
+export function loadAgentsInstructions(_workspaceRoot: string): string | undefined {
   const agentsPath = path.join(workspaceRoot, AGENTS_FILE);
   return safeReadFile(agentsPath);
 }
@@ -162,7 +163,7 @@ export function loadAgentsInstructions(workspaceRoot: string): string | undefine
  * @param workspaceRoot - Root directory to search for .agent-policy.yaml
  * @returns Validated security policy
  */
-export function loadSecurityPolicy(workspaceRoot: string): SecurityPolicy {
+export function loadSecurityPolicy(_workspaceRoot: string): SecurityPolicy {
   // Check project-level policy first
   const projectPolicyPath = path.join(workspaceRoot, POLICY_FILE);
   let content = safeReadFile(projectPolicyPath);
@@ -187,7 +188,7 @@ export function loadSecurityPolicy(workspaceRoot: string): SecurityPolicy {
  * @param provider - The provider name
  * @returns API key or undefined
  */
-export function getApiKeyFromEnv(provider: string): string | undefined {
+export function getApiKeyFromEnv(_provider: string): string | undefined {
   const envVarMap: Record<string, string> = {
     openai: 'OPENAI_API_KEY',
     anthropic: 'ANTHROPIC_API_KEY',
@@ -240,10 +241,10 @@ export function isSafeModeEnabled(): boolean {
  * @example
  * ```typescript
  * const config = loadConfig('/path/to/project');
- * console.log(config.global.defaultModel);
+ * console.warn(config.global.defaultModel);
  * ```
  */
-export function loadConfig(workspaceRoot: string): MergedConfig {
+export function loadConfig(_workspaceRoot: string): MergedConfig {
   const global = loadGlobalConfig();
   const project = loadProjectConfig(workspaceRoot);
   const policy = loadSecurityPolicy(workspaceRoot);
@@ -282,7 +283,7 @@ export function loadConfig(workspaceRoot: string): MergedConfig {
  * @param config - Merged configuration
  * @returns Validation result with details
  */
-export function validateProviderConfig(provider: string, config: MergedConfig): {
+export function validateProviderConfig(_provider: string, _config: MergedConfig): {
   valid: boolean;
   errors: string[];
   warnings: string[];
@@ -351,7 +352,7 @@ export function validateProviderConfig(provider: string, config: MergedConfig): 
  * @param config - Merged configuration
  * @returns Effective provider configuration
  */
-export function getProviderConfig(provider: string, config: MergedConfig): ProviderConfig | undefined {
+export function getProviderConfig(_provider: string, _config: MergedConfig): ProviderConfig | undefined {
   // Find provider in configuration
   const providers = config.global.providers?.providers;
   let providerConfig: ProviderConfig | undefined;
@@ -400,7 +401,7 @@ export function getProviderConfig(provider: string, config: MergedConfig): Provi
  * @param config - Merged configuration
  * @returns Array of provider configurations
  */
-export function getAvailableProviders(config: MergedConfig): ProviderConfig[] {
+export function getAvailableProviders(_config: MergedConfig): ProviderConfig[] {
   const providers = config.global.providers?.providers;
   const configuredProviders = (providers && Array.isArray(providers)) ? providers as ProviderConfig[] : [];
   const supportedProviders = ['openai', 'anthropic', 'google', 'openrouter', 'cohere', 'mistral', 'together', 'perplexity', 'ollama'];
@@ -551,14 +552,14 @@ editor:
  * @param config - Merged configuration
  * @returns OAuth serialization settings with defaults
  */
-export function getOAuthSerializationSettings(config: MergedConfig): OAuthSerializationSettings {
+export function getOAuthSerializationSettings(_config: MergedConfig): OAuthSerializationSettings {
   const settings = config.global.oauthSerialization;
   if (!settings) {
     // Return default settings
     return {
-      includeInSerialization: true,
-      maskSensitiveData: true,
-      customSensitivePatterns: undefined,
+      _includeInSerialization: true,
+      _maskSensitiveData: true,
+      _customSensitivePatterns: undefined,
     };
   }
   return settings;
@@ -573,7 +574,7 @@ export function getOAuthSerializationSettings(config: MergedConfig): OAuthSerial
  * @param config - Merged configuration
  * @returns API key or undefined
  */
-export function getApiKey(provider: string, config: MergedConfig): string | undefined {
+export function getApiKey(_provider: string, _config: MergedConfig): string | undefined {
   // 1. Check environment variable
   const envKey = getApiKeyFromEnv(provider);
   if (envKey !== undefined && envKey !== '') {
@@ -584,8 +585,8 @@ export function getApiKey(provider: string, config: MergedConfig): string | unde
 
   // 3. Check provider-specific configuration
   const providers = config.global.providers?.providers;
-  if (providers && Array.isArray(providers)) {
-    const providerConfig = providers.find((p: any) => p.name === provider);
+  if (providers && Array.isArray(providers) {
+    const providerConfig = providers.find((_p: any) => p.name === provider);
     if (providerConfig?.apiKey) {
       return providerConfig.apiKey;
     }
@@ -609,10 +610,10 @@ export function getApiKey(provider: string, config: MergedConfig): string | unde
  * @param config - Merged configuration
  * @returns OAuth configuration or undefined
  */
-export function getOAuthConfig(provider: string, config: MergedConfig): OAuthProviderSettings | undefined {
+export function getOAuthConfig(_provider: string, _config: MergedConfig): OAuthProviderSettings | undefined {
   const providers = config.global.providers?.providers;
-  if (providers && Array.isArray(providers)) {
-    const providerConfig = providers.find((p: any) => p.name === provider);
+  if (providers && Array.isArray(providers) {
+    const providerConfig = providers.find((_p: any) => p.name === provider);
     return providerConfig?.oauth;
   }
   return undefined;
@@ -625,7 +626,7 @@ export function getOAuthConfig(provider: string, config: MergedConfig): OAuthPro
  * @param config - Merged configuration
  * @returns True if OAuth is enabled
  */
-export function isOAuthEnabled(provider: string, config: MergedConfig): boolean {
+export function isOAuthEnabled(_provider: string, _config: MergedConfig): boolean {
   const oauthConfig = getOAuthConfig(provider, config);
   return oauthConfig?.enabled ?? false;
 }
@@ -637,7 +638,7 @@ export function isOAuthEnabled(provider: string, config: MergedConfig): boolean 
  * @param config - Merged configuration
  * @returns Preferred authentication method
  */
-export function getPreferredAuthMethod(provider: string, config: MergedConfig): 'oauth' | 'api_key' {
+export function getPreferredAuthMethod(_provider: string, _config: MergedConfig): 'oauth' | 'api_key' {
   const oauthConfig = getOAuthConfig(provider, config);
   return oauthConfig?.preferredMethod ?? 'api_key';
 }
@@ -649,7 +650,7 @@ export function getPreferredAuthMethod(provider: string, config: MergedConfig): 
  * @param config - Merged configuration
  * @returns Authentication configuration
  */
-export function getAuthenticationConfig(provider: string, config: MergedConfig): {
+export function getAuthenticationConfig(_provider: string, _config: MergedConfig): {
   hasApiKey: boolean;
   hasOAuth: boolean;
   preferredMethod: 'oauth' | 'api_key';

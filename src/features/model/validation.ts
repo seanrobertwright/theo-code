@@ -8,8 +8,6 @@
 
 import type { ModelConfig, ModelProvider } from '../../shared/types/models.js';
 import { AdapterError } from './adapters/types.js';
-import { logger } from '../../shared/utils/index.js';
-
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -51,7 +49,7 @@ export interface ApiKeyValidationResult {
 /**
  * Validate OpenAI configuration.
  */
-function validateOpenAIConfig(config: ModelConfig): string[] {
+function validateOpenAIConfig(_config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['OPENAI_API_KEY']) {
@@ -77,14 +75,14 @@ function validateOpenAIConfig(config: ModelConfig): string[] {
 /**
  * Validate Anthropic configuration.
  */
-function validateAnthropicConfig(config: ModelConfig): string[] {
+function validateAnthropicConfig(_config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['ANTHROPIC_API_KEY']) {
     errors.push('API key is required. Set ANTHROPIC_API_KEY environment variable or provide in config.');
   }
 
-  if (config.apiKey && !config.apiKey.startsWith('sk-ant-')) {
+  if (config.apiKey && !config.apiKey.startsWith('sk-ant-') {
     errors.push('Anthropic API key should start with "sk-ant-"');
   }
 
@@ -94,7 +92,7 @@ function validateAnthropicConfig(config: ModelConfig): string[] {
     'claude-3-haiku-20240307'
   ];
   
-  if (!validModels.includes(config.model)) {
+  if (!validModels.includes(config.model) {
     errors.push(`Unsupported Anthropic model: ${config.model}. Supported: ${validModels.join(', ')}`);
   }
 
@@ -112,7 +110,7 @@ function validateAnthropicConfig(config: ModelConfig): string[] {
 /**
  * Validate Google configuration.
  */
-function validateGoogleConfig(config: ModelConfig): string[] {
+function validateGoogleConfig(_config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['GOOGLE_API_KEY']) {
@@ -129,7 +127,7 @@ function validateGoogleConfig(config: ModelConfig): string[] {
     'gemini-1.5-flash'
   ];
   
-  if (!validModels.includes(config.model)) {
+  if (!validModels.includes(config.model) {
     errors.push(`Unsupported Google model: ${config.model}. Supported: ${validModels.join(', ')}`);
   }
 
@@ -155,14 +153,14 @@ function validateGoogleConfig(config: ModelConfig): string[] {
 /**
  * Validate OpenRouter configuration.
  */
-function validateOpenRouterConfig(config: ModelConfig): string[] {
+function validateOpenRouterConfig(_config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['OPENROUTER_API_KEY']) {
     errors.push('API key is required. Set OPENROUTER_API_KEY environment variable or provide in config.');
   }
 
-  if (config.apiKey && !config.apiKey.startsWith('sk-or-')) {
+  if (config.apiKey && !config.apiKey.startsWith('sk-or-') {
     errors.push('OpenRouter API key should start with "sk-or-"');
   }
 
@@ -175,7 +173,7 @@ function validateOpenRouterConfig(config: ModelConfig): string[] {
 /**
  * Validate Cohere configuration.
  */
-function validateCohereConfig(config: ModelConfig): string[] {
+function validateCohereConfig(_config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['COHERE_API_KEY']) {
@@ -194,7 +192,7 @@ function validateCohereConfig(config: ModelConfig): string[] {
 /**
  * Validate Mistral configuration.
  */
-function validateMistralConfig(config: ModelConfig): string[] {
+function validateMistralConfig(_config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['MISTRAL_API_KEY']) {
@@ -213,7 +211,7 @@ function validateMistralConfig(config: ModelConfig): string[] {
 /**
  * Validate Together configuration.
  */
-function validateTogetherConfig(config: ModelConfig): string[] {
+function validateTogetherConfig(_config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['TOGETHER_API_KEY']) {
@@ -228,7 +226,7 @@ function validateTogetherConfig(config: ModelConfig): string[] {
 /**
  * Validate Perplexity configuration.
  */
-function validatePerplexityConfig(config: ModelConfig): string[] {
+function validatePerplexityConfig(_config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['PERPLEXITY_API_KEY']) {
@@ -247,7 +245,7 @@ function validatePerplexityConfig(config: ModelConfig): string[] {
 /**
  * Validate Ollama configuration.
  */
-function validateOllamaConfig(config: ModelConfig): string[] {
+function validateOllamaConfig(_config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.baseUrl) {
@@ -284,22 +282,22 @@ function validateOllamaConfig(config: ModelConfig): string[] {
 /**
  * Provider-specific validation functions.
  */
-const PROVIDER_VALIDATORS: Record<ModelProvider, (config: ModelConfig) => string[]> = {
-  openai: validateOpenAIConfig,
-  anthropic: validateAnthropicConfig,
-  google: validateGoogleConfig,
-  openrouter: validateOpenRouterConfig,
-  cohere: validateCohereConfig,
-  mistral: validateMistralConfig,
-  together: validateTogetherConfig,
-  perplexity: validatePerplexityConfig,
-  ollama: validateOllamaConfig,
+const PROVIDER_VALIDATORS: Record<ModelProvider, (_config: ModelConfig) => string[]> = {
+  _openai: validateOpenAIConfig,
+  _anthropic: validateAnthropicConfig,
+  _google: validateGoogleConfig,
+  _openrouter: validateOpenRouterConfig,
+  _cohere: validateCohereConfig,
+  _mistral: validateMistralConfig,
+  _together: validateTogetherConfig,
+  _perplexity: validatePerplexityConfig,
+  _ollama: validateOllamaConfig,
 };
 
 /**
  * Validate a provider configuration.
  */
-export function validateProviderConfig(config: ModelConfig): ValidationResult {
+export function validateProviderConfig(_config: ModelConfig): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -308,7 +306,9 @@ export function validateProviderConfig(config: ModelConfig): ValidationResult {
     errors.push('Provider is required');
   }
 
-  if (!config.model || config.model.trim() === '') {
+  if (!config.model || config.model.trim() {
+    === '') {
+  }
     errors.push('Model is required');
   }
 
@@ -389,12 +389,12 @@ export function validateProviderConfigs(configs: ModelConfig[]): ValidationResul
 /**
  * Validate API key format for a provider.
  */
-export function validateApiKey(provider: ModelProvider, apiKey: string): ApiKeyValidationResult {
+export function validateApiKey(_provider: ModelProvider, _apiKey: string): ApiKeyValidationResult {
   const result: ApiKeyValidationResult = {
     provider,
-    valid: false,
-    error: null,
-    hasPermissions: false, // TODO: Implement permission checking
+    _valid: false,
+    _error: null,
+    _hasPermissions: false, // TODO: Implement permission checking
   };
 
   try {
@@ -458,12 +458,12 @@ export function validateApiKey(provider: ModelProvider, apiKey: string): ApiKeyV
 /**
  * Test connectivity to a provider.
  */
-export async function testProviderConnectivity(config: ModelConfig): Promise<ConnectivityResult> {
+export async function testProviderConnectivity(_config: ModelConfig): Promise<ConnectivityResult> {
   const result: ConnectivityResult = {
     provider: config.provider,
-    connected: false,
-    responseTimeMs: null,
-    error: null,
+    _connected: false,
+    _responseTimeMs: null,
+    _error: null,
   };
 
   const startTime = Date.now();
@@ -512,9 +512,9 @@ export async function testMultipleProviderConnectivity(configs: ModelConfig[]): 
  * Create a configuration validation utilities object.
  */
 export const configValidation = {
-  validateConfig: validateProviderConfig,
-  validateConfigs: validateProviderConfigs,
+  _validateConfig: validateProviderConfig,
+  _validateConfigs: validateProviderConfigs,
   validateApiKey,
-  testConnectivity: testProviderConnectivity,
-  testMultipleConnectivity: testMultipleProviderConnectivity,
+  _testConnectivity: testProviderConnectivity,
+  _testMultipleConnectivity: testMultipleProviderConnectivity,
 } as const;

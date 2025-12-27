@@ -29,82 +29,82 @@ const providerArb = fc.constantFrom(
   'together',
   'perplexity',
   'ollama'
-) as fc.Arbitrary<ModelProvider>;
+);
 
 /**
  * Generate rate limit configuration with specific types.
  */
 const requestRateLimitArb = fc.record({
-  requestsPerMinute: fc.integer({ min: 1, max: 100 }),
+  requestsPerMinute: fc.integer({ _min: 1, _max: 100 }),
   tokensPerMinute: fc.constant(undefined),
   concurrentRequests: fc.constant(undefined),
 }) as fc.Arbitrary<RateLimitConfig>;
 
 const tokenRateLimitArb = fc.record({
   requestsPerMinute: fc.constant(undefined),
-  tokensPerMinute: fc.integer({ min: 100, max: 1000 }),
+  tokensPerMinute: fc.integer({ _min: 100, _max: 1000 }),
   concurrentRequests: fc.constant(undefined),
 }) as fc.Arbitrary<RateLimitConfig>;
 
 const concurrentRateLimitArb = fc.record({
   requestsPerMinute: fc.constant(undefined),
   tokensPerMinute: fc.constant(undefined),
-  concurrentRequests: fc.integer({ min: 1, max: 10 }),
+  concurrentRequests: fc.integer({ _min: 1, _max: 10 }),
 }) as fc.Arbitrary<RateLimitConfig>;
 
 /**
  * Generate a valid ModelConfig with request rate limits.
  */
 const modelConfigWithRequestRateLimitArb = fc.record({
-  provider: providerArb,
-  model: fc.string({ minLength: 3 }),
-  apiKey: fc.option(fc.string({ minLength: 10 })),
+  _provider: providerArb,
+  model: fc.string({ _minLength: 3 }),
+  apiKey: fc.option(fc.string({ _minLength: 10 })),
   baseUrl: fc.option(fc.webUrl()),
-  contextLimit: fc.integer({ min: 1000, max: 200000 }),
-  maxOutputTokens: fc.integer({ min: 100, max: 8192 }),
-  priority: fc.integer({ min: 0, max: 100 }),
+  contextLimit: fc.integer({ _min: 1000, _max: 200000 }),
+  maxOutputTokens: fc.integer({ _min: 100, _max: 8192 }),
+  priority: fc.integer({ _min: 0, _max: 100 }),
   enabled: fc.constant(true),
-  rateLimit: requestRateLimitArb,
+  _rateLimit: requestRateLimitArb,
 }) as fc.Arbitrary<ModelConfig>;
 
 /**
  * Generate a valid ModelConfig with token rate limits.
  */
 const modelConfigWithTokenRateLimitArb = fc.record({
-  provider: providerArb,
-  model: fc.string({ minLength: 3 }),
-  apiKey: fc.option(fc.string({ minLength: 10 })),
+  _provider: providerArb,
+  model: fc.string({ _minLength: 3 }),
+  apiKey: fc.option(fc.string({ _minLength: 10 })),
   baseUrl: fc.option(fc.webUrl()),
-  contextLimit: fc.integer({ min: 1000, max: 200000 }),
-  maxOutputTokens: fc.integer({ min: 100, max: 8192 }),
-  priority: fc.integer({ min: 0, max: 100 }),
+  contextLimit: fc.integer({ _min: 1000, _max: 200000 }),
+  maxOutputTokens: fc.integer({ _min: 100, _max: 8192 }),
+  priority: fc.integer({ _min: 0, _max: 100 }),
   enabled: fc.constant(true),
-  rateLimit: tokenRateLimitArb,
+  _rateLimit: tokenRateLimitArb,
 }) as fc.Arbitrary<ModelConfig>;
 
 /**
  * Generate a valid ModelConfig with concurrent request limits.
  */
 const modelConfigWithConcurrentRateLimitArb = fc.record({
-  provider: providerArb,
-  model: fc.string({ minLength: 3 }),
-  apiKey: fc.option(fc.string({ minLength: 10 })),
+  _provider: providerArb,
+  model: fc.string({ _minLength: 3 }),
+  apiKey: fc.option(fc.string({ _minLength: 10 })),
   baseUrl: fc.option(fc.webUrl()),
-  contextLimit: fc.integer({ min: 1000, max: 200000 }),
-  maxOutputTokens: fc.integer({ min: 100, max: 8192 }),
-  priority: fc.integer({ min: 0, max: 100 }),
+  contextLimit: fc.integer({ _min: 1000, _max: 200000 }),
+  maxOutputTokens: fc.integer({ _min: 100, _max: 8192 }),
+  priority: fc.integer({ _min: 0, _max: 100 }),
   enabled: fc.constant(true),
-  rateLimit: concurrentRateLimitArb,
+  _rateLimit: concurrentRateLimitArb,
 }) as fc.Arbitrary<ModelConfig>;
 
 /**
  * Generate request patterns for testing rate limits.
  */
 const requestPatternArb = fc.record({
-  requestCount: fc.integer({ min: 1, max: 100 }),
-  tokenCount: fc.integer({ min: 10, max: 10000 }),
-  concurrentRequests: fc.integer({ min: 1, max: 20 }),
-  timeSpanMs: fc.integer({ min: 1000, max: 120000 }), // 1 second to 2 minutes
+  requestCount: fc.integer({ _min: 1, _max: 100 }),
+  tokenCount: fc.integer({ _min: 10, _max: 10000 }),
+  concurrentRequests: fc.integer({ _min: 1, _max: 20 }),
+  timeSpanMs: fc.integer({ _min: 1000, _max: 120000 }), // 1 second to 2 minutes
 });
 
 // =============================================================================
@@ -114,7 +114,7 @@ const requestPatternArb = fc.record({
 /**
  * Simulate time passage for testing.
  */
-const advanceTime = (ms: number): void => {
+const advanceTime = (_ms: number): void => {
   vi.advanceTimersByTime(ms);
 };
 
@@ -127,7 +127,7 @@ describe('Rate Limit Compliance Properties', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    manager = new ProviderManager({ enableHealthChecking: false });
+    manager = new ProviderManager({ _enableHealthChecking: false });
   });
 
   afterEach(() => {
@@ -139,7 +139,7 @@ describe('Rate Limit Compliance Properties', () => {
     fc.assert(
       fc.property(
         modelConfigWithRequestRateLimitArb,
-        fc.integer({ min: 2, max: 50 }), // Number of requests to make
+        fc.integer({ _min: 2, _max: 50 }), // Number of requests to make
         (config, requestCount) => {
           const rateLimit = config.rateLimit!.requestsPerMinute!;
           
@@ -149,7 +149,7 @@ describe('Rate Limit Compliance Properties', () => {
           }
 
           // Setup fresh manager for each test
-          const testManager = new ProviderManager({ enableHealthChecking: false });
+          const testManager = new ProviderManager({ _enableHealthChecking: false });
           testManager.registerProvider(config);
 
           // Test: Check rate limiting directly using private method
@@ -159,7 +159,7 @@ describe('Rate Limit Compliance Properties', () => {
           for (let i = 0; i < requestCount; i++) {
             // Access private method for testing with proper binding
             const checkRateLimit = (testManager as any).checkRateLimit.bind(testManager);
-            if (checkRateLimit && checkRateLimit(config.provider)) {
+            if (checkRateLimit?.(config.provider)) {
               // Update rate limit state to simulate successful request
               const updateRateLimit = (testManager as any).updateRateLimit.bind(testManager);
               if (updateRateLimit) {
@@ -183,7 +183,7 @@ describe('Rate Limit Compliance Properties', () => {
           return withinLimit && hasRateLimiting;
         }
       ),
-      { numRuns: 30 }
+      { _numRuns: 30 }
     );
   });
 
@@ -191,7 +191,7 @@ describe('Rate Limit Compliance Properties', () => {
     fc.assert(
       fc.property(
         modelConfigWithTokenRateLimitArb,
-        fc.array(fc.integer({ min: 10, max: 200 }), { minLength: 1, maxLength: 10 }), // Token counts per request
+        fc.array(fc.integer({ _min: 10, _max: 200 }), { _minLength: 1, _maxLength: 10 }), // Token counts per request
         (config, tokenCounts) => {
           const tokenRateLimit = config.rateLimit!.tokensPerMinute!;
           const totalTokens = tokenCounts.reduce((sum, tokens) => sum + tokens, 0);
@@ -202,7 +202,7 @@ describe('Rate Limit Compliance Properties', () => {
           }
 
           // Setup fresh manager for each test
-          const testManager = new ProviderManager({ enableHealthChecking: false });
+          const testManager = new ProviderManager({ _enableHealthChecking: false });
           testManager.registerProvider(config);
 
           // Test: Check rate limiting by simulating the proper flow
@@ -240,7 +240,7 @@ describe('Rate Limit Compliance Properties', () => {
           return withinLimit && hasRateLimiting;
         }
       ),
-      { numRuns: 30 }
+      { _numRuns: 30 }
     );
   });
 
@@ -248,9 +248,9 @@ describe('Rate Limit Compliance Properties', () => {
     fc.assert(
       fc.property(
         modelConfigWithConcurrentRateLimitArb,
-        fc.integer({ min: 2, max: 20 }), // Number of concurrent requests
+        fc.integer({ _min: 2, _max: 20 }), // Number of concurrent requests
         (config, concurrentCount) => {
-          const concurrentLimit = config.rateLimit!.concurrentRequests!;
+          const concurrentLimit = config.rateLimit!.concurrentRequests;
           
           // Skip if concurrent count is within limit (no violation expected)
           if (concurrentCount <= concurrentLimit) {
@@ -258,7 +258,7 @@ describe('Rate Limit Compliance Properties', () => {
           }
 
           // Setup fresh manager for each test
-          const testManager = new ProviderManager({ enableHealthChecking: false });
+          const testManager = new ProviderManager({ _enableHealthChecking: false });
           testManager.registerProvider(config);
 
           // Test: Start concurrent requests and verify limiting
@@ -269,7 +269,7 @@ describe('Rate Limit Compliance Properties', () => {
           for (let i = 0; i < concurrentCount; i++) {
             // Access private method for testing with proper binding
             const checkRateLimit = (testManager as any).checkRateLimit.bind(testManager);
-            if (checkRateLimit && checkRateLimit(config.provider)) {
+            if (checkRateLimit?.(config.provider)) {
               // Track request start
               testManager.trackRequestStart(config.provider);
               successfulStarts++;
@@ -293,7 +293,7 @@ describe('Rate Limit Compliance Properties', () => {
           return withinLimit && hasRateLimiting;
         }
       ),
-      { numRuns: 30 }
+      { _numRuns: 30 }
     );
   });
 
@@ -301,20 +301,20 @@ describe('Rate Limit Compliance Properties', () => {
     fc.assert(
       fc.property(
         modelConfigWithRequestRateLimitArb,
-        fc.integer({ min: 2, max: 10 }), // Requests in first window
-        fc.integer({ min: 2, max: 10 }), // Requests in second window
+        fc.integer({ _min: 2, _max: 10 }), // Requests in first window
+        fc.integer({ _min: 2, _max: 10 }), // Requests in second window
         (config, firstWindowRequests, secondWindowRequests) => {
           const rateLimit = config.rateLimit!.requestsPerMinute!;
           
           // Setup fresh manager for each test
-          const testManager = new ProviderManager({ enableHealthChecking: false });
+          const testManager = new ProviderManager({ _enableHealthChecking: false });
           testManager.registerProvider(config);
 
           // Test: Make requests in first window
           let firstWindowSuccessful = 0;
           for (let i = 0; i < Math.min(firstWindowRequests, rateLimit); i++) {
             const checkRateLimit = (testManager as any).checkRateLimit.bind(testManager);
-            if (checkRateLimit && checkRateLimit(config.provider)) {
+            if (checkRateLimit?.(config.provider)) {
               const updateRateLimit = (testManager as any).updateRateLimit.bind(testManager);
               if (updateRateLimit) {
                 updateRateLimit(config.provider, 'request', 1);
@@ -332,7 +332,7 @@ describe('Rate Limit Compliance Properties', () => {
           let secondWindowSuccessful = 0;
           for (let i = 0; i < Math.min(secondWindowRequests, rateLimit); i++) {
             const checkRateLimit = (testManager as any).checkRateLimit.bind(testManager);
-            if (checkRateLimit && checkRateLimit(config.provider)) {
+            if (checkRateLimit?.(config.provider)) {
               const updateRateLimit = (testManager as any).updateRateLimit.bind(testManager);
               if (updateRateLimit) {
                 updateRateLimit(config.provider, 'request', 1);
@@ -357,15 +357,15 @@ describe('Rate Limit Compliance Properties', () => {
           return firstWindowValid && secondWindowValid && firstWindowComplete && secondWindowComplete;
         }
       ),
-      { numRuns: 30 }
+      { _numRuns: 30 }
     );
   });
 
   it('Property: Multiple providers have independent rate limits', () => {
     fc.assert(
       fc.property(
-        fc.array(modelConfigWithRequestRateLimitArb, { minLength: 2, maxLength: 4 }),
-        fc.integer({ min: 2, max: 20 }), // Requests per provider
+        fc.array(modelConfigWithRequestRateLimitArb, { _minLength: 2, _maxLength: 4 }),
+        fc.integer({ _min: 2, _max: 20 }), // Requests per provider
         (configs, requestsPerProvider) => {
           // Ensure unique providers and all have rate limits
           const uniqueConfigs = configs
@@ -382,7 +382,7 @@ describe('Rate Limit Compliance Properties', () => {
           }
 
           // Setup: Register all providers
-          const testManager = new ProviderManager({ enableHealthChecking: false });
+          const testManager = new ProviderManager({ _enableHealthChecking: false });
           for (const config of uniqueConfigArray) {
             testManager.registerProvider(config);
           }
@@ -396,7 +396,7 @@ describe('Rate Limit Compliance Properties', () => {
 
             for (let i = 0; i < Math.min(requestsPerProvider, rateLimit); i++) {
               const checkRateLimit = (testManager as any).checkRateLimit.bind(testManager);
-              if (checkRateLimit && checkRateLimit(config.provider)) {
+              if (checkRateLimit?.(config.provider)) {
                 const updateRateLimit = (testManager as any).updateRateLimit.bind(testManager);
                 if (updateRateLimit) {
                   updateRateLimit(config.provider, 'request', 1);
@@ -434,7 +434,7 @@ describe('Rate Limit Compliance Properties', () => {
           return allValid;
         }
       ),
-      { numRuns: 25 }
+      { _numRuns: 25 }
     );
   });
 
@@ -445,13 +445,13 @@ describe('Rate Limit Compliance Properties', () => {
         fc.array(
           fc.record({
             operation: fc.constantFrom('request'),
-            count: fc.integer({ min: 1, max: 10 }),
+            count: fc.integer({ _min: 1, _max: 10 }),
           }),
-          { minLength: 1, maxLength: 10 }
+          { _minLength: 1, _maxLength: 10 }
         ),
         (config, operations) => {
           // Setup fresh manager for each test
-          const testManager = new ProviderManager({ enableHealthChecking: false });
+          const testManager = new ProviderManager({ _enableHealthChecking: false });
           testManager.registerProvider(config);
 
           // Test: Perform operations and track state
@@ -496,7 +496,7 @@ describe('Rate Limit Compliance Properties', () => {
           return withinLimit && rateLimitingWorked;
         }
       ),
-      { numRuns: 25 }
+      { _numRuns: 25 }
     );
   });
 });

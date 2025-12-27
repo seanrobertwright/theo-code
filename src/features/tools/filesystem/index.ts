@@ -15,8 +15,6 @@ import { join, relative, resolve, dirname } from 'node:path';
 import { glob } from 'glob';
 import type { Tool, ToolContext } from '../../../shared/types/tools.js';
 import { ToolExecutionError } from '../../../shared/types/tools.js';
-import { logger, isFile, isDirectory, isBinaryFile } from '../../../shared/utils/index.js';
-
 const DEFAULT_ENCODING = 'utf-8';
 const PATH_DESCRIPTION = 'File path relative to workspace';
 
@@ -50,7 +48,7 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
       properties: {
         path: {
           type: 'string',
-          description: PATH_DESCRIPTION,
+          _description: PATH_DESCRIPTION,
         },
         lineStart: {
           type: 'number',
@@ -64,30 +62,30 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
       required: ['path'],
     },
   },
-  inputSchema: ReadFileInputSchema,
-  outputSchema: ReadFileOutputSchema,
-  requiresConfirmation: false,
+  _inputSchema: ReadFileInputSchema,
+  _outputSchema: ReadFileOutputSchema,
+  _requiresConfirmation: false,
   category: 'filesystem',
 
-  async validate(context: ToolContext) {
+  async validate(_context: ToolContext) {
     // Basic workspace validation
-    if (!isDirectory(context.workspaceRoot)) {
+    if (!isDirectory(context.workspaceRoot) {
       return {
-        valid: false,
+        _valid: false,
         error: `Workspace root does not exist: ${context.workspaceRoot}`,
         warnings: [],
       };
     }
 
-    return { valid: true, warnings: [] };
+    return { _valid: true, warnings: [] };
   },
 
-  async execute(input: ReadFileInput, context: ToolContext): Promise<ReadFileOutput> {
+  async execute(_input: ReadFileInput, _context: ToolContext): Promise<ReadFileOutput> {
     const absolutePath = resolve(context.workspaceRoot, input.path);
     
     // Security: Ensure path is within workspace
     const relativePath = relative(context.workspaceRoot, absolutePath);
-    if (relativePath.startsWith('..')) {
+    if (relativePath.startsWith('..') {
       throw new ToolExecutionError(
         'read_file',
         `Path outside workspace not allowed: ${input.path}`
@@ -95,7 +93,7 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
     }
 
     // Check file exists and is readable
-    if (!isFile(absolutePath)) {
+    if (!isFile(absolutePath) {
       throw new ToolExecutionError(
         'read_file',
         `File not found or not readable: ${input.path}`
@@ -103,7 +101,7 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
     }
 
     // Check for binary files
-    if (isBinaryFile(absolutePath)) {
+    if (isBinaryFile(absolutePath) {
       throw new ToolExecutionError(
         'read_file',
         `Cannot read binary file: ${input.path}`
@@ -118,7 +116,7 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
       let finalContent = content;
       
       // Apply line range if specified
-      if (input.lineStart !== undefined || input.lineEnd !== undefined) {
+      if (input.lineStart !== undefined ?? input.lineEnd !== undefined) {
         const start = Math.max(1, input.lineStart ?? 1) - 1; // Convert to 0-indexed
         const end = Math.min(lines.length, input.lineEnd ?? lines.length);
         
@@ -133,11 +131,11 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
       }
 
       return {
-        content: finalContent,
+        _content: finalContent,
         path: input.path,
         size: stats.size,
         lines: lines.length,
-        encoding: DEFAULT_ENCODING,
+        _encoding: DEFAULT_ENCODING,
       };
 
     } catch (error) {
@@ -178,7 +176,7 @@ export const writeFileTool: Tool<WriteFileInput, WriteFileOutput> = {
       properties: {
         path: {
           type: 'string',
-          description: PATH_DESCRIPTION,
+          _description: PATH_DESCRIPTION,
         },
         content: {
           type: 'string',
@@ -187,35 +185,35 @@ export const writeFileTool: Tool<WriteFileInput, WriteFileOutput> = {
         createDirs: {
           type: 'boolean',
           description: 'Create parent directories if they do not exist',
-          default: true,
+          _default: true,
         },
       },
       required: ['path', 'content'],
     },
   },
-  inputSchema: WriteFileInputSchema,
-  outputSchema: WriteFileOutputSchema,
-  requiresConfirmation: true,
+  _inputSchema: WriteFileInputSchema,
+  _outputSchema: WriteFileOutputSchema,
+  _requiresConfirmation: true,
   category: 'filesystem',
 
-  async validate(context: ToolContext) {
-    if (!isDirectory(context.workspaceRoot)) {
+  async validate(_context: ToolContext) {
+    if (!isDirectory(context.workspaceRoot) {
       return {
-        valid: false,
+        _valid: false,
         error: `Workspace root does not exist: ${context.workspaceRoot}`,
         warnings: [],
       };
     }
 
-    return { valid: true, warnings: [] };
+    return { _valid: true, warnings: [] };
   },
 
-  async execute(input: WriteFileInput, context: ToolContext): Promise<WriteFileOutput> {
+  async execute(_input: WriteFileInput, _context: ToolContext): Promise<WriteFileOutput> {
     const absolutePath = resolve(context.workspaceRoot, input.path);
     
     // Security: Ensure path is within workspace
     const relativePath = relative(context.workspaceRoot, absolutePath);
-    if (relativePath.startsWith('..')) {
+    if (relativePath.startsWith('..') {
       throw new ToolExecutionError(
         'write_file',
         `Path outside workspace not allowed: ${input.path}`
@@ -227,8 +225,8 @@ export const writeFileTool: Tool<WriteFileInput, WriteFileOutput> = {
 
     try {
       // Create parent directories if needed
-      if (input.createDirs && !isDirectory(dirPath)) {
-        await mkdir(dirPath, { recursive: true });
+      if (input.createDirs && !isDirectory(dirPath) {
+        await mkdir(dirPath, { _recursive: true });
         logger.debug(`Created directory: ${relative(context.workspaceRoot, dirPath)}`);
       }
 
@@ -296,7 +294,7 @@ export const listFilesTool: Tool<ListFilesInput, ListFilesOutput> = {
         recursive: {
           type: 'boolean',
           description: 'Include subdirectories recursively',
-          default: false,
+          _default: false,
         },
         pattern: {
           type: 'string',
@@ -305,30 +303,30 @@ export const listFilesTool: Tool<ListFilesInput, ListFilesOutput> = {
         includeHidden: {
           type: 'boolean',
           description: 'Include hidden files and directories',
-          default: false,
+          _default: false,
         },
       },
       required: [],
     },
   },
-  inputSchema: ListFilesInputSchema,
-  outputSchema: ListFilesOutputSchema,
-  requiresConfirmation: false,
+  _inputSchema: ListFilesInputSchema,
+  _outputSchema: ListFilesOutputSchema,
+  _requiresConfirmation: false,
   category: 'filesystem',
 
-  async execute(input: ListFilesInput, context: ToolContext): Promise<ListFilesOutput> {
+  async execute(_input: ListFilesInput, _context: ToolContext): Promise<ListFilesOutput> {
     const absolutePath = resolve(context.workspaceRoot, input.path);
     
     // Security check
     const relativePath = relative(context.workspaceRoot, absolutePath);
-    if (relativePath.startsWith('..')) {
+    if (relativePath.startsWith('..') {
       throw new ToolExecutionError(
         'list_files',
         `Path outside workspace not allowed: ${input.path}`
       );
     }
 
-    if (!isDirectory(absolutePath)) {
+    if (!isDirectory(absolutePath) {
       throw new ToolExecutionError(
         'list_files',
         `Directory not found: ${input.path}`
@@ -343,7 +341,7 @@ export const listFilesTool: Tool<ListFilesInput, ListFilesOutput> = {
       const globOptions = {
         cwd: context.workspaceRoot,
         dot: input.includeHidden,
-        absolute: false,
+        _absolute: false,
       };
 
       const matches = await glob(searchPattern, globOptions);
@@ -389,13 +387,13 @@ export const listFilesTool: Tool<ListFilesInput, ListFilesOutput> = {
 
 type FileEntry = z.infer<typeof FileEntrySchema>;
 
-async function createFileEntry(context: ToolContext, match: string): Promise<FileEntry | null> {
+async function createFileEntry(_context: ToolContext, _match: string): Promise<FileEntry | null> {
   const fullPath = resolve(context.workspaceRoot, match);
   try {
     const stats = await stat(fullPath);
     return {
       name: match.split('/').pop() ?? match,
-      path: match,
+      _path: match,
       type: stats.isDirectory() ? 'directory' : 'file',
       size: stats.isFile() ? stats.size : undefined,
       modified: stats.mtime.toISOString(),
@@ -461,28 +459,28 @@ export const grepSearchTool: Tool<GrepSearchInput, GrepSearchOutput> = {
         caseSensitive: {
           type: 'boolean',
           description: 'Perform case-sensitive search',
-          default: false,
+          _default: false,
         },
         maxResults: {
           type: 'number',
           description: 'Maximum number of matches to return',
-          default: 100,
+          _default: 100,
         },
       },
       required: ['pattern'],
     },
   },
-  inputSchema: GrepSearchInputSchema,
-  outputSchema: GrepSearchOutputSchema,
-  requiresConfirmation: false,
+  _inputSchema: GrepSearchInputSchema,
+  _outputSchema: GrepSearchOutputSchema,
+  _requiresConfirmation: false,
   category: 'search',
 
-  async execute(input: GrepSearchInput, context: ToolContext): Promise<GrepSearchOutput> {
+  async execute(_input: GrepSearchInput, _context: ToolContext): Promise<GrepSearchOutput> {
     const absolutePath = resolve(context.workspaceRoot, input.path);
     
     // Security check
     const relativePath = relative(context.workspaceRoot, absolutePath);
-    if (relativePath.startsWith('..')) {
+    if (relativePath.startsWith('..') {
       throw new ToolExecutionError(
         'grep_search',
         `Path outside workspace not allowed: ${input.path}`
@@ -502,8 +500,8 @@ export const grepSearchTool: Tool<GrepSearchInput, GrepSearchOutput> = {
 
       const files = await glob(fileGlob, {
         cwd: context.workspaceRoot,
-        dot: false,
-        absolute: false,
+        _dot: false,
+        _absolute: false,
       });
 
       const allMatches: SearchMatch[] = [];
@@ -522,7 +520,7 @@ export const grepSearchTool: Tool<GrepSearchInput, GrepSearchOutput> = {
       }
 
       return {
-        matches: allMatches,
+        _matches: allMatches,
         totalMatches: allMatches.length,
         searchedFiles,
         pattern: input.pattern,
@@ -541,15 +539,17 @@ export const grepSearchTool: Tool<GrepSearchInput, GrepSearchOutput> = {
 type SearchMatch = z.infer<typeof SearchMatchSchema>;
 
 async function searchFile(
-  file: string,
-  regex: RegExp,
-  maxLimit: number,
-  context: ToolContext
+  _file: string,
+  _regex: RegExp,
+  _maxLimit: number,
+  _context: ToolContext
 ): Promise<SearchMatch[]> {
   const fullPath = resolve(context.workspaceRoot, file);
   
   // Skip directories and binary files
-  if (!isFile(fullPath) || isBinaryFile(fullPath)) {
+  if (!isFile(fullPath) {
+    || isBinaryFile(fullPath)) {
+  }
     return [];
   }
 
@@ -571,7 +571,7 @@ async function searchFile(
           file,
           line: i + 1,
           column: match.index + 1,
-          content: line,
+          _content: line,
         });
       }
       

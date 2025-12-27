@@ -29,8 +29,8 @@ const jsonSchemaTypeArb = fc.constantFrom(
  * Generate simple JSON schema properties.
  */
 const simpleJsonSchemaPropertyArb = fc.record({
-  type: jsonSchemaTypeArb,
-  description: fc.option(fc.string({ minLength: 1, maxLength: 50 }), { nil: undefined }),
+  _type: jsonSchemaTypeArb,
+  description: fc.option(fc.string({ _minLength: 1, _maxLength: 50 }), { _nil: undefined }),
 });
 
 /**
@@ -39,22 +39,22 @@ const simpleJsonSchemaPropertyArb = fc.record({
 const parameterSchemaArb = fc.record({
   type: fc.constant('object' as const),
   properties: fc.dictionary(
-    fc.string({ minLength: 1, maxLength: 20 }).filter(s => /^[a-zA-Z][a-zA-Z0-9_]*$/.test(s)),
+    fc.string({ _minLength: 1, _maxLength: 20 }).filter(s => /^[a-zA-Z][a-zA-Z0-9_]*$/.test(s)),
     simpleJsonSchemaPropertyArb,
-    { minKeys: 1, maxKeys: 5 }
+    { _minKeys: 1, _maxKeys: 5 }
   ),
-  required: fc.option(fc.array(fc.string({ minLength: 1, maxLength: 20 }).filter(s => /^[a-zA-Z][a-zA-Z0-9_]*$/.test(s)), { maxLength: 2 }), { nil: undefined }),
+  required: fc.option(fc.array(fc.string({ _minLength: 1, _maxLength: 20 }).filter(s => /^[a-zA-Z][a-zA-Z0-9_]*$/.test(s)), { _maxLength: 2 }), { _nil: undefined }),
 });
 
 /**
  * Generate valid universal tool definitions.
  */
 const universalToolDefinitionArb: fc.Arbitrary<UniversalToolDefinition> = fc.record({
-  name: fc.string({ minLength: 1, maxLength: 30 }).filter(name => 
+  name: fc.string({ _minLength: 1, _maxLength: 30 }).filter(name => 
     /^[a-zA-Z][a-zA-Z0-9_]*$/.test(name) // Valid function name pattern
   ),
-  description: fc.string({ minLength: 1, maxLength: 100 }),
-  parameters: parameterSchemaArb,
+  description: fc.string({ _minLength: 1, _maxLength: 100 }),
+  _parameters: parameterSchemaArb,
 });
 
 // =============================================================================
@@ -72,7 +72,7 @@ function convertToolsToAnthropic(tools: UniversalToolDefinition[]): Tool[] {
       throw new Error(`Invalid tool definition: name and description are required for tool: ${tool.name}`);
     }
 
-    if (!tool.parameters || !tool.parameters.properties) {
+    if (!tool.parameters?.properties) {
       throw new Error(`Invalid tool definition: parameters.properties is required for tool: ${tool.name}`);
     }
 
@@ -111,7 +111,7 @@ describe('Anthropic Tool Conversion Properties', () => {
   it('**Feature: multi-provider-support, Property 2: Tool definition conversion accuracy**', () => {
     fc.assert(
       fc.property(
-        fc.array(universalToolDefinitionArb, { minLength: 1, maxLength: 3 }),
+        fc.array(universalToolDefinitionArb, { _minLength: 1, _maxLength: 3 }),
         (universalTools) => {
           // Convert to Anthropic format
           const anthropicTools = convertToolsToAnthropic(universalTools);
@@ -135,14 +135,14 @@ describe('Anthropic Tool Conversion Properties', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
   it('Property: Tool conversion round-trip preserves functionality', () => {
     fc.assert(
       fc.property(
-        fc.array(universalToolDefinitionArb, { minLength: 1, maxLength: 2 }),
+        fc.array(universalToolDefinitionArb, { _minLength: 1, _maxLength: 2 }),
         (originalTools) => {
           // Round-trip conversion
           const anthropicTools = convertToolsToAnthropic(originalTools);
@@ -167,14 +167,14 @@ describe('Anthropic Tool Conversion Properties', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
   it('Property: Tool names remain valid identifiers after conversion', () => {
     fc.assert(
       fc.property(
-        fc.array(universalToolDefinitionArb, { minLength: 1, maxLength: 3 }),
+        fc.array(universalToolDefinitionArb, { _minLength: 1, _maxLength: 3 }),
         (universalTools) => {
           const anthropicTools = convertToolsToAnthropic(universalTools);
           
@@ -186,14 +186,14 @@ describe('Anthropic Tool Conversion Properties', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
   it('Property: Tool descriptions are preserved and non-empty', () => {
     fc.assert(
       fc.property(
-        fc.array(universalToolDefinitionArb, { minLength: 1, maxLength: 3 }),
+        fc.array(universalToolDefinitionArb, { _minLength: 1, _maxLength: 3 }),
         (universalTools) => {
           const anthropicTools = convertToolsToAnthropic(universalTools);
           
@@ -207,14 +207,14 @@ describe('Anthropic Tool Conversion Properties', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
   it('Property: Parameter schemas maintain JSON Schema validity', () => {
     fc.assert(
       fc.property(
-        fc.array(universalToolDefinitionArb, { minLength: 1, maxLength: 3 }),
+        fc.array(universalToolDefinitionArb, { _minLength: 1, _maxLength: 3 }),
         (universalTools) => {
           const anthropicTools = convertToolsToAnthropic(universalTools);
           
@@ -229,7 +229,7 @@ describe('Anthropic Tool Conversion Properties', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
@@ -257,7 +257,7 @@ describe('Anthropic Tool Conversion Properties', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 });

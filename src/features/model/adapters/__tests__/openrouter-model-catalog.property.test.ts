@@ -40,9 +40,9 @@ describe('OpenRouter Model Catalog Property Tests', () => {
           fc.array(
             fc.record({
               id: fc.stringMatching(/^[a-zA-Z0-9\-_\/]+$/),
-              name: fc.string({ minLength: 5, maxLength: 50 }),
-              description: fc.option(fc.string({ minLength: 10, maxLength: 200 })),
-              context_length: fc.integer({ min: 1024, max: 200000 }),
+              name: fc.string({ _minLength: 5, _maxLength: 50 }),
+              description: fc.option(fc.string({ _minLength: 10, _maxLength: 200 })),
+              context_length: fc.integer({ _min: 1024, _max: 200000 }),
               pricing: fc.record({
                 prompt: fc.float({ min: Math.fround(0.0001), max: Math.fround(0.1) })
                   .filter(n => !isNaN(n) && isFinite(n))
@@ -52,15 +52,15 @@ describe('OpenRouter Model Catalog Property Tests', () => {
                   .map(n => n.toString()),
               }),
               top_provider: fc.record({
-                context_length: fc.integer({ min: 1024, max: 200000 }),
-                max_completion_tokens: fc.option(fc.integer({ min: 1024, max: 8192 })),
+                context_length: fc.integer({ _min: 1024, _max: 200000 }),
+                max_completion_tokens: fc.option(fc.integer({ _min: 1024, _max: 8192 })),
               }),
               per_request_limits: fc.option(fc.record({
-                prompt_tokens: fc.integer({ min: 1000, max: 100000 }).map(n => n.toString()),
-                completion_tokens: fc.integer({ min: 1000, max: 8192 }).map(n => n.toString()),
+                prompt_tokens: fc.integer({ _min: 1000, _max: 100000 }).map(n => n.toString()),
+                completion_tokens: fc.integer({ _min: 1000, _max: 8192 }).map(n => n.toString()),
               })),
             }),
-            { minLength: 1, maxLength: 10 }
+            { _minLength: 1, _maxLength: 10 }
           ),
           (models: MockOpenRouterModel[]) => {
             try {
@@ -111,7 +111,7 @@ describe('OpenRouter Model Catalog Property Tests', () => {
             }
           }
         ),
-        { numRuns: 100 }
+        { _numRuns: 100 }
       );
     });
 
@@ -122,8 +122,8 @@ describe('OpenRouter Model Catalog Property Tests', () => {
           fc.record({
             modelId: fc.stringMatching(/^[a-zA-Z0-9\-_\/]+$/),
             supportsStreaming: fc.boolean(),
-            contextLength: fc.integer({ min: 1024, max: 200000 }),
-            maxOutputTokens: fc.option(fc.integer({ min: 256, max: 8192 })),
+            contextLength: fc.integer({ _min: 1024, _max: 200000 }),
+            maxOutputTokens: fc.option(fc.integer({ _min: 256, _max: 8192 })),
           }),
           (modelConfig) => {
             try {
@@ -158,7 +158,7 @@ describe('OpenRouter Model Catalog Property Tests', () => {
             }
           }
         ),
-        { numRuns: 100 }
+        { _numRuns: 100 }
       );
     });
 
@@ -168,9 +168,9 @@ describe('OpenRouter Model Catalog Property Tests', () => {
           // Generate adapter configurations
           fc.record({
             model: fc.stringMatching(/^[a-zA-Z0-9\-_\/]+$/),
-            apiKey: fc.string({ minLength: 20, maxLength: 100 }),
+            apiKey: fc.string({ _minLength: 20, _maxLength: 100 }),
             baseUrl: fc.option(fc.webUrl()),
-            contextLimit: fc.option(fc.integer({ min: 1024, max: 200000 })),
+            contextLimit: fc.option(fc.integer({ _min: 1024, _max: 200000 })),
           }),
           (config) => {
             try {
@@ -218,7 +218,7 @@ describe('OpenRouter Model Catalog Property Tests', () => {
             }
           }
         ),
-        { numRuns: 100 }
+        { _numRuns: 100 }
       );
     });
 
@@ -232,8 +232,8 @@ describe('OpenRouter Model Catalog Property Tests', () => {
               supportsToolCalling: fc.boolean(),
               supportsStreaming: fc.boolean(),
               supportsMultimodal: fc.boolean(),
-              maxContextLength: fc.integer({ min: 1024, max: 200000 }),
-              maxOutputTokens: fc.integer({ min: 256, max: 8192 }),
+              maxContextLength: fc.integer({ _min: 1024, _max: 200000 }),
+              maxOutputTokens: fc.integer({ _min: 256, _max: 8192 }),
             }),
             pricing: fc.record({
               inputCostPer1k: fc.float({ min: Math.fround(0.0001), max: Math.fround(0.1) })
@@ -277,8 +277,8 @@ describe('OpenRouter Model Catalog Property Tests', () => {
               // 6. OpenRouter-specific feature mapping
               // OpenRouter provides a unified interface, so most features should be available
               const expectedUnifiedSupport = {
-                streaming: true, // OpenRouter supports streaming for most models
-                toolCalling: true, // Most modern models support this
+                _streaming: true, // OpenRouter supports streaming for most models
+                _toolCalling: true, // Most modern models support this
               };
               
               expect(typeof expectedUnifiedSupport.streaming).toBe('boolean');
@@ -291,7 +291,7 @@ describe('OpenRouter Model Catalog Property Tests', () => {
             }
           }
         ),
-        { numRuns: 100 }
+        { _numRuns: 100 }
       );
     });
   });

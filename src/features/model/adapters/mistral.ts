@@ -22,8 +22,6 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
-import { logger } from '../../../shared/utils/index.js';
-
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -64,7 +62,7 @@ const ERROR_CODE_MAP: Record<string, string> = {
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(message: Message): string {
+function getMessageContent(_message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -123,7 +121,7 @@ function convertMessages(messages: Message[]): Array<{
         // Assistant message with tool calls
         mistralMessages.push({
           role: 'assistant',
-          content: content || '',
+          content: content ?? '',
           tool_calls: message.toolCalls.map((toolCall) => ({
             id: toolCall.id,
             type: 'function' as const,
@@ -198,7 +196,7 @@ function convertTools(tools: UniversalToolDefinition[]): Array<{
 /**
  * Validates and parses tool call arguments.
  */
-function parseToolCallArguments(argumentsJson: string, toolName: string): any {
+function parseToolCallArguments(_argumentsJson: string, _toolName: string): any {
   if (!argumentsJson.trim()) {
     return {};
   }
@@ -208,7 +206,7 @@ function parseToolCallArguments(argumentsJson: string, toolName: string): any {
   } catch (error) {
     logger.warn(`[Mistral] Failed to parse tool call arguments for ${toolName}:`, error);
     // Return the raw string if JSON parsing fails
-    return { raw_input: argumentsJson };
+    return { _raw_input: argumentsJson };
   }
 }
 
@@ -219,14 +217,14 @@ function parseToolCallArguments(argumentsJson: string, toolName: string): any {
 /**
  * Maps Mistral API errors to StreamChunk error format.
  */
-function handleApiError(error: unknown): StreamChunk {
+function handleApiError(_error: unknown): StreamChunk {
   if (error instanceof Error) {
     // Try to extract error code from message
     const errorMessage = error.message.toLowerCase();
     let code = 'API_ERROR';
     
     for (const [mistralError, mappedCode] of Object.entries(ERROR_CODE_MAP)) {
-      if (errorMessage.includes(mistralError)) {
+      if (errorMessage.includes(mistralError) {
         code = mappedCode;
         break;
       }
@@ -313,7 +311,7 @@ function estimateTokens(messages: Message[]): number {
  * });
  *
  * for await (const chunk of adapter.generateStream(messages, tools)) {
- *   console.log(chunk);
+ *   console.warn(chunk);
  * }
  * ```
  */
@@ -329,14 +327,14 @@ export class MistralAdapter implements IModelAdapter {
   /**
    * Creates a new Mistral adapter.
    */
-  constructor(config: ModelConfig) {
+  constructor(_config: ModelConfig) {
     this.config = config;
     this.model = config.model;
     this.contextLimit = config.contextLimit ?? MODEL_CONTEXT_LIMITS[config.model] ?? 32000;
     this.supportsToolCalling = FUNCTION_CALLING_MODELS.has(config.model);
 
     const apiKey = config.apiKey ?? process.env['MISTRAL_API_KEY'];
-    if (apiKey === undefined || apiKey === '') {
+    if (apiKey === undefined ?? apiKey === '') {
       throw new AdapterError(
         'INVALID_CONFIG',
         'mistral',
@@ -449,7 +447,7 @@ export class MistralAdapter implements IModelAdapter {
     const requestParams: any = {
       model: this.model,
       messages,
-      stream: true,
+      _stream: true,
       maxTokens: options?.maxTokens ?? this.config.maxOutputTokens ?? 4096,
       temperature: options?.temperature ?? 0.7,
       ...(tools !== undefined ? { tools } : {}),
@@ -505,11 +503,11 @@ export class MistralAdapter implements IModelAdapter {
             for (const toolCall of choice.delta.tool_calls) {
               if (toolCall.id && toolCall.function?.name) {
                 // Start or update tool call accumulator
-                if (!toolCallAccumulators.has(toolCall.id)) {
+                if (!toolCallAccumulators.has(toolCall.id) {
                   toolCallAccumulators.set(toolCall.id, {
                     id: toolCall.id,
                     name: toolCall.function.name,
-                    arguments: toolCall.function.arguments || '',
+                    arguments: toolCall.function.arguments ?? '',
                   });
                 } else {
                   const acc = toolCallAccumulators.get(toolCall.id)!;
@@ -586,7 +584,7 @@ export class MistralAdapter implements IModelAdapter {
 /**
  * Creates a Mistral adapter from configuration.
  */
-function createMistralAdapter(config: ModelConfig): IModelAdapter {
+function createMistralAdapter(_config: ModelConfig): IModelAdapter {
   return new MistralAdapter(config);
 }
 

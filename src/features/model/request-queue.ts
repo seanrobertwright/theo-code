@@ -6,7 +6,6 @@
  * for providers that support batch operations.
  */
 
-import { logger } from '../../shared/utils/index.js';
 import type { ModelProvider, RateLimitConfig } from '../../shared/types/models.js';
 
 // =============================================================================
@@ -50,8 +49,8 @@ export interface QueuedRequest<T = any> {
   priority: RequestPriority;
   data: T;
   createdAt: Date;
-  resolve: (result: any) => void;
-  reject: (error: Error) => void;
+  resolve: (_result: any) => void;
+  reject: (_error: Error) => void;
   batchable?: boolean;
   batchKey?: string; // Key for grouping batchable requests
 }
@@ -90,7 +89,7 @@ export interface RequestQueueStats {
 /**
  * Request processor function type.
  */
-export type RequestProcessor<T, R> = (request: T) => Promise<R>;
+export type RequestProcessor<T, R> = (_request: T) => Promise<R>;
 
 /**
  * Batch processor function type.
@@ -105,12 +104,12 @@ export type BatchProcessor<T, R> = (requests: T[]) => Promise<R[]>;
  * Default request queue configuration.
  */
 export const DEFAULT_REQUEST_QUEUE_CONFIG: RequestQueueConfig = {
-  maxQueueSize: 1000,
-  maxWaitTimeMs: 30000,    // 30 seconds
-  enableBatching: true,
-  maxBatchSize: 10,
-  batchTimeoutMs: 1000,    // 1 second
-  enablePriority: true,
+  _maxQueueSize: 1000,
+  _maxWaitTimeMs: 30000,    // 30 seconds
+  _enableBatching: true,
+  _maxBatchSize: 10,
+  _batchTimeoutMs: 1000,    // 1 second
+  _enablePriority: true,
 };
 
 // =============================================================================
@@ -123,8 +122,8 @@ export const DEFAULT_REQUEST_QUEUE_CONFIG: RequestQueueConfig = {
  * @example
  * ```typescript
  * const queue = new RequestQueue({
- *   maxQueueSize: 500,
- *   enableBatching: true,
+ *   _maxQueueSize: 500,
+ *   _enableBatching: true,
  * });
  *
  * // Process single requests
@@ -140,7 +139,7 @@ export const DEFAULT_REQUEST_QUEUE_CONFIG: RequestQueueConfig = {
  * // Queue a request
  * const result = await queue.enqueue('openai', requestData, {
  *   priority: RequestPriority.HIGH,
- *   batchable: true,
+ *   _batchable: true,
  * });
  * ```
  */
@@ -199,13 +198,13 @@ export class RequestQueue<T = any, R = any> {
   /**
    * Sets rate limits for a provider.
    */
-  setRateLimit(provider: ModelProvider, rateLimit: RateLimitConfig): void {
+  setRateLimit(_provider: ModelProvider, _rateLimit: RateLimitConfig): void {
     this.rateLimits.set(provider, rateLimit);
     this.rateLimitStates.set(provider, {
-      requestCount: 0,
-      tokenCount: 0,
+      _requestCount: 0,
+      _tokenCount: 0,
       windowStart: Date.now(),
-      concurrentRequests: 0,
+      _concurrentRequests: 0,
     });
     
     logger.debug(`[RequestQueue] Set rate limit for ${provider}:`, rateLimit);
@@ -219,8 +218,8 @@ export class RequestQueue<T = any, R = any> {
    * Enqueues a request for processing.
    */
   async enqueue(
-    provider: ModelProvider,
-    data: T,
+    _provider: ModelProvider,
+    _data: T,
     options: {
       priority?: RequestPriority;
       batchable?: boolean;
@@ -310,14 +309,14 @@ export class RequestQueue<T = any, R = any> {
 
     // Ensure all used providers have entries (even if 0)
     for (const provider of this.usedProviders) {
-      if (!(provider in requestsByProvider)) {
+      if (!(provider in requestsByProvider) {
         requestsByProvider[provider] = 0;
       }
     }
 
     // Also include providers with rate limits
     for (const provider of this.rateLimits.keys()) {
-      if (!(provider in requestsByProvider)) {
+      if (!(provider in requestsByProvider) {
         requestsByProvider[provider] = 0;
       }
     }
@@ -398,7 +397,7 @@ export class RequestQueue<T = any, R = any> {
   /**
    * Removes a request from the queue by ID.
    */
-  private removeFromQueue(requestId: string): boolean {
+  private removeFromQueue(_requestId: string): boolean {
     const index = this.queue.findIndex(req => req.id === requestId);
     if (index >= 0) {
       this.queue.splice(index, 1);
@@ -448,10 +447,12 @@ export class RequestQueue<T = any, R = any> {
 
     // Process one request at a time to avoid race conditions
     const request = this.queue[0];
-    if (!request) return;
+    if (!request) {
+    return;
+  }
 
     // Check rate limits for this provider
-    if (!this.checkRateLimit(request.provider)) {
+    if (!this.checkRateLimit(request.provider) {
       // Wait a bit and try again
       setTimeout(() => this.processQueue(), 100);
       return;
@@ -511,13 +512,17 @@ export class RequestQueue<T = any, R = any> {
    * Handles an individual request.
    */
   private async handleIndividualRequest(request: QueuedRequest<T>): Promise<void> {
-    if (!this.requestProcessor) return;
+    if (!this.requestProcessor) {
+    return;
+  }
 
     try {
       this.removeFromQueue(request.id);
       
       // Clear timeout
-      if ((request as any).timeoutId) {
+      if ((request as any){
+    .timeoutId) {
+  }
         clearTimeout((request as any).timeoutId);
       }
       
@@ -546,7 +551,7 @@ export class RequestQueue<T = any, R = any> {
   /**
    * Processes a batch by ID.
    */
-  private async processBatchById(batchId: string): Promise<void> {
+  private async processBatchById(_batchId: string): Promise<void> {
     const batch = this.activeBatches.get(batchId);
     if (batch) {
       this.activeBatches.delete(batchId);
@@ -572,7 +577,9 @@ export class RequestQueue<T = any, R = any> {
       
       // Clear timeouts for all requests in batch
       for (const request of requests) {
-        if ((request as any).timeoutId) {
+        if ((request as any){
+    .timeoutId) {
+  }
           clearTimeout((request as any).timeoutId);
         }
       }
@@ -617,7 +624,7 @@ export class RequestQueue<T = any, R = any> {
   /**
    * Checks if a provider is within rate limits.
    */
-  private checkRateLimit(provider: ModelProvider): boolean {
+  private checkRateLimit(_provider: ModelProvider): boolean {
     const rateLimit = this.rateLimits.get(provider);
     if (!rateLimit) {
       return true; // No rate limit configured
@@ -660,7 +667,7 @@ export class RequestQueue<T = any, R = any> {
   /**
    * Updates rate limit state.
    */
-  private updateRateLimit(provider: ModelProvider, type: 'request' | 'tokens', count = 1): void {
+  private updateRateLimit(_provider: ModelProvider, type: 'request' | 'tokens', count = 1): void {
     const state = this.rateLimitStates.get(provider);
     if (!state) {
       return;

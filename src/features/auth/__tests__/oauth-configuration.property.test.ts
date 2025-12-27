@@ -34,16 +34,16 @@ import type {
  * Generates valid OAuth configuration objects.
  */
 const oauthConfigArb = fc.record({
-  provider: fc.string({ minLength: 1, maxLength: 50 }),
-  clientId: fc.string({ minLength: 1, maxLength: 100 }),
-  clientSecret: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
+  provider: fc.string({ _minLength: 1, _maxLength: 50 }),
+  clientId: fc.string({ _minLength: 1, _maxLength: 100 }),
+  clientSecret: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
   authorizationEndpoint: fc.webUrl(),
   tokenEndpoint: fc.webUrl(),
-  scopes: fc.array(fc.string({ minLength: 1, maxLength: 50 }), { minLength: 1, maxLength: 10 }),
+  scopes: fc.array(fc.string({ _minLength: 1, _maxLength: 50 }), { _minLength: 1, _maxLength: 10 }),
   redirectUri: fc.webUrl(),
   additionalParams: fc.option(fc.dictionary(
-    fc.string({ minLength: 1, maxLength: 20 }).filter(key => key !== '__proto__'),
-    fc.string({ minLength: 1, maxLength: 100 })
+    fc.string({ _minLength: 1, _maxLength: 20 }).filter(key => key !== '__proto__'),
+    fc.string({ _minLength: 1, _maxLength: 100 })
   )),
 });
 
@@ -51,11 +51,11 @@ const oauthConfigArb = fc.record({
  * Generates valid token set objects.
  */
 const tokenSetArb = fc.record({
-  accessToken: fc.string({ minLength: 10, maxLength: 500 }),
-  refreshToken: fc.option(fc.string({ minLength: 10, maxLength: 500 })),
+  accessToken: fc.string({ _minLength: 10, _maxLength: 500 }),
+  refreshToken: fc.option(fc.string({ _minLength: 10, _maxLength: 500 })),
   expiresAt: fc.integer({ min: Date.now() + 60000, max: Date.now() + 365 * 24 * 60 * 60 * 1000 }).map(ts => new Date(ts)),
   tokenType: fc.constant('Bearer' as const),
-  scope: fc.option(fc.string({ minLength: 1, maxLength: 200 })),
+  scope: fc.option(fc.string({ _minLength: 1, _maxLength: 200 })),
 });
 
 /**
@@ -65,16 +65,16 @@ const oauthResultArb = fc.oneof(
   // Success case
   fc.record({
     success: fc.constant(true),
-    tokens: tokenSetArb,
+    _tokens: tokenSetArb,
     error: fc.constant(null),
-    provider: fc.string({ minLength: 1, maxLength: 50 }),
+    provider: fc.string({ _minLength: 1, _maxLength: 50 }),
   }),
   // Failure case
   fc.record({
     success: fc.constant(false),
     tokens: fc.constant(null),
-    error: fc.string({ minLength: 1, maxLength: 200 }),
-    provider: fc.string({ minLength: 1, maxLength: 50 }),
+    error: fc.string({ _minLength: 1, _maxLength: 200 }),
+    provider: fc.string({ _minLength: 1, _maxLength: 50 }),
   })
 );
 
@@ -84,7 +84,7 @@ const oauthResultArb = fc.oneof(
 const authStatusArb = fc.oneof(
   // OAuth authenticated status
   fc.record({
-    provider: fc.string({ minLength: 1, maxLength: 50 }),
+    provider: fc.string({ _minLength: 1, _maxLength: 50 }),
     authenticated: fc.constant(true),
     method: fc.constant('oauth' as const),
     expiresAt: fc.integer({ min: Date.now() + 60000, max: Date.now() + 365 * 24 * 60 * 60 * 1000 }).map(ts => new Date(ts)),
@@ -92,7 +92,7 @@ const authStatusArb = fc.oneof(
   }),
   // OAuth not authenticated status
   fc.record({
-    provider: fc.string({ minLength: 1, maxLength: 50 }),
+    provider: fc.string({ _minLength: 1, _maxLength: 50 }),
     authenticated: fc.constant(false),
     method: fc.constant('oauth' as const),
     expiresAt: fc.constant(null),
@@ -100,7 +100,7 @@ const authStatusArb = fc.oneof(
   }),
   // API key authenticated status
   fc.record({
-    provider: fc.string({ minLength: 1, maxLength: 50 }),
+    provider: fc.string({ _minLength: 1, _maxLength: 50 }),
     authenticated: fc.boolean(),
     method: fc.constant('api_key' as const),
     expiresAt: fc.constant(null),
@@ -108,7 +108,7 @@ const authStatusArb = fc.oneof(
   }),
   // No authentication status
   fc.record({
-    provider: fc.string({ minLength: 1, maxLength: 50 }),
+    provider: fc.string({ _minLength: 1, _maxLength: 50 }),
     authenticated: fc.constant(false),
     method: fc.constant('none' as const),
     expiresAt: fc.constant(null),
@@ -122,8 +122,8 @@ const authStatusArb = fc.oneof(
 const callbackResultArb = fc.oneof(
   // Success case with code and state
   fc.record({
-    code: fc.string({ minLength: 1, maxLength: 200 }),
-    state: fc.string({ minLength: 1, maxLength: 100 }),
+    code: fc.string({ _minLength: 1, _maxLength: 200 }),
+    state: fc.string({ _minLength: 1, _maxLength: 100 }),
     error: fc.constant(null),
     errorDescription: fc.constant(null),
   }),
@@ -131,8 +131,8 @@ const callbackResultArb = fc.oneof(
   fc.record({
     code: fc.constant(null),
     state: fc.constant(null),
-    error: fc.string({ minLength: 1, maxLength: 100 }),
-    errorDescription: fc.option(fc.string({ minLength: 1, maxLength: 200 })),
+    error: fc.string({ _minLength: 1, _maxLength: 100 }),
+    errorDescription: fc.option(fc.string({ _minLength: 1, _maxLength: 200 })),
   }),
   // Empty case (no response yet)
   fc.record({
@@ -147,11 +147,11 @@ const callbackResultArb = fc.oneof(
  * Generates valid OAuth error objects.
  */
 const oauthErrorArb = fc.record({
-  code: fc.string({ minLength: 1, maxLength: 50 }),
-  message: fc.string({ minLength: 1, maxLength: 200 }),
-  provider: fc.string({ minLength: 1, maxLength: 50 }),
+  code: fc.string({ _minLength: 1, _maxLength: 50 }),
+  message: fc.string({ _minLength: 1, _maxLength: 200 }),
+  provider: fc.string({ _minLength: 1, _maxLength: 50 }),
   recoverable: fc.boolean(),
-  suggestedAction: fc.option(fc.string({ minLength: 1, maxLength: 200 })),
+  suggestedAction: fc.option(fc.string({ _minLength: 1, _maxLength: 200 })),
   fallbackAvailable: fc.boolean(),
 });
 
@@ -160,7 +160,7 @@ const oauthErrorArb = fc.record({
  */
 const oauthProviderSettingsArb = fc.record({
   enabled: fc.boolean(),
-  clientId: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
+  clientId: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
   preferredMethod: fc.constantFrom('oauth', 'api_key'),
   autoRefresh: fc.boolean(),
 });
@@ -210,7 +210,7 @@ describe('OAuth Configuration Schema Property Tests', () => {
         // Verify schema compliance is maintained
         expect(() => OAuthConfigSchema.parse(reparsedConfig)).not.toThrow();
       }),
-      { numRuns: 10 }
+      { _numRuns: 10 }
     );
   });
 
@@ -252,7 +252,7 @@ describe('OAuth Configuration Schema Property Tests', () => {
         expect(reparsedTokens.tokenType).toBe('Bearer');
         expect(reparsedTokens.scope).toBe(originalTokens.scope);
       }),
-      { numRuns: 10 }
+      { _numRuns: 10 }
     );
   });
 
@@ -285,7 +285,7 @@ describe('OAuth Configuration Schema Property Tests', () => {
         expect(parsedResult.provider).toBe(originalResult.provider);
         expect(parsedResult.provider.length).toBeGreaterThan(0);
       }),
-      { numRuns: 10 }
+      { _numRuns: 10 }
     );
   });
 
@@ -318,7 +318,7 @@ describe('OAuth Configuration Schema Property Tests', () => {
         expect(parsedStatus.provider).toBe(originalStatus.provider);
         expect(parsedStatus.provider.length).toBeGreaterThan(0);
       }),
-      { numRuns: 10 }
+      { _numRuns: 10 }
     );
   });
 
@@ -352,7 +352,7 @@ describe('OAuth Configuration Schema Property Tests', () => {
         expect(parsedCallback.error).toBe(originalCallback.error);
         expect(parsedCallback.errorDescription).toBe(originalCallback.errorDescription);
       }),
-      { numRuns: 10 }
+      { _numRuns: 10 }
     );
   });
 
@@ -383,7 +383,7 @@ describe('OAuth Configuration Schema Property Tests', () => {
         // Verify optional fields are preserved
         expect(parsedError.suggestedAction).toBe(originalError.suggestedAction);
       }),
-      { numRuns: 10 }
+      { _numRuns: 10 }
     );
   });
 
@@ -416,7 +416,7 @@ describe('OAuth Configuration Schema Property Tests', () => {
           }
         }
       }),
-      { numRuns: 10 }
+      { _numRuns: 10 }
     );
   });
 
@@ -447,7 +447,7 @@ describe('OAuth Configuration Schema Property Tests', () => {
 
         expect(reparsedConfig).toEqual(parsedConfig);
       }),
-      { numRuns: 10 }
+      { _numRuns: 10 }
     );
   });
 
@@ -473,12 +473,12 @@ describe('OAuth Configuration Schema Property Tests', () => {
           const config: any = { ...invalidConfig };
 
           // Make it invalid by removing required fields or using invalid formats
-          if (Math.random() < 0.5) config.provider = undefined;
-          if (Math.random() < 0.5) config.clientId = undefined;
-          if (Math.random() < 0.5) config.authorizationEndpoint = undefined;
-          if (Math.random() < 0.5) config.tokenEndpoint = undefined;
-          if (Math.random() < 0.5) config.scopes = undefined;
-          if (Math.random() < 0.5) config.redirectUri = undefined;
+          if (Math.random() < 0.5) {config.provider = undefined;}
+          if (Math.random() < 0.5) {config.clientId = undefined;}
+          if (Math.random() < 0.5) {config.authorizationEndpoint = undefined;}
+          if (Math.random() < 0.5) {config.tokenEndpoint = undefined;}
+          if (Math.random() < 0.5) {config.scopes = undefined;}
+          if (Math.random() < 0.5) {config.redirectUri = undefined;}
 
           // Or use invalid URL formats
           if (config.authorizationEndpoint && Math.random() < 0.3) {
@@ -495,7 +495,7 @@ describe('OAuth Configuration Schema Property Tests', () => {
           expect(() => OAuthConfigSchema.parse(config)).toThrow();
         }
       ),
-      { numRuns: 10 }
+      { _numRuns: 10 }
     );
   });
 });

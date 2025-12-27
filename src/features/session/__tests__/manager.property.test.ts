@@ -35,8 +35,8 @@ vi.mock('../../../config/loader.js', async () => {
     loadConfig: vi.fn().mockReturnValue({
       global: {
         session: {
-          autoSaveInterval: 30000,
-          maxSessions: 50,
+          _autoSaveInterval: 30000,
+          _maxSessions: 50,
         },
       },
     }),
@@ -81,7 +81,7 @@ describe('SessionManager Property Tests', () => {
     
     // Clean up temp directory
     try {
-      await fs.rm(tempDir, { recursive: true, force: true });
+      await fs.rm(tempDir, { _recursive: true, _force: true });
     } catch {
       // Ignore cleanup errors
     }
@@ -101,12 +101,12 @@ describe('SessionManager Property Tests', () => {
         fc.array(
           fc.record({
             model: fc.constantFrom('gpt-4o', 'gpt-3.5-turbo', 'claude-3-sonnet', 'gemini-pro'),
-            workspaceRoot: fc.string({ minLength: 5, maxLength: 50 }).map(s => `/workspace/${s}`),
-            title: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
-            tags: fc.option(fc.array(fc.string({ minLength: 1, maxLength: 20 }), { maxLength: 5 })),
-            notes: fc.option(fc.string({ minLength: 1, maxLength: 200 })),
+            workspaceRoot: fc.string({ _minLength: 5, _maxLength: 50 }).map(s => `/workspace/${s}`),
+            title: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
+            tags: fc.option(fc.array(fc.string({ _minLength: 1, _maxLength: 20 }), { _maxLength: 5 })),
+            notes: fc.option(fc.string({ _minLength: 1, _maxLength: 200 })),
           }),
-          { minLength: 1, maxLength: 10 } // Create 1-10 sessions
+          { _minLength: 1, _maxLength: 10 } // Create 1-10 sessions
         ),
         async (sessionOptions) => {
           const createdSessions = [];
@@ -173,7 +173,7 @@ describe('SessionManager Property Tests', () => {
           }
         }
       ),
-      { numRuns: 50 } // Reduced runs to minimize race conditions on Windows
+      { _numRuns: 50 } // Reduced runs to minimize race conditions on Windows
     );
   });
 
@@ -185,7 +185,7 @@ describe('SessionManager Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet'),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 30 }).map(s => `/test/${s}`),
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 30 }).map(s => `/test/${s}`),
         }),
         async ({ model, workspaceRoot }) => {
           const options: CreateSessionOptions = { model, workspaceRoot };
@@ -216,7 +216,7 @@ describe('SessionManager Property Tests', () => {
           expect(currentSession).toEqual(session);
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
@@ -227,8 +227,8 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          model: fc.string({ minLength: 1, maxLength: 50 }),
-          workspaceRoot: fc.string({ minLength: 1, maxLength: 100 }),
+          model: fc.string({ _minLength: 1, _maxLength: 50 }),
+          workspaceRoot: fc.string({ _minLength: 1, _maxLength: 100 }),
         }),
         async ({ model, workspaceRoot }) => {
           const session = await manager.createSession({ model, workspaceRoot });
@@ -246,7 +246,7 @@ describe('SessionManager Property Tests', () => {
           expect(['8', '9', 'a', 'b']).toContain(variantDigit);
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
@@ -260,11 +260,11 @@ describe('SessionManager Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet', 'gpt-3.5-turbo'),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 30 }).map(s => `/workspace/${s}`),
-          messageCount: fc.integer({ min: 1, max: 5 }),
-          contextFileCount: fc.integer({ min: 0, max: 3 }),
-          tokenUpdates: fc.integer({ min: 0, max: 2 }),
-          autoSaveInterval: fc.integer({ min: 100, max: 1000 }), // Fast auto-save for testing
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 30 }).map(s => `/workspace/${s}`),
+          messageCount: fc.integer({ _min: 1, _max: 5 }),
+          contextFileCount: fc.integer({ _min: 0, _max: 3 }),
+          tokenUpdates: fc.integer({ _min: 0, _max: 2 }),
+          autoSaveInterval: fc.integer({ _min: 100, _max: 1000 }), // Fast auto-save for testing
         }),
         async ({ model, workspaceRoot, messageCount, contextFileCount, tokenUpdates, autoSaveInterval }) => {
           // Create initial session
@@ -273,16 +273,16 @@ describe('SessionManager Property Tests', () => {
           
           // Enable auto-save to simulate crash recovery scenario
           manager.enableAutoSave({
-            enabled: true,
-            intervalMs: autoSaveInterval,
-            maxRetries: 3,
+            _enabled: true,
+            _intervalMs: autoSaveInterval,
+            _maxRetries: 3,
           });
           
           // Build up session data that would be lost in a crash
           let currentSession = session;
           const addedMessages: any[] = [];
           const addedContextFiles: string[] = [];
-          let finalTokenCount = { total: 0, input: 0, output: 0 };
+          let finalTokenCount = { _total: 0, _input: 0, _output: 0 };
           
           // Add messages to simulate user interaction
           for (let i = 0; i < messageCount; i++) {
@@ -319,7 +319,7 @@ describe('SessionManager Property Tests', () => {
             };
             currentSession = {
               ...currentSession,
-              tokenCount: finalTokenCount,
+              _tokenCount: finalTokenCount,
             };
           }
           
@@ -384,7 +384,7 @@ describe('SessionManager Property Tests', () => {
           newManager.disableAutoSave();
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
@@ -396,17 +396,17 @@ describe('SessionManager Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet'),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 30 }).map(s => `/test/${s}`),
-          operationCount: fc.integer({ min: 1, max: 3 }),
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 30 }).map(s => `/test/${s}`),
+          operationCount: fc.integer({ _min: 1, _max: 3 }),
         }),
         async ({ model, workspaceRoot, operationCount }) => {
           // Create session with auto-save enabled
           const session = await manager.createSession({ model, workspaceRoot });
           
           manager.enableAutoSave({
-            enabled: true,
-            intervalMs: 200, // Fast auto-save for testing
-            maxRetries: 3,
+            _enabled: true,
+            _intervalMs: 200, // Fast auto-save for testing
+            _maxRetries: 3,
           });
           
           // Perform operations that should trigger auto-save
@@ -451,7 +451,7 @@ describe('SessionManager Property Tests', () => {
           expect(recoveredSession.lastModified).toBeGreaterThan(session.created);
         }
       ),
-      { numRuns: 30 }
+      { _numRuns: 30 }
     );
   });
 
@@ -465,10 +465,10 @@ describe('SessionManager Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet'),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 30 }).map(s => `/test/${s}`),
-          initialTitle: fc.option(fc.string({ minLength: 1, maxLength: 50 })),
-          modifiedTitle: fc.option(fc.string({ minLength: 1, maxLength: 50 })),
-          waitTimeMs: fc.integer({ min: 1, max: 10 }), // Small wait to ensure timestamp difference
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 30 }).map(s => `/test/${s}`),
+          initialTitle: fc.option(fc.string({ _minLength: 1, _maxLength: 50 })),
+          modifiedTitle: fc.option(fc.string({ _minLength: 1, _maxLength: 50 })),
+          waitTimeMs: fc.integer({ _min: 1, _max: 10 }), // Small wait to ensure timestamp difference
         }),
         async ({ model, workspaceRoot, initialTitle, modifiedTitle, waitTimeMs }) => {
           const startTime = Date.now();
@@ -518,7 +518,7 @@ describe('SessionManager Property Tests', () => {
           expect(loadedSession.notes).toBe(modifiedSession.notes);
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
@@ -530,8 +530,8 @@ describe('SessionManager Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'gpt-3.5-turbo'),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 30 }).map(s => `/workspace/${s}`),
-          modificationCount: fc.integer({ min: 2, max: 5 }),
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 30 }).map(s => `/workspace/${s}`),
+          modificationCount: fc.integer({ _min: 2, _max: 5 }),
         }),
         async ({ model, workspaceRoot, modificationCount }) => {
           // Create initial session
@@ -569,7 +569,7 @@ describe('SessionManager Property Tests', () => {
           expect(currentSession.created).toBe(session.created);
         }
       ),
-      { numRuns: 30 }
+      { _numRuns: 30 }
     );
   });
 
@@ -583,8 +583,8 @@ describe('SessionManager Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet'),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 30 }).map(s => `/workspace/${s}`),
-          autoSaveInterval: fc.integer({ min: 100, max: 500 }), // 100ms to 500ms for testing
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 30 }).map(s => `/workspace/${s}`),
+          autoSaveInterval: fc.integer({ _min: 100, _max: 500 }), // 100ms to 500ms for testing
         }),
         async ({ model, workspaceRoot, autoSaveInterval }) => {
           // Create session
@@ -592,9 +592,9 @@ describe('SessionManager Property Tests', () => {
           
           // Enable auto-save with test interval
           manager.enableAutoSave({
-            enabled: true,
-            intervalMs: autoSaveInterval,
-            maxRetries: 3,
+            _enabled: true,
+            _intervalMs: autoSaveInterval,
+            _maxRetries: 3,
           });
           
           const modificationTime = Date.now();
@@ -603,7 +603,7 @@ describe('SessionManager Property Tests', () => {
           // Modify the current session
           const modifiedSession = {
             ...session,
-            title: newTitle,
+            _title: newTitle,
             notes: 'Auto-save timing test',
           };
           manager.setCurrentSession(modifiedSession);
@@ -623,7 +623,7 @@ describe('SessionManager Property Tests', () => {
           manager.disableAutoSave();
         }
       ),
-      { numRuns: 20 }
+      { _numRuns: 20 }
     );
   });
 
@@ -634,14 +634,14 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          intervalMs: fc.integer({ min: 1000, max: 30000 }), // 1-30 seconds
-          maxRetries: fc.integer({ min: 0, max: 10 }),
+          intervalMs: fc.integer({ _min: 1000, _max: 30000 }), // 1-30 seconds
+          maxRetries: fc.integer({ _min: 0, _max: 10 }),
         }),
         async ({ intervalMs, maxRetries }) => {
           // Valid configuration should work
           expect(() => {
             manager.enableAutoSave({
-              enabled: true,
+              _enabled: true,
               intervalMs,
               maxRetries,
             });
@@ -657,7 +657,7 @@ describe('SessionManager Property Tests', () => {
           expect(manager.getAutoSaveConfig()).toBeNull();
         }
       ),
-      { numRuns: 15 }
+      { _numRuns: 15 }
     );
   });
 
@@ -670,17 +670,17 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          validInterval: fc.integer({ min: 5000, max: 300000 }), // 5-300 seconds in ms
-          invalidLowInterval: fc.integer({ min: -1000, max: 4999 }), // Below 5 seconds
-          invalidHighInterval: fc.integer({ min: 300001, max: 600000 }), // Above 300 seconds
-          maxRetries: fc.integer({ min: 0, max: 10 }),
+          validInterval: fc.integer({ _min: 5000, _max: 300000 }), // 5-300 seconds in ms
+          invalidLowInterval: fc.integer({ min: -1000, _max: 4999 }), // Below 5 seconds
+          invalidHighInterval: fc.integer({ _min: 300001, _max: 600000 }), // Above 300 seconds
+          maxRetries: fc.integer({ _min: 0, _max: 10 }),
         }),
         async ({ validInterval, invalidLowInterval, invalidHighInterval, maxRetries }) => {
           // Valid intervals should be accepted
           expect(() => {
             manager.enableAutoSave({
-              enabled: true,
-              intervalMs: validInterval,
+              _enabled: true,
+              _intervalMs: validInterval,
               maxRetries,
             });
           }).not.toThrow();
@@ -695,8 +695,8 @@ describe('SessionManager Property Tests', () => {
           if (invalidLowInterval <= 0) {
             expect(() => {
               manager.enableAutoSave({
-                enabled: true,
-                intervalMs: invalidLowInterval,
+                _enabled: true,
+                _intervalMs: invalidLowInterval,
                 maxRetries,
               });
             }).toThrow('Auto-save interval must be positive');
@@ -708,8 +708,8 @@ describe('SessionManager Property Tests', () => {
             // This should work but may generate a warning
             expect(() => {
               manager.enableAutoSave({
-                enabled: true,
-                intervalMs: invalidLowInterval,
+                _enabled: true,
+                _intervalMs: invalidLowInterval,
                 maxRetries,
               });
             }).not.toThrow();
@@ -718,7 +718,7 @@ describe('SessionManager Property Tests', () => {
           }
         }
       ),
-      { numRuns: 25 }
+      { _numRuns: 25 }
     );
   });
 
@@ -729,16 +729,16 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          intervalMs: fc.integer({ min: 1000, max: 30000 }),
+          intervalMs: fc.integer({ _min: 1000, _max: 30000 }),
           negativeRetries: fc.integer({ min: -10, max: -1 }),
         }),
         async ({ intervalMs, negativeRetries }) => {
           // Negative retry counts should be rejected
           expect(() => {
             manager.enableAutoSave({
-              enabled: true,
+              _enabled: true,
               intervalMs,
-              maxRetries: negativeRetries,
+              _maxRetries: negativeRetries,
             });
           }).toThrow('Max retries cannot be negative');
           
@@ -747,7 +747,7 @@ describe('SessionManager Property Tests', () => {
           expect(manager.isAutoSaveEnabled()).toBe(false);
         }
       ),
-      { numRuns: 20 }
+      { _numRuns: 20 }
     );
   });
 
@@ -761,15 +761,15 @@ describe('SessionManager Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet', 'gpt-3.5-turbo'),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 50 }).map(s => `/workspace/${s}`),
-          title: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
-          notes: fc.option(fc.string({ minLength: 1, maxLength: 200 })),
-          tags: fc.array(fc.string({ minLength: 1, maxLength: 20 }), { maxLength: 5 }),
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 50 }).map(s => `/workspace/${s}`),
+          title: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
+          notes: fc.option(fc.string({ _minLength: 1, _maxLength: 200 })),
+          tags: fc.array(fc.string({ _minLength: 1, _maxLength: 20 }), { _maxLength: 5 }),
           contextFiles: fc.array(
-            fc.string({ minLength: 5, maxLength: 30 }).map(s => `/path/to/${s}.ts`),
-            { maxLength: 8 }
+            fc.string({ _minLength: 5, _maxLength: 30 }).map(s => `/path/to/${s}.ts`),
+            { _maxLength: 8 }
           ),
-          messageCount: fc.integer({ min: 0, max: 10 }),
+          messageCount: fc.integer({ _min: 0, _max: 10 }),
         }),
         async ({ model, workspaceRoot, title, notes, tags, contextFiles, messageCount }) => {
           // Create initial session
@@ -785,7 +785,7 @@ describe('SessionManager Property Tests', () => {
           const modifiedSession = {
             ...session,
             contextFiles,
-            messages: Array.from({ length: messageCount }, (_, i) => ({
+            messages: Array.from({ _length: messageCount }, (_, i) => ({
               id: createMessageId(),
               role: (i % 2 === 0 ? 'user' : 'assistant') as const,
               content: `Message ${i}: ${Math.random().toString(36)}`,
@@ -829,7 +829,7 @@ describe('SessionManager Property Tests', () => {
           expect(restoredSession.lastModified).toBeGreaterThan(session.lastModified);
         }
       ),
-      { numRuns: 30 }
+      { _numRuns: 30 }
     );
   });
 
@@ -841,10 +841,10 @@ describe('SessionManager Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet'),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 30 }).map(s => `/test/${s}`),
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 30 }).map(s => `/test/${s}`),
           contextFiles: fc.array(
-            fc.string({ minLength: 3, maxLength: 20 }).map(s => `/files/${s}.js`),
-            { minLength: 1, maxLength: 6 }
+            fc.string({ _minLength: 3, _maxLength: 20 }).map(s => `/files/${s}.js`),
+            { _minLength: 1, _maxLength: 6 }
           ),
         }),
         async ({ model, workspaceRoot, contextFiles }) => {
@@ -879,7 +879,7 @@ describe('SessionManager Property Tests', () => {
           expect(manager.getCurrentSession()).toEqual(result.session);
         }
       ),
-      { numRuns: 25 }
+      { _numRuns: 25 }
     );
   });
 
@@ -894,9 +894,9 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          sessionCount: fc.integer({ min: 5, max: 15 }), // Create more than threshold
-          maxCount: fc.integer({ min: 2, max: 8 }), // Threshold lower than sessionCount
-          maxAgeMs: fc.integer({ min: 1000, max: 5000 }), // Longer age for testing
+          sessionCount: fc.integer({ _min: 5, _max: 15 }), // Create more than threshold
+          maxCount: fc.integer({ _min: 2, _max: 8 }), // Threshold lower than sessionCount
+          maxAgeMs: fc.integer({ _min: 1000, _max: 5000 }), // Longer age for testing
         }),
         async ({ sessionCount, maxCount, maxAgeMs }) => {
           // Ensure we have more sessions than the limit
@@ -941,9 +941,9 @@ describe('SessionManager Property Tests', () => {
           const cleanupResult = await manager.cleanupOldSessions({
             maxCount,
             maxAgeMs,
-            createBackups: false, // Skip backups for faster testing
-            showNotifications: false, // Reduce test noise
-            dryRun: false,
+            _createBackups: false, // Skip backups for faster testing
+            _showNotifications: false, // Reduce test noise
+            _dryRun: false,
           });
           
           // Verify cleanup results structure
@@ -976,7 +976,7 @@ describe('SessionManager Property Tests', () => {
           // This is expected behavior and not a bug
         }
       ),
-      { numRuns: 10, timeout: 15000 } // Reduced runs and increased timeout for cleanup operations
+      { _numRuns: 10, _timeout: 15000 } // Reduced runs and increased timeout for cleanup operations
     );
   }, 20000); // 20 second test timeout
 
@@ -987,8 +987,8 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          totalSessions: fc.integer({ min: 8, max: 12 }),
-          keepCount: fc.integer({ min: 3, max: 6 }),
+          totalSessions: fc.integer({ _min: 8, _max: 12 }),
+          keepCount: fc.integer({ _min: 3, _max: 6 }),
         }),
         async ({ totalSessions, keepCount }) => {
           // Ensure we have more sessions than we want to keep
@@ -1028,10 +1028,10 @@ describe('SessionManager Property Tests', () => {
           
           // Run cleanup with count limit only (no age limit)
           const result = await manager.cleanupOldSessions({
-            maxCount: keepCount,
+            _maxCount: keepCount,
             maxAgeMs: 365 * 24 * 60 * 60 * 1000, // 1 year (effectively no age limit)
-            createBackups: false,
-            showNotifications: false,
+            _createBackups: false,
+            _showNotifications: false,
           });
           
           // Verify correct number of sessions remain
@@ -1054,7 +1054,7 @@ describe('SessionManager Property Tests', () => {
           expect(result.deletedByAge).toBe(0); // No age-based deletions
         }
       ),
-      { numRuns: 10, timeout: 10000 } // Reduced runs and added timeout
+      { _numRuns: 10, _timeout: 10000 } // Reduced runs and added timeout
     );
   }, 15000); // 15 second test timeout
 
@@ -1065,8 +1065,8 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          sessionCount: fc.integer({ min: 5, max: 10 }),
-          maxCount: fc.integer({ min: 2, max: 4 }),
+          sessionCount: fc.integer({ _min: 5, _max: 10 }),
+          maxCount: fc.integer({ _min: 2, _max: 4 }),
         }),
         async ({ sessionCount, maxCount }) => {
           // Ensure clean state at start of test
@@ -1091,9 +1091,9 @@ describe('SessionManager Property Tests', () => {
           // Run cleanup in dry run mode
           const result = await manager.cleanupOldSessions({
             maxCount,
-            maxAgeMs: 1000, // Short age limit
-            dryRun: true,
-            showNotifications: false,
+            _maxAgeMs: 1000, // Short age limit
+            _dryRun: true,
+            _showNotifications: false,
           });
           
           // Verify sessions would be deleted but weren't
@@ -1110,7 +1110,7 @@ describe('SessionManager Property Tests', () => {
           }
         }
       ),
-      { numRuns: 10, timeout: 8000 } // Reduced runs and added timeout
+      { _numRuns: 10, _timeout: 8000 } // Reduced runs and added timeout
     );
   }, 12000); // 12 second test timeout
 
@@ -1125,10 +1125,10 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          sessionCount: fc.integer({ min: 3, max: 8 }),
-          deleteCount: fc.integer({ min: 1, max: 4 }),
+          sessionCount: fc.integer({ _min: 3, _max: 8 }),
+          deleteCount: fc.integer({ _min: 1, _max: 4 }),
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet', 'gpt-3.5-turbo'),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 30 }).map(s => `/workspace/${s}`),
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 30 }).map(s => `/workspace/${s}`),
         }),
         async ({ sessionCount, deleteCount, model, workspaceRoot }) => {
           // Ensure clean state
@@ -1212,7 +1212,7 @@ describe('SessionManager Property Tests', () => {
           }
         }
       ),
-      { numRuns: 15, timeout: 12000 } // Reduced runs and added timeout
+      { _numRuns: 15, _timeout: 12000 } // Reduced runs and added timeout
     );
   }, 18000); // 18 second test timeout
 
@@ -1223,8 +1223,8 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          validSessionCount: fc.integer({ min: 2, max: 5 }),
-          invalidSessionId: fc.string({ minLength: 36, maxLength: 36 }).map(s => 
+          validSessionCount: fc.integer({ _min: 2, _max: 5 }),
+          invalidSessionId: fc.string({ _minLength: 36, _maxLength: 36 }).map(s => 
             // Generate a UUID-like string that doesn't exist
             `${s.slice(0, 8)}-${s.slice(8, 12)}-4${s.slice(13, 16)}-a${s.slice(17, 20)}-${s.slice(20, 32)}`
           ),
@@ -1267,7 +1267,7 @@ describe('SessionManager Property Tests', () => {
           }
         }
       ),
-      { numRuns: 20 }
+      { _numRuns: 20 }
     );
   });
 
@@ -1283,10 +1283,10 @@ describe('SessionManager Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           // Generate sessions with searchable content
-          sessionCount: fc.integer({ min: 2, max: 4 }), // Reduced for performance
-          searchTerm: fc.string({ minLength: 3, maxLength: 8 }).filter(s => s.trim().length > 2 && /^[a-zA-Z0-9]+$/.test(s)), // Alphanumeric only
+          sessionCount: fc.integer({ _min: 2, _max: 4 }), // Reduced for performance
+          searchTerm: fc.string({ _minLength: 3, _maxLength: 8 }).filter(s => s.trim().length > 2 && /^[a-zA-Z0-9]+$/.test(s)), // Alphanumeric only
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet'),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 15 }).map(s => `/workspace/${s}`),
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 15 }).map(s => `/workspace/${s}`),
         }),
         async ({ sessionCount, searchTerm, model, workspaceRoot }) => {
           // Ensure clean state
@@ -1365,19 +1365,27 @@ describe('SessionManager Property Tests', () => {
             createdSessions.push(modifiedSession);
 
             // Track expected matches
-            if (includeInTitle) expectedMatches.title.push(session.id);
-            if (includeInTags) expectedMatches.tags.push(session.id);
-            if (includeInContent) expectedMatches.content.push(session.id);
-            if (includeInFilename) expectedMatches.filename.push(session.id);
+            if (includeInTitle) {
+    expectedMatches.title.push(session.id);
+  }
+            if (includeInTags) {
+    expectedMatches.tags.push(session.id);
+  }
+            if (includeInContent) {
+    expectedMatches.content.push(session.id);
+  }
+            if (includeInFilename) {
+    expectedMatches.filename.push(session.id);
+  }
           }
 
           // Perform comprehensive search
           const searchResults = await manager.searchSessions(searchTerm, {
-            includeContent: true,
-            includeMetadata: true,
-            includeFilenames: true,
-            caseSensitive: false,
-            limit: 20,
+            _includeContent: true,
+            _includeMetadata: true,
+            _includeFilenames: true,
+            _caseSensitive: false,
+            _limit: 20,
             minRelevance: 0.1,
           });
 
@@ -1473,7 +1481,7 @@ describe('SessionManager Property Tests', () => {
           }
         }
       ),
-      { numRuns: 20, timeout: 15000 } // Reduced runs and added timeout
+      { _numRuns: 20, _timeout: 15000 } // Reduced runs and added timeout
     );
   }, 20000); // 20 second test timeout
 
@@ -1484,7 +1492,7 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          searchTerm: fc.string({ minLength: 4, maxLength: 8 }).filter(s => s.trim().length > 3 && /^[a-zA-Z0-9]+$/.test(s)), // Alphanumeric only
+          searchTerm: fc.string({ _minLength: 4, _maxLength: 8 }).filter(s => s.trim().length > 3 && /^[a-zA-Z0-9]+$/.test(s)), // Alphanumeric only
           caseSensitive: fc.boolean(),
         }),
         async ({ searchTerm, caseSensitive }) => {
@@ -1503,7 +1511,7 @@ describe('SessionManager Property Tests', () => {
             { title: `Session with ${lowerCase}`, expectedMatch: !caseSensitive || lowerCase === searchTerm },
             { title: `Session with ${upperCase}`, expectedMatch: !caseSensitive || upperCase === searchTerm },
             { title: `Session with ${mixedCase}`, expectedMatch: !caseSensitive || mixedCase === searchTerm },
-            { title: 'Session without the term', expectedMatch: false },
+            { title: 'Session without the term', _expectedMatch: false },
           ];
 
           const createdSessions: any[] = [];
@@ -1519,9 +1527,9 @@ describe('SessionManager Property Tests', () => {
           // Perform search with specified case sensitivity
           const results = await manager.searchSessions(searchTerm, {
             caseSensitive,
-            includeMetadata: true,
-            includeContent: false,
-            includeFilenames: false,
+            _includeMetadata: true,
+            _includeContent: false,
+            _includeFilenames: false,
           });
 
           // Verify case sensitivity behavior
@@ -1536,7 +1544,7 @@ describe('SessionManager Property Tests', () => {
           }
         }
       ),
-      { numRuns: 15, timeout: 10000 } // Reduced runs and added timeout
+      { _numRuns: 15, _timeout: 10000 } // Reduced runs and added timeout
     );
   }, 15000); // 15 second test timeout
 
@@ -1547,8 +1555,8 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          sessionCount: fc.integer({ min: 2, max: 3 }), // Reduced for performance
-          nonMatchingTerm: fc.string({ minLength: 8, maxLength: 12 }).map(s => `nonexistent-${s.replace(/[^a-zA-Z0-9]/g, 'x')}-term`), // Clean up special chars
+          sessionCount: fc.integer({ _min: 2, _max: 3 }), // Reduced for performance
+          nonMatchingTerm: fc.string({ _minLength: 8, _maxLength: 12 }).map(s => `nonexistent-${s.replace(/[^a-zA-Z0-9]/g, 'x')}-term`), // Clean up special chars
         }),
         async ({ sessionCount, nonMatchingTerm }) => {
           // Ensure clean state
@@ -1584,16 +1592,16 @@ describe('SessionManager Property Tests', () => {
 
           // Search for non-existent term
           const results = await manager.searchSessions(nonMatchingTerm, {
-            includeContent: true,
-            includeMetadata: true,
-            includeFilenames: true,
+            _includeContent: true,
+            _includeMetadata: true,
+            _includeFilenames: true,
           });
 
           // Should return no results
           expect(results).toHaveLength(0);
         }
       ),
-      { numRuns: 10, timeout: 8000 } // Reduced runs and added timeout
+      { _numRuns: 10, _timeout: 8000 } // Reduced runs and added timeout
     );
   }, 12000); // 12 second test timeout
 
@@ -1608,12 +1616,12 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          sessionCount: fc.integer({ min: 4, max: 8 }),
+          sessionCount: fc.integer({ _min: 4, _max: 8 }),
           targetModel: fc.constantFrom('gpt-4o', 'claude-3-sonnet', 'gpt-3.5-turbo'),
           otherModel: fc.constantFrom('gemini-pro', 'llama-2', 'mistral-7b'),
-          minMessages: fc.integer({ min: 1, max: 5 }),
-          minTokens: fc.integer({ min: 100, max: 1000 }),
-          delayBetweenSessions: fc.integer({ min: 10, max: 100 }), // Delay in ms to create time differences
+          minMessages: fc.integer({ _min: 1, _max: 5 }),
+          minTokens: fc.integer({ _min: 100, _max: 1000 }),
+          delayBetweenSessions: fc.integer({ _min: 10, _max: 100 }), // Delay in ms to create time differences
         }),
         async ({ sessionCount, targetModel, otherModel, minMessages, minTokens, delayBetweenSessions }) => {
           // Ensure clean state
@@ -1628,7 +1636,7 @@ describe('SessionManager Property Tests', () => {
           const expectedTokenMatches: string[] = [];
           
           // Record timestamps for date filtering test
-          const sessionTimestamps: { id: string; timestamp: number }[] = [];
+          const sessionTimestamps: { id: string; _timestamp: number }[] = [];
           const startTime = Date.now();
 
           // Create sessions with different characteristics
@@ -1653,7 +1661,7 @@ describe('SessionManager Property Tests', () => {
             });
 
             // Create messages to match message count
-            const messages = Array.from({ length: messageCount }, (_, msgIndex) => ({
+            const messages = Array.from({ _length: messageCount }, (_, msgIndex) => ({
               id: createMessageId(),
               role: (msgIndex % 2 === 0 ? 'user' : 'assistant') as const,
               content: `Message ${msgIndex} in session ${i}`,
@@ -1664,7 +1672,7 @@ describe('SessionManager Property Tests', () => {
               ...session,
               messages,
               tokenCount: {
-                total: tokenCount,
+                _total: tokenCount,
                 input: Math.floor(tokenCount * 0.4),
                 output: Math.floor(tokenCount * 0.6),
               },
@@ -1678,14 +1686,20 @@ describe('SessionManager Property Tests', () => {
             createdSessions.push(savedSession);
 
             // Track expected matches
-            if (useTargetModel) expectedModelMatches.push(session.id);
-            if (hasEnoughMessages) expectedMessageMatches.push(session.id);
-            if (hasEnoughTokens) expectedTokenMatches.push(session.id);
+            if (useTargetModel) {
+    expectedModelMatches.push(session.id);
+  }
+            if (hasEnoughMessages) {
+    expectedMessageMatches.push(session.id);
+  }
+            if (hasEnoughTokens) {
+    expectedTokenMatches.push(session.id);
+  }
           }
 
           // Test model filtering
           const modelFilterResults = await manager.filterSessions({
-            model: targetModel,
+            _model: targetModel,
           });
 
           expect(modelFilterResults.length).toBe(expectedModelMatches.length);
@@ -1708,8 +1722,8 @@ describe('SessionManager Property Tests', () => {
             
             const dateFilterResults = await manager.filterSessions({
               dateRange: {
-                start: rangeStart,
-                end: rangeEnd,
+                _start: rangeStart,
+                _end: rangeEnd,
               },
             });
 
@@ -1762,9 +1776,9 @@ describe('SessionManager Property Tests', () => {
 
           // Test combined filtering with AND logic (default)
           const combinedAndResults = await manager.filterSessions({
-            model: targetModel,
+            _model: targetModel,
             minMessages,
-            combineWithAnd: true,
+            _combineWithAnd: true,
           });
 
           // Should only include sessions that match BOTH criteria
@@ -1778,9 +1792,9 @@ describe('SessionManager Property Tests', () => {
 
           // Test combined filtering with OR logic
           const combinedOrResults = await manager.filterSessions({
-            model: targetModel,
+            _model: targetModel,
             minMessages,
-            combineWithAnd: false,
+            _combineWithAnd: false,
           });
 
           // Should include sessions that match EITHER criteria
@@ -1793,7 +1807,7 @@ describe('SessionManager Property Tests', () => {
           }
         }
       ),
-      { numRuns: 20, timeout: 20000 } // 20 runs with 20 second timeout (increased due to delays)
+      { _numRuns: 20, _timeout: 20000 } // 20 runs with 20 second timeout (increased due to delays)
     );
   }, 25000); // 25 second test timeout
 
@@ -1804,7 +1818,7 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          sessionCount: fc.integer({ min: 2, max: 5 }),
+          sessionCount: fc.integer({ _min: 2, _max: 5 }),
         }),
         async ({ sessionCount }) => {
           // Ensure clean state
@@ -1836,7 +1850,7 @@ describe('SessionManager Property Tests', () => {
           }
         }
       ),
-      { numRuns: 10, timeout: 5000 }
+      { _numRuns: 10, _timeout: 5000 }
     );
   }, 8000);
 
@@ -1851,10 +1865,10 @@ describe('SessionManager Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          searchTerm: fc.string({ minLength: 4, maxLength: 8 }).filter(s => s.trim().length > 3 && /^[a-zA-Z0-9]+$/.test(s)),
-          sessionCount: fc.integer({ min: 3, max: 6 }),
+          searchTerm: fc.string({ _minLength: 4, _maxLength: 8 }).filter(s => s.trim().length > 3 && /^[a-zA-Z0-9]+$/.test(s)),
+          sessionCount: fc.integer({ _min: 3, _max: 6 }),
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet'),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 15 }).map(s => `/workspace/${s}`),
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 15 }).map(s => `/workspace/${s}`),
         }),
         async ({ searchTerm, sessionCount, model, workspaceRoot }) => {
           // Ensure clean state
@@ -1864,7 +1878,7 @@ describe('SessionManager Property Tests', () => {
           }
 
           const createdSessions: any[] = [];
-          const expectedHighlights: { sessionId: string; matchType: string }[] = [];
+          const expectedHighlights: { sessionId: string; _matchType: string }[] = [];
 
           // Create sessions with search term in different locations and contexts
           for (let i = 0; i < sessionCount; i++) {
@@ -1926,19 +1940,25 @@ describe('SessionManager Property Tests', () => {
             createdSessions.push(modifiedSession);
 
             // Track expected highlights
-            if (includeInTitle) expectedHighlights.push({ sessionId: session.id, matchType: 'title' });
-            if (includeInTags) expectedHighlights.push({ sessionId: session.id, matchType: 'tags' });
-            if (includeInContent) expectedHighlights.push({ sessionId: session.id, matchType: 'content' });
+            if (includeInTitle) {
+    expectedHighlights.push({ sessionId: session.id, matchType: 'title' });
+  }
+            if (includeInTags) {
+    expectedHighlights.push({ sessionId: session.id, matchType: 'tags' });
+  }
+            if (includeInContent) {
+    expectedHighlights.push({ sessionId: session.id, matchType: 'content' });
+  }
           }
 
           // Perform search with all enhancement features enabled
           const searchResults = await manager.searchSessions(searchTerm, {
-            includeContent: true,
-            includeMetadata: true,
-            includeFilenames: true,
-            caseSensitive: false,
+            _includeContent: true,
+            _includeMetadata: true,
+            _includeFilenames: true,
+            _caseSensitive: false,
             sortBy: 'relevance',
-            limit: 20,
+            _limit: 20,
             minRelevance: 0.1,
           });
 
@@ -2057,7 +2077,7 @@ describe('SessionManager Property Tests', () => {
           }
         }
       ),
-      { numRuns: 15, timeout: 12000 } // 15 runs with 12 second timeout
+      { _numRuns: 15, _timeout: 12000 } // 15 runs with 12 second timeout
     );
   }, 15000); // 15 second test timeout
 });

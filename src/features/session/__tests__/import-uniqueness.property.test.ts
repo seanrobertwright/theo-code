@@ -41,9 +41,9 @@ describe('Session Import Uniqueness Property Tests', () => {
     vi.mocked(getSessionsDir).mockReturnValue(tempDir);
     
     storage = new SessionStorage({ 
-      enableCompression: false,
-      enableChecksum: false,
-      createBackups: false,
+      _enableCompression: false,
+      _enableChecksum: false,
+      _createBackups: false,
     });
     manager = new SessionManager(storage);
   });
@@ -54,7 +54,7 @@ describe('Session Import Uniqueness Property Tests', () => {
     
     // Clean up temp directory
     try {
-      await fs.rm(tempDir, { recursive: true, force: true });
+      await fs.rm(tempDir, { _recursive: true, _force: true });
     } catch {
       // Ignore cleanup errors
     }
@@ -73,12 +73,12 @@ describe('Session Import Uniqueness Property Tests', () => {
         fc.array(
           fc.record({
             model: fc.constantFrom('gpt-4o', 'claude-3-sonnet'),
-            messageCount: fc.integer({ min: 1, max: 3 }),
-            workspaceRoot: fc.string({ minLength: 5, maxLength: 20 }),
-            title: fc.option(fc.string({ minLength: 1, maxLength: 20 })),
-            tags: fc.array(fc.string({ minLength: 1, maxLength: 10 }), { maxLength: 2 }),
+            messageCount: fc.integer({ _min: 1, _max: 3 }),
+            workspaceRoot: fc.string({ _minLength: 5, _maxLength: 20 }),
+            title: fc.option(fc.string({ _minLength: 1, _maxLength: 20 })),
+            tags: fc.array(fc.string({ _minLength: 1, _maxLength: 10 }), { _maxLength: 2 }),
           }),
-          { minLength: 1, maxLength: 3 }
+          { _minLength: 1, _maxLength: 3 }
         ),
         async (sessionConfigs) => {
           const createdSessions: Session[] = [];
@@ -90,7 +90,7 @@ describe('Session Import Uniqueness Property Tests', () => {
             const createOptions: CreateSessionOptions = {
               model: config.model,
               workspaceRoot: config.workspaceRoot,
-              title: config.title || undefined,
+              title: config.title ?? undefined,
               tags: config.tags,
             };
             
@@ -114,17 +114,17 @@ describe('Session Import Uniqueness Property Tests', () => {
           for (const originalSession of createdSessions) {
             const exportResult = await manager.exportSession(originalSession.id, {
               format: 'json',
-              sanitize: false,
+              _sanitize: false,
             });
             
             // Import the same session 2-3 times
-            const importCount = fc.sample(fc.integer({ min: 2, max: 3 }), 1)[0];
+            const importCount = fc.sample(fc.integer({ _min: 2, _max: 3 }), 1)[0];
             totalImportsExpected += importCount;
             
             for (let i = 0; i < importCount; i++) {
               const importResult = await manager.importSession(exportResult.data, {
-                generateNewId: true,
-                preserveTimestamps: false,
+                _generateNewId: true,
+                _preserveTimestamps: false,
               });
               
               // Verify uniqueness properties
@@ -148,7 +148,7 @@ describe('Session Import Uniqueness Property Tests', () => {
           expect(importedSessionIds.size).toBe(totalImportsExpected);
         }
       ),
-      { numRuns: 50, timeout: 15000 }
+      { _numRuns: 50, _timeout: 15000 }
     );
   }, 20000);
 
@@ -161,8 +161,8 @@ describe('Session Import Uniqueness Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet'),
-          messageCount: fc.integer({ min: 1, max: 3 }),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 20 }),
+          messageCount: fc.integer({ _min: 1, _max: 3 }),
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 20 }),
         }),
         async ({ model, messageCount, workspaceRoot }) => {
           // Create an original session
@@ -188,13 +188,13 @@ describe('Session Import Uniqueness Property Tests', () => {
           // Export the session
           const exportResult = await manager.exportSession(originalSession.id, {
             format: 'json',
-            sanitize: false,
+            _sanitize: false,
           });
           
           // Try to import with generateNewId = false (should detect conflict and generate new ID)
           const importResult = await manager.importSession(exportResult.data, {
-            generateNewId: false,
-            strictValidation: false, // Allow auto-generation when ID exists
+            _generateNewId: false,
+            _strictValidation: false, // Allow auto-generation when ID exists
           });
           
           // Verify conflict resolution
@@ -216,7 +216,7 @@ describe('Session Import Uniqueness Property Tests', () => {
           expect(importedLoaded.messages).toHaveLength(originalSession.messages.length);
         }
       ),
-      { numRuns: 50, timeout: 10000 }
+      { _numRuns: 50, _timeout: 10000 }
     );
   }, 15000);
 });

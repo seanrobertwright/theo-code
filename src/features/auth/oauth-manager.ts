@@ -17,8 +17,6 @@ import type {
   CallbackResult,
   OAuthError,
 } from './types.js';
-import { logger } from '../../shared/utils/index.js';
-
 // =============================================================================
 // OAUTH MANAGER
 // =============================================================================
@@ -45,10 +43,10 @@ export class OAuthManager implements IOAuthManager {
   } | null = null;
 
   constructor(
-    tokenStore: ITokenStore,
-    pkceGenerator: IPKCEGenerator,
-    callbackServer: ICallbackServer,
-    browserLauncher: IBrowserLauncher
+    _tokenStore: ITokenStore,
+    _pkceGenerator: IPKCEGenerator,
+    _callbackServer: ICallbackServer,
+    _browserLauncher: IBrowserLauncher
   ) {
     this.tokenStore = tokenStore;
     this.pkceGenerator = pkceGenerator;
@@ -63,7 +61,7 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Register an OAuth provider adapter.
    */
-  registerProvider(provider: ModelProvider, adapter: IOAuthProviderAdapter): void {
+  registerProvider(_provider: ModelProvider, _adapter: IOAuthProviderAdapter): void {
     this.providerAdapters.set(provider, adapter);
     logger.info(`[OAuthManager] Registered OAuth adapter for provider: ${provider}`);
   }
@@ -71,7 +69,7 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Unregister an OAuth provider adapter.
    */
-  unregisterProvider(provider: ModelProvider): void {
+  unregisterProvider(_provider: ModelProvider): void {
     this.providerAdapters.delete(provider);
     logger.info(`[OAuthManager] Unregistered OAuth adapter for provider: ${provider}`);
   }
@@ -79,7 +77,7 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Check if a provider supports OAuth.
    */
-  supportsOAuth(provider: ModelProvider): boolean {
+  supportsOAuth(_provider: ModelProvider): boolean {
     return this.providerAdapters.has(provider);
   }
 
@@ -93,7 +91,7 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Get OAuth configuration for a provider.
    */
-  getProviderOAuthConfig(provider: ModelProvider): any | null {
+  getProviderOAuthConfig(_provider: ModelProvider): any | null {
     const adapter = this.providerAdapters.get(provider);
     return adapter ? adapter.getOAuthConfig() : null;
   }
@@ -105,7 +103,7 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Initiate OAuth flow for a provider.
    */
-  async initiateFlow(provider: ModelProvider): Promise<OAuthResult> {
+  async initiateFlow(_provider: ModelProvider): Promise<OAuthResult> {
     try {
       logger.info(`[OAuthManager] Initiating OAuth flow for provider: ${provider}`);
 
@@ -159,7 +157,7 @@ export class OAuthManager implements IOAuthManager {
       logger.info(`[OAuthManager] OAuth flow completed successfully for provider: ${provider}`);
       
       return {
-        success: true,
+        _success: true,
         tokens,
         provider,
       };
@@ -171,7 +169,7 @@ export class OAuthManager implements IOAuthManager {
       await this.cleanup();
       
       return {
-        success: false,
+        _success: false,
         error: error instanceof Error ? error.message : 'Unknown OAuth error',
         provider,
       };
@@ -181,7 +179,7 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Handle OAuth callback with authorization code.
    */
-  async handleCallback(code: string, state: string): Promise<TokenSet> {
+  async handleCallback(_code: string, _state: string): Promise<TokenSet> {
     if (!this.activeFlow) {
       throw new Error('No active OAuth flow');
     }
@@ -218,7 +216,7 @@ export class OAuthManager implements IOAuthManager {
    * Ensure tokens are valid and refresh if needed.
    * This method should be called before making API calls.
    */
-  async ensureValidTokens(provider: ModelProvider): Promise<TokenSet> {
+  async ensureValidTokens(_provider: ModelProvider): Promise<TokenSet> {
     logger.debug(`[OAuthManager] Ensuring valid tokens for provider: ${provider}`);
 
     const adapter = this.providerAdapters.get(provider);
@@ -268,7 +266,7 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Check if tokens need refresh (expired or expiring soon).
    */
-  async needsTokenRefresh(provider: ModelProvider): Promise<boolean> {
+  async needsTokenRefresh(_provider: ModelProvider): Promise<boolean> {
     try {
       const tokens = await this.tokenStore.getTokens(provider);
       if (!tokens) {
@@ -290,7 +288,7 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Get time until token expiration in milliseconds.
    */
-  async getTimeUntilExpiration(provider: ModelProvider): Promise<number | null> {
+  async getTimeUntilExpiration(_provider: ModelProvider): Promise<number | null> {
     try {
       const tokens = await this.tokenStore.getTokens(provider);
       if (!tokens) {
@@ -311,7 +309,7 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Refresh expired tokens for a provider.
    */
-  async refreshTokens(provider: ModelProvider): Promise<TokenSet> {
+  async refreshTokens(_provider: ModelProvider): Promise<TokenSet> {
     logger.debug(`[OAuthManager] Refreshing tokens for provider: ${provider}`);
 
     const adapter = this.providerAdapters.get(provider);
@@ -363,8 +361,10 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Check if an error indicates refresh token expiration.
    */
-  private isRefreshTokenExpiredError(error: any): boolean {
-    if (!error) return false;
+  private isRefreshTokenExpiredError(_error: any): boolean {
+    if (!error) {
+    return false;
+  }
     
     const errorMessage = error.message?.toLowerCase() || '';
     const errorCode = error.code?.toLowerCase() || '';
@@ -386,7 +386,7 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Revoke tokens and clear authentication for a provider.
    */
-  async revokeTokens(provider: ModelProvider): Promise<void> {
+  async revokeTokens(_provider: ModelProvider): Promise<void> {
     logger.info(`[OAuthManager] Revoking tokens for provider: ${provider}`);
 
     const adapter = this.providerAdapters.get(provider);
@@ -411,15 +411,15 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Get authentication status for a provider.
    */
-  async getAuthStatus(provider: ModelProvider): Promise<AuthStatus> {
+  async getAuthStatus(_provider: ModelProvider): Promise<AuthStatus> {
     const supportsOAuth = this.supportsOAuth(provider);
     
     if (!supportsOAuth) {
       return {
         provider,
-        authenticated: false,
+        _authenticated: false,
         method: 'none',
-        needsRefresh: false,
+        _needsRefresh: false,
       };
     }
 
@@ -428,9 +428,9 @@ export class OAuthManager implements IOAuthManager {
     if (!tokens) {
       return {
         provider,
-        authenticated: false,
+        _authenticated: false,
         method: 'oauth',
-        needsRefresh: false,
+        _needsRefresh: false,
       };
     }
 
@@ -439,7 +439,7 @@ export class OAuthManager implements IOAuthManager {
 
     return {
       provider,
-      authenticated: isValid,
+      _authenticated: isValid,
       method: 'oauth',
       expiresAt: tokens.expiresAt,
       needsRefresh,
@@ -454,7 +454,7 @@ export class OAuthManager implements IOAuthManager {
    * Build authorization URL with PKCE parameters.
    */
   private buildAuthorizationUrl(
-    config: any,
+    _config: any,
     params: {
       state: string;
       codeChallenge: string;
@@ -501,7 +501,7 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Validate state parameter against active flow.
    */
-  private validateState(receivedState: string): boolean {
+  private validateState(_receivedState: string): boolean {
     if (!this.activeFlow) {
       logger.warn('[OAuthManager] No active flow to validate state against');
       return false;
@@ -518,7 +518,7 @@ export class OAuthManager implements IOAuthManager {
   /**
    * Process OAuth callback result.
    */
-  private async processCallback(result: CallbackResult): Promise<TokenSet> {
+  private async processCallback(_result: CallbackResult): Promise<TokenSet> {
     if (result.error) {
       throw new Error(`OAuth error: ${result.error} - ${result.errorDescription || 'Unknown error'}`);
     }
@@ -535,7 +535,7 @@ export class OAuthManager implements IOAuthManager {
    */
   private async cleanup(): Promise<void> {
     try {
-      if (this.callbackServer.isRunning()) {
+      if (this.callbackServer.isRunning() {
         await this.callbackServer.stop();
       }
       this.activeFlow = null;

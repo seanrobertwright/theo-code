@@ -29,8 +29,6 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
-import { logger } from '../../../shared/utils/index.js';
-
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -132,7 +130,7 @@ function emitToolCalls(accumulators: Map<number, ToolCallAccumulator>): StreamCh
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(message: Message): string {
+function getMessageContent(_message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -147,8 +145,8 @@ function getMessageContent(message: Message): string {
  * Converts an assistant message to OpenAI format.
  */
 function convertAssistantMessage(
-  message: Message,
-  content: string
+  _message: Message,
+  _content: string
 ): ChatCompletionMessageParam {
   if (message.toolCalls !== undefined && message.toolCalls.length > 0) {
     return {
@@ -170,7 +168,7 @@ function convertAssistantMessage(
 /**
  * Converts tool result messages to OpenAI format.
  */
-function convertToolMessage(message: Message): ChatCompletionMessageParam[] {
+function convertToolMessage(_message: Message): ChatCompletionMessageParam[] {
   if (message.toolResults === undefined) {
     return [];
   }
@@ -230,7 +228,7 @@ function convertTools(tools: UniversalToolDefinition[]): ChatCompletionTool[] {
 /**
  * Maps API errors to StreamChunk error format.
  */
-function handleApiError(error: unknown): StreamChunk {
+function handleApiError(_error: unknown): StreamChunk {
   if (error instanceof Error && 'status' in error) {
     const apiError = error as Error & { status?: number };
     const code = ERROR_STATUS_MAP[apiError.status ?? 0] ?? 'API_ERROR';
@@ -264,10 +262,10 @@ function getTiktokenModel(model: string): TiktokenModel {
   if (model.startsWith('gpt-4o') || model.startsWith('o1')) {
     return 'gpt-4o';
   }
-  if (model.startsWith('gpt-4')) {
+  if (model.startsWith('gpt-4') {
     return 'gpt-4';
   }
-  if (model.startsWith('gpt-3.5')) {
+  if (model.startsWith('gpt-3.5') {
     return 'gpt-3.5-turbo';
   }
   return 'gpt-4o';
@@ -276,7 +274,7 @@ function getTiktokenModel(model: string): TiktokenModel {
 /**
  * Counts tokens using tiktoken.
  */
-function countTokensWithTiktoken(messages: Message[], model: string): number {
+function countTokensWithTiktoken(messages: Message[], _model: string): number {
   const tiktokenModel = getTiktokenModel(model);
   const encoding = encoding_for_model(tiktokenModel);
 
@@ -320,7 +318,7 @@ function estimateTokens(messages: Message[]): number {
  * });
  *
  * for await (const chunk of adapter.generateStream(messages, tools)) {
- *   console.log(chunk);
+ *   console.warn(chunk);
  * }
  * ```
  */
@@ -336,14 +334,14 @@ export class OpenAIAdapter implements IModelAdapter {
   /**
    * Creates a new OpenAI adapter.
    */
-  constructor(config: ModelConfig) {
+  constructor(_config: ModelConfig) {
     this.config = config;
     this.model = config.model;
     this.contextLimit = config.contextLimit ?? MODEL_CONTEXT_LIMITS[config.model] ?? 128000;
     this.supportsToolCalling = TOOL_CALLING_MODELS.has(config.model);
 
     const apiKey = config.apiKey ?? process.env['OPENAI_API_KEY'];
-    if (apiKey === undefined || apiKey === '') {
+    if (apiKey === undefined ?? apiKey === '') {
       throw new AdapterError(
         'INVALID_CONFIG',
         'openai',
@@ -421,7 +419,7 @@ export class OpenAIAdapter implements IModelAdapter {
     const requestParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
       model: this.model,
       messages,
-      stream: true,
+      _stream: true,
       temperature: options?.temperature ?? 0.7,
       max_tokens: options?.maxTokens ?? this.config.maxOutputTokens,
       ...(tools !== undefined ? { tools } : {}),
@@ -500,7 +498,7 @@ export class OpenAIAdapter implements IModelAdapter {
 /**
  * Creates an OpenAI adapter from configuration.
  */
-function createOpenAIAdapter(config: ModelConfig): IModelAdapter {
+function createOpenAIAdapter(_config: ModelConfig): IModelAdapter {
   return new OpenAIAdapter(config);
 }
 

@@ -5,8 +5,6 @@
 
 import type { ModelProvider } from '../../shared/types/models.js';
 import type { IOAuthManager, ITokenStore, TokenSet, AuthStatus } from './types.js';
-import { logger } from '../../shared/utils/index.js';
-
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -97,7 +95,7 @@ export class AuthenticationManager {
   private readonly authConfigs = new Map<ModelProvider, AuthConfig>();
   private readonly currentAuthMethods = new Map<ModelProvider, AuthMethod>();
 
-  constructor(oauthManager: IOAuthManager) {
+  constructor(_oauthManager: IOAuthManager) {
     this.oauthManager = oauthManager;
   }
 
@@ -108,7 +106,7 @@ export class AuthenticationManager {
   /**
    * Configure authentication for a provider.
    */
-  configureProvider(provider: ModelProvider, config: AuthConfig): void {
+  configureProvider(_provider: ModelProvider, _config: AuthConfig): void {
     this.authConfigs.set(provider, config);
     logger.info(`[AuthManager] Configured authentication for provider: ${provider}`);
     logger.debug(`[AuthManager] Config for ${provider}:`, {
@@ -122,14 +120,14 @@ export class AuthenticationManager {
   /**
    * Get authentication configuration for a provider.
    */
-  getProviderConfig(provider: ModelProvider): AuthConfig | null {
+  getProviderConfig(_provider: ModelProvider): AuthConfig | null {
     return this.authConfigs.get(provider) || null;
   }
 
   /**
    * Remove authentication configuration for a provider.
    */
-  removeProviderConfig(provider: ModelProvider): void {
+  removeProviderConfig(_provider: ModelProvider): void {
     this.authConfigs.delete(provider);
     logger.info(`[AuthManager] Removed authentication config for provider: ${provider}`);
   }
@@ -141,17 +139,17 @@ export class AuthenticationManager {
   /**
    * Get authentication credentials for a provider with priority and fallback logic.
    */
-  async authenticate(provider: ModelProvider): Promise<AuthResult> {
+  async authenticate(_provider: ModelProvider): Promise<AuthResult> {
     logger.debug(`[AuthManager] Authenticating provider: ${provider}`);
 
     const config = this.authConfigs.get(provider);
     if (!config) {
       logger.warn(`[AuthManager] No authentication config for provider: ${provider}`);
       return {
-        success: false,
+        _success: false,
         method: 'none',
         error: `No authentication configuration for provider: ${provider}`,
-        usedFallback: false,
+        _usedFallback: false,
       };
     }
 
@@ -182,26 +180,26 @@ export class AuthenticationManager {
     logger.error(`[AuthManager] All authentication methods failed for provider: ${provider}`);
     this.currentAuthMethods.set(provider, 'none');
     return {
-      success: false,
+      _success: false,
       method: 'none',
       error: `All authentication methods failed for provider: ${provider}`,
-      usedFallback: false,
+      _usedFallback: false,
     };
   }
 
   /**
    * Ensure valid authentication credentials, refreshing if needed.
    */
-  async ensureValidAuthentication(provider: ModelProvider): Promise<AuthResult> {
+  async ensureValidAuthentication(_provider: ModelProvider): Promise<AuthResult> {
     logger.debug(`[AuthManager] Ensuring valid authentication for provider: ${provider}`);
 
     const config = this.authConfigs.get(provider);
     if (!config) {
       return {
-        success: false,
+        _success: false,
         method: 'none',
         error: `No authentication configuration for provider: ${provider}`,
-        usedFallback: false,
+        _usedFallback: false,
       };
     }
 
@@ -215,10 +213,10 @@ export class AuthenticationManager {
         const tokens = await this.oauthManager.ensureValidTokens(provider);
         
         return {
-          success: true,
+          _success: true,
           method: 'oauth',
           credential: tokens.accessToken,
-          usedFallback: false,
+          _usedFallback: false,
         };
       } catch (error) {
         logger.warn(`[AuthManager] OAuth token refresh failed for ${provider}:`, error);
@@ -228,19 +226,19 @@ export class AuthenticationManager {
           logger.info(`[AuthManager] Falling back to API key for provider: ${provider}`);
           this.currentAuthMethods.set(provider, 'api_key');
           return {
-            success: true,
+            _success: true,
             method: 'api_key',
             credential: config.apiKey,
-            usedFallback: true,
+            _usedFallback: true,
           };
         }
         
         this.currentAuthMethods.set(provider, 'none');
         return {
-          success: false,
+          _success: false,
           method: 'oauth',
           error: `OAuth refresh failed and no fallback available for provider: ${provider}`,
-          usedFallback: false,
+          _usedFallback: false,
         };
       }
     }
@@ -259,10 +257,10 @@ export class AuthenticationManager {
             credential = config.apiKey;
             this.currentAuthMethods.set(provider, 'api_key');
             return {
-              success: true,
+              _success: true,
               method: 'api_key',
               credential,
-              usedFallback: true,
+              _usedFallback: true,
             };
           }
           throw error;
@@ -272,9 +270,9 @@ export class AuthenticationManager {
       }
         
       const result: AuthResult = {
-        success: true,
+        _success: true,
         method: status.currentMethod,
-        usedFallback: false,
+        _usedFallback: false,
       };
       
       if (credential) {
@@ -295,7 +293,7 @@ export class AuthenticationManager {
   /**
    * Get comprehensive authentication status for a provider.
    */
-  async getProviderAuthStatus(provider: ModelProvider): Promise<ProviderAuthStatus> {
+  async getProviderAuthStatus(_provider: ModelProvider): Promise<ProviderAuthStatus> {
     const config = this.authConfigs.get(provider);
     const supportsOAuth = this.oauthManager.supportsOAuth(provider);
     
@@ -379,7 +377,7 @@ export class AuthenticationManager {
   /**
    * Determine authentication method priority based on configuration.
    */
-  private getAuthMethodPriority(provider: ModelProvider, config: AuthConfig): AuthMethod[] {
+  private getAuthMethodPriority(_provider: ModelProvider, _config: AuthConfig): AuthMethod[] {
     const methods: AuthMethod[] = [];
     const supportsOAuth = this.oauthManager.supportsOAuth(provider);
 
@@ -407,9 +405,9 @@ export class AuthenticationManager {
    * Try a specific authentication method.
    */
   private async tryAuthMethod(
-    provider: ModelProvider, 
-    method: AuthMethod, 
-    config: AuthConfig
+    _provider: ModelProvider, 
+    _method: AuthMethod, 
+    _config: AuthConfig
   ): Promise<AuthResult> {
     switch (method) {
       case 'oauth':
@@ -420,10 +418,10 @@ export class AuthenticationManager {
       
       default:
         return {
-          success: false,
+          _success: false,
           method: 'none',
           error: `Unsupported authentication method: ${method}`,
-          usedFallback: false,
+          _usedFallback: false,
         };
     }
   }
@@ -431,17 +429,17 @@ export class AuthenticationManager {
   /**
    * Try OAuth authentication.
    */
-  private async tryOAuthAuthentication(provider: ModelProvider): Promise<AuthResult> {
+  private async tryOAuthAuthentication(_provider: ModelProvider): Promise<AuthResult> {
     try {
       // Check if already authenticated
       const status = await this.oauthManager.getAuthStatus(provider);
       if (status.authenticated) {
         const tokens = await this.oauthManager.ensureValidTokens(provider);
         return {
-          success: true,
+          _success: true,
           method: 'oauth',
           credential: tokens.accessToken,
-          usedFallback: false,
+          _usedFallback: false,
         };
       }
 
@@ -449,25 +447,25 @@ export class AuthenticationManager {
       const result = await this.oauthManager.initiateFlow(provider);
       if (result.success && result.tokens) {
         return {
-          success: true,
+          _success: true,
           method: 'oauth',
           credential: result.tokens.accessToken,
-          usedFallback: false,
+          _usedFallback: false,
         };
       }
 
       return {
-        success: false,
+        _success: false,
         method: 'oauth',
         error: result.error || `OAuth authentication failed for provider: ${provider}`,
-        usedFallback: false,
+        _usedFallback: false,
       };
     } catch (error) {
       return {
-        success: false,
+        _success: false,
         method: 'oauth',
         error: error instanceof Error ? error.message : 'OAuth authentication failed',
-        usedFallback: false,
+        _usedFallback: false,
       };
     }
   }
@@ -475,23 +473,23 @@ export class AuthenticationManager {
   /**
    * Try API key authentication.
    */
-  private async tryApiKeyAuthentication(provider: ModelProvider, config: AuthConfig): Promise<AuthResult> {
+  private async tryApiKeyAuthentication(_provider: ModelProvider, _config: AuthConfig): Promise<AuthResult> {
     if (!config.apiKey) {
       return {
-        success: false,
+        _success: false,
         method: 'api_key',
         error: `No API key configured for provider: ${provider}`,
-        usedFallback: false,
+        _usedFallback: false,
       };
     }
 
     // API key authentication is always successful if key is present
     // Actual validation would happen when making API calls
     return {
-      success: true,
+      _success: true,
       method: 'api_key',
       credential: config.apiKey,
-      usedFallback: false,
+      _usedFallback: false,
     };
   }
 
@@ -502,9 +500,11 @@ export class AuthenticationManager {
   /**
    * Check if a provider has any authentication configured.
    */
-  hasAuthentication(provider: ModelProvider): boolean {
+  hasAuthentication(_provider: ModelProvider): boolean {
     const config = this.authConfigs.get(provider);
-    if (!config) return false;
+    if (!config) {
+    return false;
+  }
 
     const supportsOAuth = this.oauthManager.supportsOAuth(provider);
     return (config.oauthEnabled && supportsOAuth) || !!config.apiKey;
@@ -513,9 +513,11 @@ export class AuthenticationManager {
   /**
    * Get available authentication methods for a provider.
    */
-  getAvailableAuthMethods(provider: ModelProvider): AuthMethod[] {
+  getAvailableAuthMethods(_provider: ModelProvider): AuthMethod[] {
     const config = this.authConfigs.get(provider);
-    if (!config) return ['none'];
+    if (!config) {
+    return ['none'];
+  }
 
     const methods: AuthMethod[] = [];
     const supportsOAuth = this.oauthManager.supportsOAuth(provider);
@@ -536,11 +538,11 @@ export class AuthenticationManager {
   /**
    * Clear authentication for a provider.
    */
-  async clearAuthentication(provider: ModelProvider): Promise<void> {
+  async clearAuthentication(_provider: ModelProvider): Promise<void> {
     logger.info(`[AuthManager] Clearing authentication for provider: ${provider}`);
 
     // Revoke OAuth tokens if present
-    if (this.oauthManager.supportsOAuth(provider)) {
+    if (this.oauthManager.supportsOAuth(provider) {
       try {
         await this.oauthManager.revokeTokens(provider);
       } catch (error) {
@@ -580,6 +582,6 @@ export class AuthenticationManager {
 /**
  * Create a new authentication manager instance.
  */
-export function createAuthenticationManager(oauthManager: IOAuthManager): AuthenticationManager {
+export function createAuthenticationManager(_oauthManager: IOAuthManager): AuthenticationManager {
   return new AuthenticationManager(oauthManager);
 }

@@ -38,7 +38,7 @@ export async function ensureSessionsDirectory(): Promise<string> {
   try {
     // Check if directory exists
     const stats = await fs.stat(sessionsDir);
-    if (!stats.isDirectory()) {
+    if (!stats.isDirectory() {
       throw new Error(`Sessions path exists but is not a directory: ${sessionsDir}`);
     }
     
@@ -46,10 +46,10 @@ export async function ensureSessionsDirectory(): Promise<string> {
     await validateDirectoryPermissions(sessionsDir);
     
     return sessionsDir;
-  } catch (error: any) {
+  } catch (_error: any) {
     if (error.code === 'ENOENT') {
       // Directory doesn't exist, create it
-      await fs.mkdir(sessionsDir, { recursive: true, mode: SESSION_DIR_MODE });
+      await fs.mkdir(sessionsDir, { _recursive: true, _mode: SESSION_DIR_MODE });
       return sessionsDir;
     }
     throw error;
@@ -62,7 +62,7 @@ export async function ensureSessionsDirectory(): Promise<string> {
  * @param dirPath - Path to the directory to validate
  * @throws {Error} If permissions are incorrect
  */
-async function validateDirectoryPermissions(dirPath: string): Promise<void> {
+async function validateDirectoryPermissions(_dirPath: string): Promise<void> {
   try {
     const stats = await fs.stat(dirPath);
     const mode = stats.mode & parseInt('777', 8);
@@ -71,7 +71,7 @@ async function validateDirectoryPermissions(dirPath: string): Promise<void> {
       // Attempt to fix permissions
       await fs.chmod(dirPath, SESSION_DIR_MODE);
     }
-  } catch (error: any) {
+  } catch (_error: any) {
     throw new Error(`Failed to validate directory permissions for ${dirPath}: ${error.message}`);
   }
 }
@@ -90,8 +90,8 @@ async function validateDirectoryPermissions(dirPath: string): Promise<void> {
  * @throws {Error} If write operation fails
  */
 export async function atomicWriteFile(
-  filePath: string,
-  data: string,
+  _filePath: string,
+  _data: string,
   options: {
     createBackup?: boolean;
     encoding?: BufferEncoding;
@@ -107,7 +107,7 @@ export async function atomicWriteFile(
     try {
       // Ensure parent directory exists
       const parentDir = path.dirname(filePath);
-      await fs.mkdir(parentDir, { recursive: true, mode: SESSION_DIR_MODE });
+      await fs.mkdir(parentDir, { _recursive: true, _mode: SESSION_DIR_MODE });
       
       // Create backup if file exists and backup is requested
       if (createBackup && await fileExists(filePath)) {
@@ -117,12 +117,12 @@ export async function atomicWriteFile(
       
       // For simplicity in tests, write directly to the target file
       // In production, this would use a proper atomic write with temp files
-      await fs.writeFile(filePath, data, { encoding, mode: SESSION_FILE_MODE });
+      await fs.writeFile(filePath, data, { encoding, _mode: SESSION_FILE_MODE });
       
       // Success - exit retry loop
       return;
       
-    } catch (error: any) {
+    } catch (_error: any) {
       lastError = error;
       
       // Check if this is a Windows file locking error that we should retry
@@ -155,7 +155,7 @@ export async function atomicWriteFile(
  * @throws {Error} If read operation fails
  */
 export async function safeReadFile(
-  filePath: string,
+  _filePath: string,
   options: {
     encoding?: BufferEncoding;
     maxSize?: number;
@@ -172,7 +172,7 @@ export async function safeReadFile(
       // Check file exists and get stats
       const stats = await fs.stat(filePath);
       
-      if (!stats.isFile()) {
+      if (!stats.isFile() {
         throw new Error(`Path is not a file: ${filePath}`);
       }
       
@@ -188,7 +188,7 @@ export async function safeReadFile(
       
       return data;
       
-    } catch (error: any) {
+    } catch (_error: any) {
       lastError = error;
       
       if (error.code === 'ENOENT') {
@@ -221,7 +221,7 @@ export async function safeReadFile(
  * @param filePath - Path to the file to validate
  * @throws {Error} If permissions are incorrect or cannot be fixed
  */
-async function validateFilePermissions(filePath: string): Promise<void> {
+async function validateFilePermissions(_filePath: string): Promise<void> {
   try {
     const stats = await fs.stat(filePath);
     const mode = stats.mode & parseInt('777', 8);
@@ -230,7 +230,7 @@ async function validateFilePermissions(filePath: string): Promise<void> {
       // Attempt to fix permissions
       await fs.chmod(filePath, SESSION_FILE_MODE);
     }
-  } catch (error: any) {
+  } catch (_error: any) {
     throw new Error(`Failed to validate file permissions for ${filePath}: ${error.message}`);
   }
 }
@@ -245,7 +245,7 @@ async function validateFilePermissions(filePath: string): Promise<void> {
  * @param data - Data to compress
  * @returns Promise resolving to compressed data as base64 string
  */
-export async function compressData(data: string): Promise<string> {
+export async function compressData(_data: string): Promise<string> {
   const { gzip } = await import('node:zlib');
   const { promisify } = await import('node:util');
   const gzipAsync = promisify(gzip);
@@ -254,7 +254,7 @@ export async function compressData(data: string): Promise<string> {
     const buffer = Buffer.from(data, 'utf8');
     const compressed = await gzipAsync(buffer);
     return compressed.toString('base64');
-  } catch (error: any) {
+  } catch (_error: any) {
     throw new Error(`Compression failed: ${error.message}`);
   }
 }
@@ -265,7 +265,7 @@ export async function compressData(data: string): Promise<string> {
  * @param compressedData - Base64-encoded compressed data
  * @returns Promise resolving to decompressed string
  */
-export async function decompressData(compressedData: string): Promise<string> {
+export async function decompressData(_compressedData: string): Promise<string> {
   const { gunzip } = await import('node:zlib');
   const { promisify } = await import('node:util');
   const gunzipAsync = promisify(gunzip);
@@ -274,7 +274,7 @@ export async function decompressData(compressedData: string): Promise<string> {
     const buffer = Buffer.from(compressedData, 'base64');
     const decompressed = await gunzipAsync(buffer);
     return decompressed.toString('utf8');
-  } catch (error: any) {
+  } catch (_error: any) {
     throw new Error(`Decompression failed: ${error.message}`);
   }
 }
@@ -285,7 +285,7 @@ export async function decompressData(compressedData: string): Promise<string> {
  * @param data - Data to checksum
  * @returns Hex-encoded checksum
  */
-export function calculateChecksum(data: string): string {
+export function calculateChecksum(_data: string): string {
   return crypto.createHash('sha256').update(data, 'utf8').digest('hex');
 }
 
@@ -296,7 +296,7 @@ export function calculateChecksum(data: string): string {
  * @param expectedChecksum - Expected hex-encoded checksum
  * @returns True if checksum matches
  */
-export function verifyChecksum(data: string, expectedChecksum: string): boolean {
+export function verifyChecksum(_data: string, _expectedChecksum: string): boolean {
   const actualChecksum = calculateChecksum(data);
   return actualChecksum === expectedChecksum;
 }
@@ -311,7 +311,7 @@ export function verifyChecksum(data: string, expectedChecksum: string): boolean 
  * @param filePath - Path to check
  * @returns Promise resolving to true if file exists
  */
-export async function fileExists(filePath: string): Promise<boolean> {
+export async function fileExists(_filePath: string): Promise<boolean> {
   try {
     await fs.access(filePath);
     return true;
@@ -326,10 +326,10 @@ export async function fileExists(filePath: string): Promise<boolean> {
  * @param filePath - Path to the file to delete
  * @returns Promise resolving when deletion is complete
  */
-export async function safeDeleteFile(filePath: string): Promise<void> {
+export async function safeDeleteFile(_filePath: string): Promise<void> {
   try {
     await fs.unlink(filePath);
-  } catch (error: any) {
+  } catch (_error: any) {
     if (error.code !== 'ENOENT') {
       throw new Error(`Failed to delete file ${filePath}: ${error.message}`);
     }
@@ -343,7 +343,7 @@ export async function safeDeleteFile(filePath: string): Promise<void> {
  * @param sessionId - Session ID
  * @returns Full path to the session file
  */
-export function getSessionFilePath(sessionId: string): string {
+export function getSessionFilePath(_sessionId: string): string {
   const sessionsDir = getSessionsDir();
   return path.join(sessionsDir, `${sessionId}.json`);
 }
@@ -371,7 +371,7 @@ export async function listSessionFiles(): Promise<string[]> {
     return files
       .filter(file => file.endsWith('.json') && file !== 'index.json')
       .map(file => path.join(sessionsDir, file));
-  } catch (error: any) {
+  } catch (_error: any) {
     throw new Error(`Failed to list session files: ${error.message}`);
   }
 }
@@ -395,7 +395,7 @@ export async function repairSessionFilePermissions(): Promise<number> {
       const filePath = path.join(sessionsDir, file);
       const stats = await fs.stat(filePath);
       
-      if (stats.isFile()) {
+      if (stats.isFile() {
         const mode = stats.mode & parseInt('777', 8);
         if (mode !== SESSION_FILE_MODE) {
           await fs.chmod(filePath, SESSION_FILE_MODE);
@@ -405,7 +405,7 @@ export async function repairSessionFilePermissions(): Promise<number> {
     }
     
     return repairedCount;
-  } catch (error: any) {
+  } catch (_error: any) {
     throw new Error(`Failed to repair file permissions: ${error.message}`);
   }
 }

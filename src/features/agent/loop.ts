@@ -17,8 +17,6 @@ import { OpenAIAdapter } from '../model/adapters/openai.js';
 import { useAppStore } from '../../shared/store/index.js';
 import { toolRegistry } from '../tools/framework.js';
 import { confirmationService } from '../tools/confirmation.js';
-import { logger } from '../../shared/utils/index.js';
-
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -218,8 +216,8 @@ function updateSessionTokens(usage: TokenUsage): void {
  *     provider: 'openai',
  *     model: 'gpt-4o',
  *     apiKey: process.env.OPENAI_API_KEY,
- *     contextLimit: 128000,
- *     maxOutputTokens: 4096,
+ *     _contextLimit: 128000,
+ *     _maxOutputTokens: 4096,
  *   },
  * });
  *
@@ -254,13 +252,13 @@ export class AgentLoop {
         // Create tool context
         const context: ToolContext = {
           workspaceRoot: store.workspaceRoot,
-          confirm: (message: string, details?: string) => 
+          confirm: (_message: string, details?: string) => 
             confirmationService.requestConfirmation(message, details),
-          onProgress: (message: string) => {
+          onProgress: (_message: string) => {
             // TODO: Update progress in UI
-            console.log(`Tool progress: ${message}`);
+            console.warn(`Tool progress: ${message}`);
           },
-          debug: (message: string, data?: unknown) => {
+          debug: (_message: string, data?: unknown) => {
             console.debug(`Tool debug [${toolCall.name}]: ${message}`, data);
           },
         };
@@ -289,7 +287,7 @@ export class AgentLoop {
         toolResults.push({
           toolCallId: toolCall.id,
           content: `Error: ${errorMessage}`,
-          isError: true,
+          _isError: true,
         });
 
         // Remove from pending

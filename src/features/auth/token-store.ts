@@ -7,8 +7,6 @@ import * as keytar from 'keytar';
 import type { ModelProvider } from '../../shared/types/models.js';
 import type { ITokenStore, TokenSet } from './types.js';
 import { TokenSetSchema } from './types.js';
-import { logger } from '../../shared/utils/index.js';
-
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -39,7 +37,7 @@ export class TokenStore implements ITokenStore {
   /**
    * Store OAuth tokens securely in the system keychain.
    */
-  async storeTokens(provider: ModelProvider, tokens: TokenSet): Promise<void> {
+  async storeTokens(_provider: ModelProvider, _tokens: TokenSet): Promise<void> {
     try {
       logger.debug(`[TokenStore] Storing tokens for provider: ${provider}`);
 
@@ -69,7 +67,7 @@ export class TokenStore implements ITokenStore {
   /**
    * Retrieve stored tokens from the system keychain.
    */
-  async getTokens(provider: ModelProvider): Promise<TokenSet | null> {
+  async getTokens(_provider: ModelProvider): Promise<TokenSet | null> {
     try {
       logger.debug(`[TokenStore] Retrieving tokens for provider: ${provider}`);
 
@@ -112,7 +110,7 @@ export class TokenStore implements ITokenStore {
   /**
    * Clear stored tokens from the system keychain.
    */
-  async clearTokens(provider: ModelProvider): Promise<void> {
+  async clearTokens(_provider: ModelProvider): Promise<void> {
     try {
       logger.debug(`[TokenStore] Clearing tokens for provider: ${provider}`);
 
@@ -137,7 +135,7 @@ export class TokenStore implements ITokenStore {
   /**
    * Check if stored tokens are valid (exist and not expired).
    */
-  async isTokenValid(provider: ModelProvider): Promise<boolean> {
+  async isTokenValid(_provider: ModelProvider): Promise<boolean> {
     try {
       const tokens = await this.getTokens(provider);
       
@@ -165,7 +163,7 @@ export class TokenStore implements ITokenStore {
   /**
    * Refresh tokens if needed (expired or expiring soon).
    */
-  async refreshIfNeeded(provider: ModelProvider): Promise<TokenSet | null> {
+  async refreshIfNeeded(_provider: ModelProvider): Promise<TokenSet | null> {
     try {
       const tokens = await this.getTokens(provider);
       
@@ -201,7 +199,7 @@ export class TokenStore implements ITokenStore {
   /**
    * Check if tokens are expired.
    */
-  async isTokenExpired(provider: ModelProvider): Promise<boolean> {
+  async isTokenExpired(_provider: ModelProvider): Promise<boolean> {
     const tokens = await this.getTokens(provider);
     
     if (!tokens) {
@@ -214,7 +212,7 @@ export class TokenStore implements ITokenStore {
   /**
    * Check if tokens are expiring soon (within buffer time).
    */
-  async isTokenExpiringSoon(provider: ModelProvider): Promise<boolean> {
+  async isTokenExpiringSoon(_provider: ModelProvider): Promise<boolean> {
     const tokens = await this.getTokens(provider);
     
     if (!tokens) {
@@ -227,7 +225,7 @@ export class TokenStore implements ITokenStore {
   /**
    * Get time until token expiration in milliseconds.
    */
-  async getTimeUntilExpiration(provider: ModelProvider): Promise<number | null> {
+  async getTimeUntilExpiration(_provider: ModelProvider): Promise<number | null> {
     const tokens = await this.getTokens(provider);
     
     if (!tokens) {
@@ -244,7 +242,7 @@ export class TokenStore implements ITokenStore {
   /**
    * Generate keychain account name for a provider.
    */
-  private getKeychainAccount(provider: ModelProvider): string {
+  private getKeychainAccount(_provider: ModelProvider): string {
     return `oauth-tokens-${provider}`;
   }
 
@@ -312,9 +310,9 @@ export class TokenStore implements ITokenStore {
   /**
    * Get keychain service information.
    */
-  getKeychainInfo(): { service: string; platform: string } {
+  getKeychainInfo(): { service: string; _platform: string } {
     return {
-      service: KEYCHAIN_SERVICE,
+      _service: KEYCHAIN_SERVICE,
       platform: process.platform,
     };
   }

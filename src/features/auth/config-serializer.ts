@@ -130,7 +130,7 @@ const SENSITIVE_KEY_PATTERNS = [
 /**
  * Check if a configuration key contains sensitive data.
  */
-function isSensitiveKey(key: string): boolean {
+function isSensitiveKey(_key: string): boolean {
   return SENSITIVE_KEY_PATTERNS.some(pattern => pattern.test(key));
 }
 
@@ -142,14 +142,14 @@ function filterSensitiveData(obj: any): any {
     return obj;
   }
   
-  if (Array.isArray(obj)) {
+  if (Array.isArray(obj) {
     return obj.map(filterSensitiveData);
   }
   
   if (typeof obj === 'object') {
     const filtered: any = {};
     for (const [key, value] of Object.entries(obj)) {
-      if (!isSensitiveKey(key)) {
+      if (!isSensitiveKey(key) {
         filtered[key] = filterSensitiveData(value);
       } else {
         // Replace sensitive values with placeholder
@@ -173,7 +173,7 @@ export class OAuthConfigSerializer {
   /**
    * Serialize OAuth configuration to YAML format with security masking.
    */
-  static serializeOAuthConfig(config: OAuthConfig, settings: OAuthProviderSettings): string {
+  static serializeOAuthConfig(_config: OAuthConfig, _settings: OAuthProviderSettings): string {
     const secureConfig: SecureOAuthConfig = {
       provider: config.provider,
       clientId: config.clientId,
@@ -190,16 +190,16 @@ export class OAuthConfigSerializer {
     };
     
     return stringifyYaml(secureConfig, {
-      indent: 2,
-      lineWidth: 120,
-      minContentWidth: 0,
+      _indent: 2,
+      _lineWidth: 120,
+      _minContentWidth: 0,
     });
   }
   
   /**
    * Deserialize OAuth configuration from YAML format.
    */
-  static deserializeOAuthConfig(yamlContent: string): SecureOAuthConfig {
+  static deserializeOAuthConfig(_yamlContent: string): SecureOAuthConfig {
     try {
       const parsed = parseYaml(yamlContent);
       return SecureOAuthConfigSchema.parse(parsed);
@@ -211,7 +211,7 @@ export class OAuthConfigSerializer {
   /**
    * Serialize provider configuration with OAuth support.
    */
-  static serializeProviderConfig(config: ProviderConfig): string {
+  static serializeProviderConfig(_config: ProviderConfig): string {
     // Convert to serializable format, filtering sensitive data
     const serializableConfig: SerializableProviderConfig = {
       name: config.name,
@@ -225,7 +225,7 @@ export class OAuthConfigSerializer {
         tokenEndpoint: '', // Will be filled by provider adapter
         scopes: [], // Will be filled by provider adapter
         redirectUri: 'http://localhost:8080/callback',
-        additionalParams: null,
+        _additionalParams: null,
         settings: {
           enabled: config.oauth.enabled,
           preferredMethod: config.oauth.preferredMethod,
@@ -241,16 +241,16 @@ export class OAuthConfigSerializer {
     };
     
     return stringifyYaml(serializableConfig, {
-      indent: 2,
-      lineWidth: 120,
-      minContentWidth: 0,
+      _indent: 2,
+      _lineWidth: 120,
+      _minContentWidth: 0,
     });
   }
   
   /**
    * Deserialize provider configuration from YAML format.
    */
-  static deserializeProviderConfig(yamlContent: string): SerializableProviderConfig {
+  static deserializeProviderConfig(_yamlContent: string): SerializableProviderConfig {
     try {
       const parsed = parseYaml(yamlContent);
       return SerializableProviderConfigSchema.parse(parsed);
@@ -262,7 +262,7 @@ export class OAuthConfigSerializer {
   /**
    * Validate OAuth configuration round-trip consistency.
    */
-  static validateRoundTrip(originalConfig: OAuthConfig, settings: OAuthProviderSettings): boolean {
+  static validateRoundTrip(_originalConfig: OAuthConfig, _settings: OAuthProviderSettings): boolean {
     try {
       // Serialize then deserialize
       const serialized = this.serializeOAuthConfig(originalConfig, settings);
@@ -297,17 +297,17 @@ export class TokenInfoFormatter {
   /**
    * Create masked token information for display.
    */
-  static createMaskedTokenInfo(provider: string, tokens: TokenSet | null): MaskedTokenInfo {
+  static createMaskedTokenInfo(_provider: string, tokens: TokenSet | null): MaskedTokenInfo {
     if (!tokens) {
       return {
         provider,
-        hasTokens: false,
-        maskedAccessToken: null,
-        expiresAt: null,
-        hasRefreshToken: false,
+        _hasTokens: false,
+        _maskedAccessToken: null,
+        _expiresAt: null,
+        _hasRefreshToken: false,
         tokenType: 'Bearer',
-        isExpired: false,
-        needsRefresh: false,
+        _isExpired: false,
+        _needsRefresh: false,
       };
     }
     
@@ -317,7 +317,7 @@ export class TokenInfoFormatter {
     
     return {
       provider,
-      hasTokens: true,
+      _hasTokens: true,
       maskedAccessToken: this.maskToken(tokens.accessToken),
       expiresAt: tokens.expiresAt,
       hasRefreshToken: !!tokens.refreshToken,
@@ -330,21 +330,21 @@ export class TokenInfoFormatter {
   /**
    * Mask a token for safe display.
    */
-  static maskToken(token: string): string {
+  static maskToken(_token: string): string {
     if (token.length <= 8) {
       return '***';
     }
     
     // For JWT tokens (starting with eyJ), show less to avoid revealing token type
-    if (token.startsWith('eyJ')) {
+    if (token.startsWith('eyJ') {
       return 'eyJ...';
     }
     
     // For API keys with known prefixes, show only the prefix
-    if (token.startsWith('sk-')) {
+    if (token.startsWith('sk-') {
       return 'sk-...';
     }
-    if (token.startsWith('sk-ant-')) {
+    if (token.startsWith('sk-ant-') {
       return 'sk-ant-...';
     }
     
@@ -355,7 +355,7 @@ export class TokenInfoFormatter {
   /**
    * Format token information for display.
    */
-  static formatTokenInfo(maskedInfo: MaskedTokenInfo): string {
+  static formatTokenInfo(_maskedInfo: MaskedTokenInfo): string {
     if (!maskedInfo.hasTokens) {
       return `${maskedInfo.provider}: No tokens`;
     }
@@ -410,12 +410,12 @@ export class OAuthConfigValidator {
   /**
    * Validate OAuth configuration structure and values.
    */
-  static validateOAuthConfig(config: unknown): { valid: boolean; errors: string[] } {
+  static validateOAuthConfig(_config: unknown): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
     
     try {
       SecureOAuthConfigSchema.parse(config);
-      return { valid: true, errors: [] };
+      return { _valid: true, errors: [] };
     } catch (error) {
       if (error instanceof z.ZodError) {
         for (const issue of error.issues) {
@@ -425,19 +425,19 @@ export class OAuthConfigValidator {
         errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       
-      return { valid: false, errors };
+      return { _valid: false, errors };
     }
   }
   
   /**
    * Validate provider configuration with OAuth support.
    */
-  static validateProviderConfig(config: unknown): { valid: boolean; errors: string[] } {
+  static validateProviderConfig(_config: unknown): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
     
     try {
       SerializableProviderConfigSchema.parse(config);
-      return { valid: true, errors: [] };
+      return { _valid: true, errors: [] };
     } catch (error) {
       if (error instanceof z.ZodError) {
         for (const issue of error.issues) {
@@ -447,25 +447,27 @@ export class OAuthConfigValidator {
         errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       
-      return { valid: false, errors };
+      return { _valid: false, errors };
     }
   }
   
   /**
    * Check if configuration contains sensitive data that should be masked.
    */
-  static containsSensitiveData(config: any): boolean {
-    if (config === null || config === undefined) {
+  static containsSensitiveData(_config: any): boolean {
+    if (config === null ?? config === undefined) {
       return false;
     }
     
-    if (Array.isArray(config)) {
+    if (Array.isArray(config) {
       return config.some(item => this.containsSensitiveData(item));
     }
     
     if (typeof config === 'object') {
       for (const [key, value] of Object.entries(config)) {
-        if (isSensitiveKey(key) || this.containsSensitiveData(value)) {
+        if (isSensitiveKey(key) {
+    || this.containsSensitiveData(value)) {
+  }
           return true;
         }
       }

@@ -28,7 +28,7 @@ const providerArb = fc.constantFrom(
   'together',
   'perplexity',
   'ollama'
-) as fc.Arbitrary<ModelProvider>;
+);
 
 /**
  * Generate valid API keys for different providers.

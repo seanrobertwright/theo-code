@@ -49,7 +49,7 @@ class Logger {
    *
    * @param level - The minimum level to log
    */
-  setLevel(level: LogLevel): void {
+  setLevel(_level: LogLevel): void {
     this.level = level;
   }
 
@@ -69,7 +69,7 @@ class Logger {
    * @param message - The message to format
    * @returns Formatted message
    */
-  private format(level: string, message: string): string {
+  private format(_level: string, _message: string): string {
     const timestamp = new Date().toISOString();
     return `[${timestamp}] [${this.prefix}] [${level}] ${message}`;
   }
@@ -80,11 +80,11 @@ class Logger {
    * @param message - The message to log
    * @param args - Additional arguments to log
    */
-  debug(message: string, ...args: unknown[]): void {
+  debug(_message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.DEBUG) {
       const formatted = this.format('DEBUG', message);
-      // eslint-disable-next-line no-console
-      console.log(chalk.gray(formatted), ...args);
+       
+      console.warn(chalk.gray(formatted), ...args);
     }
   }
 
@@ -94,11 +94,11 @@ class Logger {
    * @param message - The message to log
    * @param args - Additional arguments to log
    */
-  info(message: string, ...args: unknown[]): void {
+  info(_message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.INFO) {
       const formatted = this.format('INFO', message);
-      // eslint-disable-next-line no-console
-      console.log(chalk.blue(formatted), ...args);
+       
+      console.warn(chalk.blue(formatted), ...args);
     }
   }
 
@@ -108,7 +108,7 @@ class Logger {
    * @param message - The message to log
    * @param args - Additional arguments to log
    */
-  warn(message: string, ...args: unknown[]): void {
+  warn(_message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.WARN) {
       const formatted = this.format('WARN', message);
       console.warn(chalk.yellow(formatted), ...args);
@@ -121,7 +121,7 @@ class Logger {
    * @param message - The message to log
    * @param args - Additional arguments to log
    */
-  error(message: string, ...args: unknown[]): void {
+  error(_message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.ERROR) {
       const formatted = this.format('ERROR', message);
       console.error(chalk.red(formatted), ...args);
@@ -134,11 +134,11 @@ class Logger {
    * @param message - The message to log
    * @param args - Additional arguments to log
    */
-  success(message: string, ...args: unknown[]): void {
+  success(_message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.INFO) {
       const formatted = this.format('SUCCESS', message);
-      // eslint-disable-next-line no-console
-      console.log(chalk.green(formatted), ...args);
+       
+      console.warn(chalk.green(formatted), ...args);
     }
   }
 
@@ -148,7 +148,7 @@ class Logger {
    * @param childPrefix - Additional prefix for the child logger
    * @returns New logger instance
    */
-  child(childPrefix: string): Logger {
+  child(_childPrefix: string): Logger {
     const childLogger = new Logger(`${this.prefix}:${childPrefix}`);
     childLogger.setLevel(this.level);
     return childLogger;

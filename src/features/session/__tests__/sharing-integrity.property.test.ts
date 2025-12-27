@@ -24,8 +24,8 @@ vi.mock('../../../config/loader.js', async () => {
     loadConfig: vi.fn().mockReturnValue({
       global: {
         session: {
-          autoSaveInterval: 30000,
-          maxSessions: 50,
+          _autoSaveInterval: 30000,
+          _maxSessions: 50,
         },
       },
     }),
@@ -53,7 +53,7 @@ describe('Session Sharing Data Integrity Property Tests', () => {
   afterEach(async () => {
     // Clean up temp directory
     try {
-      await fs.rm(tempDir, { recursive: true, force: true });
+      await fs.rm(tempDir, { _recursive: true, _force: true });
     } catch {
       // Ignore cleanup errors
     }
@@ -72,31 +72,31 @@ describe('Session Sharing Data Integrity Property Tests', () => {
         // Generate session data with potentially sensitive information
         fc.record({
           model: fc.constantFrom('gpt-4o', 'gpt-3.5-turbo', 'claude-3-sonnet'),
-          workspaceRoot: fc.string({ minLength: 10, maxLength: 50 }).map(s => `/home/user/projects/${s}`),
-          title: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
-          tags: fc.array(fc.string({ minLength: 1, maxLength: 20 }), { maxLength: 5 }),
-          notes: fc.option(fc.string({ minLength: 1, maxLength: 200 })),
+          workspaceRoot: fc.string({ _minLength: 10, _maxLength: 50 }).map(s => `/home/user/projects/${s}`),
+          title: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
+          tags: fc.array(fc.string({ _minLength: 1, _maxLength: 20 }), { _maxLength: 5 }),
+          notes: fc.option(fc.string({ _minLength: 1, _maxLength: 200 })),
           contextFiles: fc.array(
-            fc.string({ minLength: 5, maxLength: 30 }).map(s => `/home/user/projects/myapp/src/${s}.ts`), 
-            { maxLength: 8 }
+            fc.string({ _minLength: 5, _maxLength: 30 }).map(s => `/home/user/projects/myapp/src/${s}.ts`), 
+            { _maxLength: 8 }
           ),
           sensitiveMessages: fc.array(
             fc.record({
               role: fc.constantFrom('user', 'assistant'),
               content: fc.oneof(
                 // Messages with API keys (more realistic format)
-                fc.string({ minLength: 10, maxLength: 20 }).map(s => `Here's my API key: sk-${s}1234567890abcdef`),
+                fc.string({ _minLength: 10, _maxLength: 20 }).map(s => `Here's my API key: sk-${s}1234567890abcdef`),
                 // Messages with email addresses
-                fc.string({ minLength: 3, maxLength: 10 }).map(s => `Contact me at user${s}@example.com`),
+                fc.string({ _minLength: 3, _maxLength: 10 }).map(s => `Contact me at user${s}@example.com`),
                 // Messages with file paths
-                fc.string({ minLength: 3, maxLength: 15 }).map(s => `Check the file at /home/user/secret/${s}.txt`),
+                fc.string({ _minLength: 3, _maxLength: 15 }).map(s => `Check the file at /home/user/secret/${s}.txt`),
                 // Messages with URLs with credentials
-                fc.string({ minLength: 3, maxLength: 10 }).map(s => `https://user:pass@${s}.com/api`),
+                fc.string({ _minLength: 3, _maxLength: 10 }).map(s => `https://user:pass@${s}.com/api`),
                 // Normal messages
-                fc.string({ minLength: 10, maxLength: 100 })
+                fc.string({ _minLength: 10, _maxLength: 100 })
               ),
             }),
-            { minLength: 1, maxLength: 10 }
+            { _minLength: 1, _maxLength: 10 }
           ),
         }),
         // Generate export options for sharing
@@ -111,7 +111,7 @@ describe('Session Sharing Data Integrity Property Tests', () => {
               '\\b\\d{4}-\\d{4}-\\d{4}-\\d{4}\\b', // Credit card pattern
               'password\\s*[:=]\\s*\\w+' // Password pattern
             ),
-            { maxLength: 3 }
+            { _maxLength: 3 }
           ),
         }),
         async (sessionData, exportOptions) => {
@@ -205,7 +205,7 @@ describe('Session Sharing Data Integrity Property Tests', () => {
               for (let i = 0; i < sessionExport.messages.length; i++) {
                 const message = sessionExport.messages[i];
                 const content = typeof message.content === 'string' ? message.content : 
-                               message.content.find((block: any) => block.type === 'text')?.text || '';
+                               message.content.find((_block: any) => block.type === 'text')?.text ?? '';
                 
                 if (content !== '[Content removed]') {
                   // Check if this specific message originally contained sensitive data
@@ -287,7 +287,7 @@ describe('Session Sharing Data Integrity Property Tests', () => {
           expect(typeof exportedData.exported).toBe('number');
         }
       ),
-      { numRuns: 100 } // Run 100 iterations to test various sensitive data patterns
+      { _numRuns: 100 } // Run 100 iterations to test various sensitive data patterns
     );
   });
 
@@ -299,9 +299,9 @@ describe('Session Sharing Data Integrity Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet'),
-          workspaceRoot: fc.string({ minLength: 10, maxLength: 30 }).map(s => `/sensitive/path/${s}`),
-          apiKey: fc.string({ minLength: 20, maxLength: 20 }).map(s => `sk-${s}abcdef1234567890`),
-          email: fc.string({ minLength: 3, maxLength: 10 }).map(s => `user${s}@example.com`),
+          workspaceRoot: fc.string({ _minLength: 10, _maxLength: 30 }).map(s => `/sensitive/path/${s}`),
+          apiKey: fc.string({ _minLength: 20, _maxLength: 20 }).map(s => `sk-${s}abcdef1234567890`),
+          email: fc.string({ _minLength: 3, _maxLength: 10 }).map(s => `user${s}@example.com`),
         }),
         async ({ model, workspaceRoot, apiKey, email }) => {
           // Create session with known sensitive data
@@ -324,8 +324,8 @@ describe('Session Sharing Data Integrity Property Tests', () => {
           await manager.saveSession(updatedSession);
           
           // Export multiple times with sanitization
-          const export1 = await manager.exportSession(session.id, { sanitize: true, preserveWorkspacePaths: false });
-          const export2 = await manager.exportSession(session.id, { sanitize: true, preserveWorkspacePaths: false });
+          const export1 = await manager.exportSession(session.id, { _sanitize: true, _preserveWorkspacePaths: false });
+          const export2 = await manager.exportSession(session.id, { _sanitize: true, _preserveWorkspacePaths: false });
           
           const data1 = JSON.parse(export1.data);
           const data2 = JSON.parse(export2.data);
@@ -353,7 +353,7 @@ describe('Session Sharing Data Integrity Property Tests', () => {
           expect(data1.session.contextFiles[0]).toMatch(/^\.\.\./);
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
@@ -365,10 +365,10 @@ describe('Session Sharing Data Integrity Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet'),
-          workspaceRoot: fc.string({ minLength: 10, maxLength: 30 }).map(s => `/workspace/${s}`),
+          workspaceRoot: fc.string({ _minLength: 10, _maxLength: 30 }).map(s => `/workspace/${s}`),
           contextFiles: fc.array(
-            fc.string({ minLength: 5, maxLength: 20 }).map(s => `/workspace/src/${s}.ts`),
-            { minLength: 1, maxLength: 5 }
+            fc.string({ _minLength: 5, _maxLength: 20 }).map(s => `/workspace/src/${s}.ts`),
+            { _minLength: 1, _maxLength: 5 }
           ),
         }),
         async ({ model, workspaceRoot, contextFiles }) => {
@@ -384,8 +384,8 @@ describe('Session Sharing Data Integrity Property Tests', () => {
           
           // Export with preserved workspace paths
           const exportResult = await manager.exportSession(session.id, {
-            sanitize: true,
-            preserveWorkspacePaths: true,
+            _sanitize: true,
+            _preserveWorkspacePaths: true,
           });
           
           const exportedData = JSON.parse(exportResult.data);
@@ -401,7 +401,7 @@ describe('Session Sharing Data Integrity Property Tests', () => {
           expect(exportResult.sanitized).toBe(true);
         }
       ),
-      { numRuns: 30 }
+      { _numRuns: 30 }
     );
   });
 
@@ -413,8 +413,8 @@ describe('Session Sharing Data Integrity Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'claude-3-sonnet'),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 20 }).map(s => `/test/${s}`),
-          secretWord: fc.string({ minLength: 5, maxLength: 15 }).filter(s => s.trim().length > 0 && /^\w+$/.test(s)),
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 20 }).map(s => `/test/${s}`),
+          secretWord: fc.string({ _minLength: 5, _maxLength: 15 }).filter(s => s.trim().length > 0 && /^\w+$/.test(s)),
           customPattern: fc.constantFrom('secret\\w+', '\\bTOKEN_\\w+\\b', 'PRIVATE_\\w+'),
         }),
         async ({ model, workspaceRoot, secretWord, customPattern }) => {
@@ -434,7 +434,7 @@ describe('Session Sharing Data Integrity Property Tests', () => {
           const message: Message = {
             id: createMessageId(),
             role: 'user',
-            content: messageContent,
+            _content: messageContent,
             timestamp: Date.now(),
           };
           
@@ -447,7 +447,7 @@ describe('Session Sharing Data Integrity Property Tests', () => {
           
           // Export with custom sanitization pattern
           const exportResult = await manager.exportSession(session.id, {
-            sanitize: true,
+            _sanitize: true,
             customSanitizationPatterns: [customPattern],
           });
           
@@ -469,7 +469,7 @@ describe('Session Sharing Data Integrity Property Tests', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 });

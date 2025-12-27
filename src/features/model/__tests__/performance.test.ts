@@ -21,11 +21,11 @@ import type { ModelProvider } from '../../../shared/types/models.js';
 /**
  * Creates a mock HTTP response for testing.
  */
-function createMockResponse(data: any, delay = 0): Promise<Response> {
+function createMockResponse(_data: any, delay = 0): Promise<Response> {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(new Response(JSON.stringify(data), {
-        status: 200,
+        _status: 200,
         headers: { 'Content-Type': 'application/json' },
       }));
     }, delay);
@@ -36,8 +36,8 @@ function createMockResponse(data: any, delay = 0): Promise<Response> {
  * Simulates a concurrent load test.
  */
 async function runConcurrentRequests(
-  requestCount: number,
-  concurrency: number,
+  _requestCount: number,
+  _concurrency: number,
   requestFn: () => Promise<any>
 ): Promise<{
   results: any[];
@@ -98,9 +98,9 @@ describe('PerformanceMonitor', () => {
 
   beforeEach(() => {
     monitor = new PerformanceMonitor({
-      enabled: true,
+      _enabled: true,
       samplingRate: 1.0,
-      maxMetrics: 1000,
+      _maxMetrics: 1000,
     });
   });
 
@@ -126,7 +126,7 @@ describe('PerformanceMonitor', () => {
       for (const requestId of requestIds) {
         monitor.recordTtfb(requestId, Math.random() * 200);
         monitor.recordTokenUsage(requestId, 100, 50);
-        monitor.endRequest(requestId, { success: true });
+        monitor.endRequest(requestId, { _success: true });
       }
       
       const totalTime = Date.now() - startTime;
@@ -176,7 +176,7 @@ describe('PerformanceMonitor', () => {
         // Complete requests
         for (const requestId of requestIds) {
           monitor.recordTokenUsage(requestId, 200, 100);
-          monitor.endRequest(requestId, { success: true });
+          monitor.endRequest(requestId, { _success: true });
         }
         
         // Force garbage collection if available
@@ -244,8 +244,8 @@ describe('ConnectionPool Performance', () => {
 
   beforeEach(() => {
     pool = new ConnectionPool({
-      maxConnectionsPerHost: 10,
-      maxTotalConnections: 50,
+      _maxConnectionsPerHost: 10,
+      _maxTotalConnections: 50,
     });
   });
 
@@ -326,8 +326,8 @@ describe('HttpClient Performance', () => {
 
   beforeEach(() => {
     client = new HttpClient({
-      useGlobalPool: false,
-      connectionPool: { maxConnectionsPerHost: 5 },
+      _useGlobalPool: false,
+      connectionPool: { _maxConnectionsPerHost: 5 },
     });
     
     // Mock fetch for testing
@@ -342,7 +342,7 @@ describe('HttpClient Performance', () => {
   describe('Request Performance', () => {
     it('should handle concurrent HTTP requests efficiently', async () => {
       const mockFetch = global.fetch as any;
-      mockFetch.mockImplementation(() => createMockResponse({ success: true }, 50));
+      mockFetch.mockImplementation(() => createMockResponse({ _success: true }, 50));
       
       const requestCount = 50;
       const concurrency = 10;
@@ -386,20 +386,20 @@ describe('RequestQueue Performance', () => {
 
   beforeEach(() => {
     queue = new RequestQueue({
-      maxQueueSize: 1000,
-      enableBatching: true,
-      maxBatchSize: 10,
+      _maxQueueSize: 1000,
+      _enableBatching: true,
+      _maxBatchSize: 10,
     });
     
     // Set up processors
     queue.setRequestProcessor(async (data) => {
       await new Promise(resolve => setTimeout(resolve, Math.random() * 10)); // Reduced from 50ms
-      return { processed: data };
+      return { _processed: data };
     });
     
     queue.setBatchProcessor(async (requests) => {
       await new Promise(resolve => setTimeout(resolve, Math.random() * 20)); // Reduced from 100ms
-      return requests.map(req => ({ batched: req }));
+      return requests.map(req => ({ _batched: req }));
     });
   });
 
@@ -415,7 +415,7 @@ describe('RequestQueue Performance', () => {
       // Enqueue many requests
       const promises = [];
       for (let i = 0; i < requestCount; i++) {
-        const promise = queue.enqueue('openai', { id: i }, {
+        const promise = queue.enqueue('openai', { _id: i }, {
           priority: i % 2 === 0 ? RequestPriority.HIGH : RequestPriority.NORMAL,
         });
         promises.push(promise);
@@ -439,8 +439,8 @@ describe('RequestQueue Performance', () => {
       
       // Enqueue batchable requests
       for (let i = 0; i < requestCount; i++) {
-        const promise = queue.enqueue('anthropic', { id: i }, {
-          batchable: true,
+        const promise = queue.enqueue('anthropic', { _id: i }, {
+          _batchable: true,
           batchKey: 'test-batch',
         });
         batchableRequests.push(promise);
@@ -465,9 +465,9 @@ describe('Cache Performance', () => {
 
   beforeEach(() => {
     cacheManager = new CacheManager({
-      tokenCount: { maxEntries: 1000 },
-      modelCapability: { maxEntries: 500 },
-      response: { maxEntries: 2000 },
+      tokenCount: { _maxEntries: 1000 },
+      modelCapability: { _maxEntries: 500 },
+      response: { _maxEntries: 2000 },
     });
   });
 
@@ -509,7 +509,7 @@ describe('Cache Performance', () => {
       // Fill cache with many entries
       for (let i = 0; i < entryCount; i++) {
         const requestData = { query: `test query ${i}`, temperature: 0.7 };
-        const response = { result: `response ${i}`, tokens: 100 };
+        const response = { result: `response ${i}`, _tokens: 100 };
         
         responseCache.setResponse('openai', 'gpt-4o', requestData, response);
       }
@@ -526,7 +526,9 @@ describe('Cache Performance', () => {
       for (let i = 0; i < testCount; i++) {
         const requestData = { query: `test query ${i}`, temperature: 0.7 };
         const cached = responseCache.getResponse('openai', 'gpt-4o', requestData);
-        if (cached) hits++;
+        if (cached) {
+    hits++;
+  }
       }
       
       const retrievalTime = Date.now() - startTime;
@@ -548,13 +550,13 @@ describe('Integration Performance', () => {
   let queue: RequestQueue<any, any>;
 
   beforeEach(() => {
-    monitor = new PerformanceMonitor({ enabled: true, samplingRate: 1.0 });
-    client = new HttpClient({ useGlobalPool: false });
-    queue = new RequestQueue({ enableBatching: true });
+    monitor = new PerformanceMonitor({ _enabled: true, samplingRate: 1.0 });
+    client = new HttpClient({ _useGlobalPool: false });
+    queue = new RequestQueue({ _enableBatching: true });
     
     // Mock fetch
     global.fetch = vi.fn().mockImplementation(() => 
-      createMockResponse({ success: true }, Math.random() * 100)
+      createMockResponse({ _success: true }, Math.random() * 100)
     );
     
     // Set up queue processor
@@ -566,11 +568,11 @@ describe('Integration Performance', () => {
         const result = await response.json();
         
         monitor.recordTokenUsage(requestId, 100, 50);
-        monitor.endRequest(requestId, { success: true });
+        monitor.endRequest(requestId, { _success: true });
         
         return result;
       } catch (error) {
-        monitor.endRequest(requestId, { success: false, errorCode: 'API_ERROR' });
+        monitor.endRequest(requestId, { _success: false, errorCode: 'API_ERROR' });
         throw error;
       }
     });

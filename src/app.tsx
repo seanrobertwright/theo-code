@@ -30,6 +30,18 @@ import { createDefaultCommandRegistry } from './features/commands/index.js';
 import type { ModelConfig } from './shared/types/models.js';
 import type { SessionMetadata, SessionId } from './shared/types/index.js';
 
+// Import new layout components
+import { FullScreenLayout } from './shared/components/Layout/FullScreenLayout.js';
+import { ResponsiveLayoutContent } from './shared/components/Layout/ResponsiveLayoutContent.js';
+import { ConnectedProjectHeader } from './shared/components/Layout/ConnectedProjectHeader.js';
+import { ContextArea } from './shared/components/Layout/ContextArea.js';
+import { ResizableDivider } from './shared/components/Layout/ResizableDivider.js';
+import { TaskSidebar } from './shared/components/Layout/TaskSidebar.js';
+import { ConnectedStatusFooter } from './shared/components/Layout/ConnectedStatusFooter.js';
+import { InputArea } from './shared/components/Layout/InputArea.js';
+import { useUILayoutStore } from './shared/store/ui-layout.js';
+import { useUIUpgradeArchonTasks } from './shared/hooks/useArchonMCP.js';
+
 // =============================================================================
 // PROPS
 // =============================================================================
@@ -45,170 +57,6 @@ export interface AppProps {
   /** Initial model to use */
   initialModel: string;
 }
-
-// =============================================================================
-// HEADER COMPONENT
-// =============================================================================
-
-/**
- * Header component showing app info and status.
- */
-const Header = (): ReactElement => {
-  const currentModel = useAppStore((state) => state.currentModel);
-  const session = useAppStore((state) => state.session);
-  const tokenCount = session?.tokenCount.total ?? 0;
-
-  return (
-    <Box
-      borderStyle="single"
-      borderColor="blue"
-      paddingX={1}
-      justifyContent="space-between"
-    >
-      <Text bold color="cyan">
-        theo-code v0.1.0
-      </Text>
-      <Text>
-        Model: <Text color="green">{currentModel}</Text>
-      </Text>
-      <Text>
-        Tokens: <Text color="yellow">{formatTokenCount(tokenCount)}</Text>
-      </Text>
-    </Box>
-  );
-};
-
-// =============================================================================
-// MESSAGE LIST COMPONENT
-// =============================================================================
-
-/**
- * Message list component showing conversation history.
- */
-const MessageList = (): ReactElement => {
-  const messages = useAppStore((state) => state.messages);
-  const isStreaming = useAppStore((state) => state.isStreaming);
-  const streamingText = useAppStore((state) => state.streamingText);
-
-  return (
-    <Box flexDirection="column" flexGrow={1} paddingX={1}>
-      {messages.length === 0 ? (
-        <Box flexDirection="column" alignItems="center" justifyContent="center" flexGrow={1}>
-          <Text color="gray">Welcome to theo-code!</Text>
-          <Text color="gray">Type a message or use /help to see available commands.</Text>
-        </Box>
-      ) : (
-        messages.map((message) => (
-          <Box key={message.id} marginY={0} flexDirection="column">
-            <Text bold color={message.role === 'user' ? 'blue' : 'green'}>
-              {message.role === 'user' ? 'You' : 'Assistant'}:
-            </Text>
-            <Box marginLeft={2}>
-              <Text>
-                {typeof message.content === 'string'
-                  ? message.content
-                  : message.content
-                      .filter((block) => block.type === 'text')
-                      .map((block) => (block.type === 'text' ? block.text : ''))
-                      .join('\n')}
-              </Text>
-            </Box>
-          </Box>
-        ))
-      )}
-
-      {/* Streaming indicator */}
-      {isStreaming && (
-        <Box marginY={0} flexDirection="column">
-          <Text bold color="green">
-            Assistant:
-          </Text>
-          <Box marginLeft={2}>
-            <Text>{streamingText}</Text>
-            <Text color="gray">▊</Text>
-          </Box>
-        </Box>
-      )}
-    </Box>
-  );
-};
-
-// =============================================================================
-// INPUT COMPONENT
-// =============================================================================
-
-/**
- * Input component for user messages.
- */
-const InputArea = ({
-  value,
-  onChange,
-  onSubmit,
-}: {
-  value: string;
-  onChange: (_value: string) => void;
-  onSubmit: () => void;
-}): ReactElement => {
-  const isStreaming = useAppStore((state) => state.isStreaming);
-
-  useInput((input, key) => {
-    if (isStreaming) {
-      return;
-    }
-
-    if (key.return) {
-      onSubmit();
-      return;
-    }
-
-    if (key.backspace || key.delete) {
-      onChange(value.slice(0, -1));
-      return;
-    }
-
-    if (!key.ctrl && !key.meta && input.length > 0) {
-      onChange(value + input);
-    }
-  });
-
-  return (
-    <Box borderStyle="single" borderColor="gray" paddingX={1}>
-      <Text color="cyan">&gt; </Text>
-      <Text>{value}</Text>
-      {!isStreaming && <Text color="gray">▊</Text>}
-      {isStreaming && <Text color="yellow"> (streaming...)</Text>}
-    </Box>
-  );
-};
-
-// =============================================================================
-// STATUS BAR COMPONENT
-// =============================================================================
-
-/**
- * Status bar showing hints and context.
- */
-const StatusBar = (): ReactElement => {
-  const contextFiles = useAppStore((state) => state.contextFiles);
-  const error = useAppStore((state) => state.error);
-
-  return (
-    <Box paddingX={1} justifyContent="space-between">
-      {error !== null ? (
-        <Text color="red">{error}</Text>
-      ) : (
-        <>
-          <Text color="gray">
-            Tab: commands | Ctrl+C: exit | /help for more
-          </Text>
-          <Text color="gray">
-            Context: {contextFiles.size} files
-          </Text>
-        </>
-      )}
-    </Box>
-  );
-};
 
 // =============================================================================
 // MAIN APP COMPONENT
@@ -248,6 +96,11 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
   const createNewSession = useAppStore((state) => state.createNewSession);
   const addMessage = useAppStore((state) => state.addMessage);
   const setError = useAppStore((state) => state.setError);
+
+  // Store state for new layout
+  const messages = useAppStore((state) => state.messages);
+  const isStreaming = useAppStore((state) => state.isStreaming);
+  const streamingText = useAppStore((state) => state.streamingText);
 
   // Create model config from app config
   const createModelConfig = useCallback((): ModelConfig | null => {
@@ -543,11 +396,39 @@ Then restart theo-code.`,
   }, [inputValue, addMessage, handleCommand, setError]);
 
   // Calculate terminal dimensions
+  const terminalWidth = stdout?.columns ?? 80;
   const terminalHeight = stdout?.rows ?? 24;
-  const headerHeight = 3;
-  const inputHeight = 3;
-  const statusHeight = 1;
-  const messageListHeight = terminalHeight - headerHeight - inputHeight - statusHeight - 2;
+
+  // Create fallback task data for offline scenarios
+  const fallbackTasks: import('./shared/components/Layout/types.js').TaskItem[] = [
+    {
+      id: '1',
+      title: 'Set up UI layout foundation',
+      status: 'completed',
+      description: 'Create directory structure and interfaces',
+    },
+    {
+      id: '2',
+      title: 'Implement FullScreenLayout component',
+      status: 'completed',
+      description: 'Create responsive layout container',
+    },
+    {
+      id: '3',
+      title: 'Integrate new UI with existing App',
+      status: 'in-progress',
+      description: 'Replace existing layout with FullScreenLayout',
+    },
+    {
+      id: '4',
+      title: 'Add responsive breakpoint behavior',
+      status: 'not-started',
+      description: 'Implement vertical stacking for narrow terminals',
+    },
+  ];
+
+  // Use Archon MCP integration for task management
+  const { tasks: archonTasks, connectionStatus } = useUIUpgradeArchonTasks(fallbackTasks);
 
   // Show session restoration UI if not complete
   if (sessionRestoreState !== 'complete') {
@@ -583,20 +464,21 @@ Then restart theo-code.`,
   }
 
   return (
-    <Box flexDirection="column" height={terminalHeight}>
-      <Header />
-
-      <Box height={messageListHeight} overflow="hidden">
-        <MessageList />
-      </Box>
-
-      <InputArea
-        value={inputValue}
-        onChange={setInputValue}
-        onSubmit={handleSubmit}
+    <FullScreenLayout
+      terminalWidth={terminalWidth}
+      terminalHeight={terminalHeight}
+    >
+      <ResponsiveLayoutContent
+        messages={messages}
+        streamingText={streamingText}
+        isStreaming={isStreaming}
+        inputValue={inputValue}
+        onInputChange={setInputValue}
+        onInputSubmit={handleSubmit}
+        tasks={archonTasks}
+        terminalWidth={terminalWidth}
+        terminalHeight={terminalHeight}
       />
-
-      <StatusBar />
-    </Box>
+    </FullScreenLayout>
   );
 };

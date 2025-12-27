@@ -77,14 +77,14 @@ export class GoogleOAuthAdapter implements IOAuthProviderAdapter {
    * @returns Promise resolving to token set
    * @throws Error if token exchange fails
    */
-  async exchangeCodeForTokens(code: string, codeVerifier: string): Promise<TokenSet> {
+  async exchangeCodeForTokens(_code: string, _codeVerifier: string): Promise<TokenSet> {
     const config = this.getOAuthConfig();
     
     const tokenRequest = {
       grant_type: 'authorization_code',
       client_id: config.clientId,
       code,
-      code_verifier: codeVerifier,
+      _code_verifier: codeVerifier,
       redirect_uri: config.redirectUri,
     };
 
@@ -120,13 +120,13 @@ export class GoogleOAuthAdapter implements IOAuthProviderAdapter {
    * @returns Promise resolving to new token set
    * @throws Error if token refresh fails
    */
-  async refreshAccessToken(refreshToken: string): Promise<TokenSet> {
+  async refreshAccessToken(_refreshToken: string): Promise<TokenSet> {
     const config = this.getOAuthConfig();
     
     const refreshRequest = {
       grant_type: 'refresh_token',
       client_id: config.clientId,
-      refresh_token: refreshToken,
+      _refresh_token: refreshToken,
     };
 
     try {
@@ -167,7 +167,7 @@ export class GoogleOAuthAdapter implements IOAuthProviderAdapter {
    * @param tokens - Token set to revoke
    * @returns Promise that resolves when tokens are revoked
    */
-  async revokeTokens(tokens: TokenSet): Promise<void> {
+  async revokeTokens(_tokens: TokenSet): Promise<void> {
     const revokeEndpoint = 'https://oauth2.googleapis.com/revoke';
     
     try {
@@ -180,7 +180,7 @@ export class GoogleOAuthAdapter implements IOAuthProviderAdapter {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          token: tokenToRevoke,
+          _token: tokenToRevoke,
         }),
       });
 
@@ -205,7 +205,7 @@ export class GoogleOAuthAdapter implements IOAuthProviderAdapter {
    * @param tokens - Token set to validate
    * @returns True if tokens are valid, false otherwise
    */
-  validateTokens(tokens: TokenSet): boolean {
+  validateTokens(_tokens: TokenSet): boolean {
     try {
       // Use Zod schema for validation
       TokenSetSchema.parse(tokens);
@@ -237,16 +237,16 @@ export class GoogleOAuthAdapter implements IOAuthProviderAdapter {
    * @param tokenData - Raw token response from Google
    * @returns Normalized token set
    */
-  private normalizeTokenResponse(tokenData: GoogleTokenResponse): TokenSet {
+  private normalizeTokenResponse(_tokenData: GoogleTokenResponse): TokenSet {
     const expiresAt = new Date();
     expiresAt.setSeconds(expiresAt.getSeconds() + tokenData.expires_in);
 
     return {
       accessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token || null,
+      refreshToken: tokenData.refresh_token ?? null,
       expiresAt,
       tokenType: 'Bearer',
-      scope: tokenData.scope || null,
+      scope: tokenData.scope ?? null,
     };
   }
 }

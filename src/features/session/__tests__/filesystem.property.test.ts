@@ -38,7 +38,7 @@ describe('File System Operations Property Tests', () => {
   afterEach(async () => {
     // Clean up temp directory
     try {
-      await fs.rm(tempDir, { recursive: true, force: true });
+      await fs.rm(tempDir, { _recursive: true, _force: true });
     } catch {
       // Ignore cleanup errors
     }
@@ -52,8 +52,8 @@ describe('File System Operations Property Tests', () => {
   it('should handle file corruption gracefully and maintain data integrity', async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.string({ minLength: 1, maxLength: 1000 }),
-        fc.integer({ min: 1, max: 1000000 }), // Use integer for unique file names
+        fc.string({ _minLength: 1, _maxLength: 1000 }),
+        fc.integer({ _min: 1, _max: 1000000 }), // Use integer for unique file names
         async (fileContent, fileId) => {
           const fileName = `corruption-test-${fileId}.txt`;
           const filePath = path.join(tempDir, fileName);
@@ -73,7 +73,7 @@ describe('File System Operations Property Tests', () => {
           try {
             await safeReadFile(filePath);
             // If it doesn't throw, the content should still be readable
-          } catch (error: any) {
+          } catch (_error: any) {
             // Should provide meaningful error message
             expect(error.message).toContain('Failed to read file');
           }
@@ -84,14 +84,14 @@ describe('File System Operations Property Tests', () => {
           expect(recoveredContent).toBe(fileContent);
         }
       ),
-      { numRuns: 50 } // Reduced runs for stability
+      { _numRuns: 50 } // Reduced runs for stability
     );
   });
   
   it('should maintain data integrity through compression round-trips', async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.string({ minLength: 0, maxLength: 10000 }),
+        fc.string({ _minLength: 0, _maxLength: 10000 }),
         async (originalData) => {
           // Compress data
           const compressed = await compressData(originalData);
@@ -109,16 +109,16 @@ describe('File System Operations Property Tests', () => {
           expect(verifyChecksum(decompressed, originalChecksum)).toBe(true);
         }
       ),
-      { numRuns: 100 }
+      { _numRuns: 100 }
     );
   });
   
   it('should handle atomic write failures and maintain backup integrity', async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.string({ minLength: 1, maxLength: 1000 }),
-        fc.string({ minLength: 1, maxLength: 1000 }),
-        fc.integer({ min: 1, max: 1000000 }), // Use integer for unique file names
+        fc.string({ _minLength: 1, _maxLength: 1000 }),
+        fc.string({ _minLength: 1, _maxLength: 1000 }),
+        fc.integer({ _min: 1, _max: 1000000 }), // Use integer for unique file names
         async (originalContent, newContent, fileId) => {
           // Use unique file names to avoid conflicts between test runs
           const fileName = `test-file-${fileId}`;
@@ -150,15 +150,15 @@ describe('File System Operations Property Tests', () => {
           expect(await safeReadFile(filePath)).toBe(originalContent);
         }
       ),
-      { numRuns: 25 } // Reduced runs to avoid Windows file system stress
+      { _numRuns: 25 } // Reduced runs to avoid Windows file system stress
     );
   });
   
   it('should handle invalid file paths and permissions gracefully', async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.string({ minLength: 1, maxLength: 100 }),
-        fc.integer({ min: 1, max: 1000000 }), // Use integer for unique file names
+        fc.string({ _minLength: 1, _maxLength: 100 }),
+        fc.integer({ _min: 1, _max: 1000000 }), // Use integer for unique file names
         async (content, fileId) => {
           // Test with a valid file first to ensure basic functionality
           const validFileName = `valid-test-${fileId}.txt`;
@@ -168,7 +168,7 @@ describe('File System Operations Property Tests', () => {
             await atomicWriteFile(validPath, content);
             const readContent = await safeReadFile(validPath);
             expect(readContent).toBe(content);
-          } catch (error: any) {
+          } catch (_error: any) {
             // Should not fail for valid paths
             expect.fail(`Valid file operation failed: ${error.message}`);
           }
@@ -178,12 +178,12 @@ describe('File System Operations Property Tests', () => {
           try {
             await safeReadFile(nonExistentPath);
             expect.fail('Should have thrown error for non-existent file');
-          } catch (error: any) {
+          } catch (_error: any) {
             expect(error.message).toContain('File not found');
           }
         }
       ),
-      { numRuns: 25 } // Reduced runs for stability
+      { _numRuns: 25 } // Reduced runs for stability
     );
   });
   
@@ -192,8 +192,8 @@ describe('File System Operations Property Tests', () => {
       fc.asyncProperty(
         fc.oneof(
           fc.string(),
-          fc.string({ minLength: 0, maxLength: 0 }), // Empty string
-          fc.string({ minLength: 10000, maxLength: 50000 }), // Large string
+          fc.string({ _minLength: 0, _maxLength: 0 }), // Empty string
+          fc.string({ _minLength: 10000, _maxLength: 50000 }), // Large string
           fc.constantFrom('', '\n', '\r\n', '\t', ' ', '🚀', '中文', 'Ñoño') // Special cases
         ),
         async (data) => {
@@ -216,15 +216,15 @@ describe('File System Operations Property Tests', () => {
           }
         }
       ),
-      { numRuns: 100 }
+      { _numRuns: 100 }
     );
   });
   
   it('should handle file deletion edge cases safely', async () => {
     await fc.assert(
       fc.asyncProperty(
-        fc.string({ minLength: 1, maxLength: 1000 }),
-        fc.integer({ min: 1, max: 1000000 }), // Use integer for unique file names
+        fc.string({ _minLength: 1, _maxLength: 1000 }),
+        fc.integer({ _min: 1, _max: 1000000 }), // Use integer for unique file names
         async (content, fileId) => {
           const fileName = `delete-test-${fileId}.txt`;
           const filePath = path.join(tempDir, fileName);
@@ -243,7 +243,7 @@ describe('File System Operations Property Tests', () => {
           await expect(safeDeleteFile(filePath)).resolves.toBeUndefined();
         }
       ),
-      { numRuns: 50 } // Reasonable number of runs
+      { _numRuns: 50 } // Reasonable number of runs
     );
   });
 });

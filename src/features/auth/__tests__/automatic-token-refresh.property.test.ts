@@ -40,8 +40,8 @@ vi.mock('open', () => ({
  * Generates valid access tokens.
  */
 const accessTokenArb = fc.string({ 
-  minLength: 20, 
-  maxLength: 200,
+  _minLength: 20, 
+  _maxLength: 200,
   unit: fc.constantFrom(...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'.split(''))
 });
 
@@ -49,8 +49,8 @@ const accessTokenArb = fc.string({
  * Generates valid refresh tokens.
  */
 const refreshTokenArb = fc.string({ 
-  minLength: 20, 
-  maxLength: 200,
+  _minLength: 20, 
+  _maxLength: 200,
   unit: fc.constantFrom(...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'.split(''))
 });
 
@@ -62,9 +62,9 @@ const expirationArb = fc.oneof(
   // Expired tokens (past)
   fc.integer({ min: -86400000, max: -10000 }).map(offset => new Date(nowTs + offset)),
   // Expiring soon (within 5 minutes)
-  fc.integer({ min: 1000, max: 290000 }).map(offset => new Date(nowTs + offset)),
+  fc.integer({ _min: 1000, _max: 290000 }).map(offset => new Date(nowTs + offset)),
   // Valid tokens (future)
-  fc.integer({ min: 600000, max: 3600000 }).map(offset => new Date(nowTs + offset))
+  fc.integer({ _min: 600000, _max: 3600000 }).map(offset => new Date(nowTs + offset))
 ).filter(d => !isNaN(d.getTime()));
 
 /**
@@ -76,44 +76,44 @@ const refreshProviderArb = fc.constantFrom('google', 'openrouter');
  * Generates token sets with various expiration states.
  */
 const tokenSetArb = fc.record({
-  accessToken: accessTokenArb,
-  refreshToken: refreshTokenArb,
-  expiresAt: expirationArb,
+  _accessToken: accessTokenArb,
+  _refreshToken: refreshTokenArb,
+  _expiresAt: expirationArb,
   tokenType: fc.constant('Bearer' as const),
-  scope: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
+  scope: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
 });
 
 /**
  * Generates expired token sets.
  */
 const expiredTokenSetArb = fc.record({
-  accessToken: accessTokenArb,
-  refreshToken: refreshTokenArb,
+  _accessToken: accessTokenArb,
+  _refreshToken: refreshTokenArb,
   expiresAt: fc.date({ min: new Date(Date.now() - 86400000), max: new Date(Date.now() - 1000) }).filter(d => !isNaN(d.getTime())),
   tokenType: fc.constant('Bearer' as const),
-  scope: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
+  scope: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
 });
 
 /**
  * Generates token sets expiring soon (within 5 minutes).
  */
 const expiringSoonTokenSetArb = fc.record({
-  accessToken: accessTokenArb,
-  refreshToken: refreshTokenArb,
+  _accessToken: accessTokenArb,
+  _refreshToken: refreshTokenArb,
   expiresAt: fc.date({ min: new Date(Date.now() + 1000), max: new Date(Date.now() + 300000) }).filter(d => !isNaN(d.getTime())),
   tokenType: fc.constant('Bearer' as const),
-  scope: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
+  scope: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
 });
 
 /**
  * Generates valid (not expired, not expiring soon) token sets.
  */
 const validTokenSetArb = fc.record({
-  accessToken: accessTokenArb,
-  refreshToken: refreshTokenArb,
+  _accessToken: accessTokenArb,
+  _refreshToken: refreshTokenArb,
   expiresAt: fc.date({ min: new Date(Date.now() + 600000), max: new Date(Date.now() + 3600000) }).filter(d => !isNaN(d.getTime())),
   tokenType: fc.constant('Bearer' as const),
-  scope: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
+  scope: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
 });
 
 // =============================================================================
@@ -124,7 +124,7 @@ class MockOAuthAdapter implements IOAuthProviderAdapter {
   private shouldFailRefresh = false;
   private refreshTokenExpired = false;
 
-  constructor(private provider: string) {}
+  constructor(private _provider: string) {}
 
   getOAuthConfig() {
     return {
@@ -137,7 +137,7 @@ class MockOAuthAdapter implements IOAuthProviderAdapter {
     };
   }
 
-  async exchangeCodeForTokens(code: string, codeVerifier: string): Promise<TokenSet> {
+  async exchangeCodeForTokens(_code: string, _codeVerifier: string): Promise<TokenSet> {
     return {
       accessToken: `mock_access_${code}`,
       refreshToken: `mock_refresh_${code}`,
@@ -147,7 +147,7 @@ class MockOAuthAdapter implements IOAuthProviderAdapter {
     };
   }
 
-  async refreshAccessToken(refreshToken: string): Promise<TokenSet> {
+  async refreshAccessToken(_refreshToken: string): Promise<TokenSet> {
     if (this.refreshTokenExpired) {
       const error = new Error('Refresh token expired');
       (error as any).code = 'invalid_grant';
@@ -167,19 +167,19 @@ class MockOAuthAdapter implements IOAuthProviderAdapter {
     };
   }
 
-  async revokeTokens(tokens: TokenSet): Promise<void> {
+  async revokeTokens(_tokens: TokenSet): Promise<void> {
     // Mock implementation
   }
 
-  validateTokens(tokens: TokenSet): boolean {
+  validateTokens(_tokens: TokenSet): boolean {
     return !!(tokens.accessToken && tokens.tokenType === 'Bearer' && tokens.expiresAt);
   }
 
-  setRefreshFailure(shouldFail: boolean) {
+  setRefreshFailure(_shouldFail: boolean) {
     this.shouldFailRefresh = shouldFail;
   }
 
-  setRefreshTokenExpired(expired: boolean) {
+  setRefreshTokenExpired(_expired: boolean) {
     this.refreshTokenExpired = expired;
   }
 }
@@ -202,25 +202,25 @@ describe('Automatic Token Refresh Property Tests', () => {
     
     // Mock keytar with proper storage simulation using the existing mocks
     const keytar = await import('keytar');
-    vi.mocked(keytar.setPassword).mockImplementation(async (service: string, account: string, password: string) => {
+    vi.mocked(keytar.setPassword).mockImplementation(async (_service: string, _account: string, _password: string) => {
       const key = `${service}:${account}`;
       mockTokenStorage.set(key, password);
       return undefined;
     });
-    vi.mocked(keytar.getPassword).mockImplementation(async (service: string, account: string) => {
+    vi.mocked(keytar.getPassword).mockImplementation(async (_service: string, _account: string) => {
       const key = `${service}:${account}`;
       return mockTokenStorage.get(key) || null;
     });
-    vi.mocked(keytar.deletePassword).mockImplementation(async (service: string, account: string) => {
+    vi.mocked(keytar.deletePassword).mockImplementation(async (_service: string, _account: string) => {
       const key = `${service}:${account}`;
       const existed = mockTokenStorage.has(key);
       mockTokenStorage.delete(key);
       return existed;
     });
-    vi.mocked(keytar.findCredentials).mockImplementation(async (service: string) => {
-      const credentials: Array<{ account: string; password: string }> = [];
+    vi.mocked(keytar.findCredentials).mockImplementation(async (_service: string) => {
+      const credentials: Array<{ account: string; _password: string }> = [];
       for (const [key, password] of mockTokenStorage.entries()) {
-        if (key.startsWith(`${service}:`)) {
+        if (key.startsWith(`${service}:`) {
           const account = key.substring(service.length + 1);
           credentials.push({ account, password });
         }
@@ -303,7 +303,7 @@ describe('Automatic Token Refresh Property Tests', () => {
           expect(await tokenStore.isTokenValid(provider as ModelProvider)).toBe(true);
         }
       ),
-      { numRuns: 20 }
+      { _numRuns: 20 }
     );
   });
 
@@ -350,7 +350,7 @@ describe('Automatic Token Refresh Property Tests', () => {
           expect(await oauthManager.needsTokenRefresh(provider as ModelProvider)).toBe(false);
         }
       ),
-      { numRuns: 20 }
+      { _numRuns: 20 }
     );
   });
 
@@ -400,7 +400,7 @@ describe('Automatic Token Refresh Property Tests', () => {
           expect(storedTokens!.accessToken).toBe(validTokens.accessToken);
         }
       ),
-      { numRuns: 20 }
+      { _numRuns: 20 }
     );
   });
 
@@ -448,7 +448,7 @@ describe('Automatic Token Refresh Property Tests', () => {
           mockAdapter.setRefreshTokenExpired(false);
         }
       ),
-      { numRuns: 10 }
+      { _numRuns: 10 }
     );
   });
 
@@ -493,7 +493,7 @@ describe('Automatic Token Refresh Property Tests', () => {
           mockAdapter.setRefreshFailure(false);
         }
       ),
-      { numRuns: 10 }
+      { _numRuns: 10 }
     );
   });
 
@@ -547,7 +547,7 @@ describe('Automatic Token Refresh Property Tests', () => {
           }
         }
       ),
-      { numRuns: 20 }
+      { _numRuns: 20 }
     );
   });
 
@@ -611,7 +611,7 @@ describe('Automatic Token Refresh Property Tests', () => {
           }
         }
       ),
-      { numRuns: 20 }
+      { _numRuns: 20 }
     );
   });
 });

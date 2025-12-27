@@ -30,26 +30,26 @@ function createMockSession(overrides: Partial<Session> = {}): Session {
   const now = Date.now();
   
   return {
-    id: sessionId,
+    _id: sessionId,
     version: '1.0.0',
-    created: now,
-    lastModified: now,
+    _created: now,
+    _lastModified: now,
     model: 'gpt-4o',
     workspaceRoot: '/test/workspace',
-    tokenCount: { total: 1000, input: 500, output: 500 },
+    tokenCount: { _total: 1000, _input: 500, _output: 500 },
     filesAccessed: [],
     messages: [
       {
         id: createMessageId(),
         role: 'user',
         content: 'Test message',
-        timestamp: now,
+        _timestamp: now,
       },
     ],
     contextFiles: [],
     title: 'Test Session',
     tags: ['test'],
-    notes: null,
+    _notes: null,
     ...overrides,
   };
 }
@@ -62,14 +62,14 @@ function createMockSessionMetadata(overrides: Partial<SessionMetadata> = {}): Se
   const now = Date.now();
   
   return {
-    id: sessionId,
-    created: now,
-    lastModified: now,
+    _id: sessionId,
+    _created: now,
+    _lastModified: now,
     model: 'gpt-4o',
-    tokenCount: { total: 1000, input: 500, output: 500 },
+    tokenCount: { _total: 1000, _input: 500, _output: 500 },
     title: 'Test Session',
     workspaceRoot: '/test/workspace',
-    messageCount: 5,
+    _messageCount: 5,
     lastMessage: 'Test message',
     contextFiles: [],
     tags: ['test'],
@@ -81,7 +81,7 @@ function createMockSessionMetadata(overrides: Partial<SessionMetadata> = {}): Se
 /**
  * Creates multiple mock sessions for performance testing.
  */
-function createMockSessions(count: number): Session[] {
+function createMockSessions(_count: number): Session[] {
   const sessions: Session[] = [];
   const baseTime = Date.now() - (count * 60000); // Spread over time
   
@@ -111,7 +111,7 @@ function createMockSessions(count: number): Session[] {
 /**
  * Creates multiple mock session metadata for performance testing.
  */
-function createMockSessionsMetadata(count: number): SessionMetadata[] {
+function createMockSessionsMetadata(_count: number): SessionMetadata[] {
   const metadata: SessionMetadata[] = [];
   const baseTime = Date.now() - (count * 60000);
   
@@ -136,7 +136,7 @@ function createMockSessionsMetadata(count: number): SessionMetadata[] {
 /**
  * Measures execution time of an async function.
  */
-async function measureTime<T>(fn: () => Promise<T>): Promise<{ result: T; duration: number }> {
+async function measureTime<T>(fn: () => Promise<T>): Promise<{ result: T; _duration: number }> {
   const start = performance.now();
   const result = await fn();
   const duration = performance.now() - start;
@@ -177,7 +177,9 @@ describe('SessionMetadataCache Performance', () => {
     let hitCount = 0;
     for (const session of sessions) {
       const cached = cache.get(session.id);
-      if (cached) hitCount++;
+      if (cached) {
+    hitCount++;
+  }
     }
     const readTime = performance.now() - readStart;
     
@@ -253,10 +255,10 @@ describe('LazyLoadingManager Performance', () => {
   
   beforeEach(() => {
     lazyLoader = new LazyLoadingManager({
-      pageSize: 50,
+      _pageSize: 50,
       preloadThreshold: 0.8,
-      maxCachedPages: 10,
-      backgroundPreload: true,
+      _maxCachedPages: 10,
+      _backgroundPreload: true,
     });
     mockData = createMockSessionsMetadata(1000);
     lazyLoader.initialize(mockData.length);
@@ -267,14 +269,14 @@ describe('LazyLoadingManager Performance', () => {
   });
   
   it('should load pages efficiently with large datasets', async () => {
-    const loader = async (offset: number, limit: number) => {
+    const loader = async (_offset: number, _limit: number) => {
       // Simulate some loading time
       await new Promise(resolve => setTimeout(resolve, 1));
       return mockData.slice(offset, offset + limit);
     };
     
     // Measure first page load
-    const { result: page1, duration: duration1 } = await measureTime(() => 
+    const { _result: page1, _duration: duration1 } = await measureTime(() => 
       lazyLoader.getPage(0, loader)
     );
     
@@ -282,7 +284,7 @@ describe('LazyLoadingManager Performance', () => {
     expect(duration1).toBeLessThan(50); // Should be fast
     
     // Measure cached page access
-    const { result: page1Cached, duration: durationCached } = await measureTime(() => 
+    const { _result: page1Cached, _duration: durationCached } = await measureTime(() => 
       lazyLoader.getPage(0, loader)
     );
     
@@ -304,7 +306,7 @@ describe('LazyLoadingManager Performance', () => {
   });
   
   it('should handle preloading efficiently', async () => {
-    const loader = async (offset: number, limit: number) => {
+    const loader = async (_offset: number, _limit: number) => {
       await new Promise(resolve => setTimeout(resolve, 2));
       return mockData.slice(offset, offset + limit);
     };
@@ -322,7 +324,7 @@ describe('LazyLoadingManager Performance', () => {
     
     // Accessing preloaded pages should be fast
     for (let i = 0; i < 5; i++) {
-      const { duration: accessTime } = await measureTime(() => 
+      const { _duration: accessTime } = await measureTime(() => 
         lazyLoader.getPage(i, loader)
       );
       expect(accessTime).toBeLessThan(5); // Should be cached
@@ -330,7 +332,7 @@ describe('LazyLoadingManager Performance', () => {
   });
   
   it('should manage memory usage with large page counts', async () => {
-    const loader = async (offset: number, limit: number) => {
+    const loader = async (_offset: number, _limit: number) => {
       return mockData.slice(offset, offset + limit);
     };
     
@@ -359,10 +361,10 @@ describe('BackgroundTaskManager Performance', () => {
   
   beforeEach(() => {
     taskManager = new BackgroundTaskManager({
-      interval: 100, // Fast interval for testing
-      maxConcurrent: 3,
-      timeout: 5000,
-      persistQueue: false,
+      _interval: 100, // Fast interval for testing
+      _maxConcurrent: 3,
+      _timeout: 5000,
+      _persistQueue: false,
     });
     taskManager.start();
   });
@@ -422,7 +424,7 @@ describe('BackgroundTaskManager Performance', () => {
     for (let i = 0; i < 10; i++) {
       taskManager.queueTask({
         type: 'cleanup',
-        priority: 5,
+        _priority: 5,
         execute: async () => {
           const taskId = `task-${i}`;
           concurrentTasks.add(taskId);
@@ -450,8 +452,8 @@ describe('BackgroundTaskManager Performance', () => {
     for (let i = 0; i < 20; i++) {
       taskManager.queueTask({
         type: 'cleanup',
-        priority: 5,
-        retries: 1,
+        _priority: 5,
+        _retries: 1,
         execute: async () => {
           if (i % 3 === 0) {
             failedTasks.push(`task-${i}`);
@@ -570,24 +572,24 @@ describe('EnhancedSessionManager Performance Integration', () => {
   beforeEach(() => {
     manager = new EnhancedSessionManager(undefined, {
       cache: {
-        enabled: true,
-        maxSize: 500,
-        defaultTtl: 60000,
+        _enabled: true,
+        _maxSize: 500,
+        _defaultTtl: 60000,
       },
       lazyLoading: {
-        pageSize: 25,
+        _pageSize: 25,
         preloadThreshold: 0.8,
-        maxCachedPages: 5,
-        backgroundPreload: true,
+        _maxCachedPages: 5,
+        _backgroundPreload: true,
       },
       backgroundTasks: {
-        interval: 1000,
-        maxConcurrent: 2,
-        timeout: 5000,
-        persistQueue: false,
+        _interval: 1000,
+        _maxConcurrent: 2,
+        _timeout: 5000,
+        _persistQueue: false,
       },
       monitoring: {
-        enabled: true,
+        _enabled: true,
         sampleRate: 1.0,
       },
     });
@@ -672,7 +674,7 @@ describe('Performance Benchmarks', () => {
     }
     const readTime = performance.now() - readStart;
     
-    console.log(`Cache Performance Benchmark:
+    console.warn(`Cache Performance Benchmark:
       - Write 1000 entries: ${writeTime.toFixed(2)}ms
       - Read 1000 entries: ${readTime.toFixed(2)}ms
       - Write rate: ${(1000 / writeTime * 1000).toFixed(0)} ops/sec
@@ -686,11 +688,11 @@ describe('Performance Benchmarks', () => {
   });
   
   it('should benchmark lazy loading operations', async () => {
-    const lazyLoader = new LazyLoadingManager({ pageSize: 50 });
+    const lazyLoader = new LazyLoadingManager({ _pageSize: 50 });
     const mockData = createMockSessionsMetadata(1000);
     lazyLoader.initialize(mockData.length);
     
-    const loader = async (offset: number, limit: number) => {
+    const loader = async (_offset: number, _limit: number) => {
       return mockData.slice(offset, offset + limit);
     };
     
@@ -716,7 +718,7 @@ describe('Performance Benchmarks', () => {
     ]);
     const cachedTime = performance.now() - cachedStart;
     
-    console.log(`Lazy Loading Performance Benchmark:
+    console.warn(`Lazy Loading Performance Benchmark:
       - Load 5 pages (250 items): ${loadTime.toFixed(2)}ms
       - Access 5 cached pages: ${cachedTime.toFixed(2)}ms
       - Load rate: ${(250 / loadTime * 1000).toFixed(0)} items/sec

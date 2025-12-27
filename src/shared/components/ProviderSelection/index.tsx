@@ -23,7 +23,7 @@ export interface ProviderSelectionProps {
   currentProvider?: string;
   
   /** Callback when a provider is selected */
-  onProviderSelected: (provider: string) => void;
+  onProviderSelected: (_provider: string) => void;
   
   /** Callback to cancel selection */
   onCancel: () => void;
@@ -64,7 +64,9 @@ const ProviderItem = ({
   index 
 }: ProviderItemProps): ReactElement => {
   const getStatusIcon = (): string => {
-    if (!provider.enabled) return '❌';
+    if (!provider.enabled) {
+    return '❌';
+  }
     return '✅';
   };
 
@@ -259,7 +261,7 @@ export const ProviderStatus = ({
   useInput(
     useCallback(
       (input, key) => {
-        if (key.escape || key.return || (key.ctrl && input === 'c')) {
+        if (key.escape || key.return || (key.ctrl && input === 'c') {
           onClose();
         }
       },
@@ -337,7 +339,7 @@ export interface ProviderConfigWizardProps {
   currentConfig?: ProviderConfig;
   
   /** Callback when configuration is saved */
-  onConfigSaved: (config: ProviderConfig) => void;
+  onConfigSaved: (_config: ProviderConfig) => void;
   
   /** Callback to cancel configuration */
   onCancel: () => void;
@@ -355,15 +357,15 @@ export const ProviderConfigWizard = ({
   const [config] = useState<Partial<ProviderConfig>>(
     currentConfig || {
       name: provider as any,
-      enabled: true,
-      priority: 0,
+      _enabled: true,
+      _priority: 0,
     }
   );
 
   useInput(
     useCallback(
       (input, key) => {
-        if (key.escape || (key.ctrl && input === 'c')) {
+        if (key.escape || (key.ctrl && input === 'c') {
           onCancel();
         }
       },

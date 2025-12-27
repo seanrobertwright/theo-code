@@ -52,6 +52,8 @@ export default [
         globalThis: 'readonly',
         AbortSignal: 'readonly',
         AbortController: 'readonly',
+        NodeJS: 'readonly',
+        performance: 'readonly',
       },
     },
     plugins: {

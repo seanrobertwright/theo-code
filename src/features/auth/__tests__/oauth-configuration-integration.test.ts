@@ -34,55 +34,55 @@ describe('OAuth Configuration Integration', () => {
           providers: [
             {
               name: 'google',
-              enabled: true,
-              priority: 100,
+              _enabled: true,
+              _priority: 100,
               apiKey: 'test-api-key',
               oauth: {
-                enabled: true,
+                _enabled: true,
                 clientId: 'test-client-id',
                 preferredMethod: 'oauth',
-                autoRefresh: true,
+                _autoRefresh: true,
               },
             },
             {
               name: 'anthropic',
-              enabled: true,
-              priority: 90,
+              _enabled: true,
+              _priority: 90,
               apiKey: 'test-anthropic-key',
               oauth: {
-                enabled: false,
+                _enabled: false,
                 preferredMethod: 'api_key',
-                autoRefresh: true,
+                _autoRefresh: true,
               },
             },
             {
               name: 'openrouter',
-              enabled: true,
-              priority: 80,
+              _enabled: true,
+              _priority: 80,
               oauth: {
-                enabled: true,
+                _enabled: true,
                 clientId: 'openrouter-client-id',
                 preferredMethod: 'oauth',
-                autoRefresh: true,
+                _autoRefresh: true,
               },
             },
           ],
         },
         oauthSerialization: {
-          includeInSerialization: true,
-          maskSensitiveData: true,
+          _includeInSerialization: true,
+          _maskSensitiveData: true,
           customSensitivePatterns: ['client_secret', 'refresh_token'],
         },
       },
-      project: undefined,
+      _project: undefined,
       policy: {
-        allowNet: true,
-        allowExec: true,
-        autoApproveRead: true,
-        autoApproveWrite: false,
+        _allowNet: true,
+        _allowExec: true,
+        _autoApproveRead: true,
+        _autoApproveWrite: false,
         blockedCommands: [],
         maxFileSize: 1024 * 1024,
-        executionTimeout: 30000,
+        _executionTimeout: 30000,
       },
     } as MergedConfig;
 
@@ -103,10 +103,10 @@ describe('OAuth Configuration Integration', () => {
       const oauthConfig = getOAuthConfig('google', mockConfig);
       
       expect(oauthConfig).toEqual({
-        enabled: true,
+        _enabled: true,
         clientId: 'test-client-id',
         preferredMethod: 'oauth',
-        autoRefresh: true,
+        _autoRefresh: true,
       });
     });
 
@@ -114,9 +114,9 @@ describe('OAuth Configuration Integration', () => {
       const oauthConfig = getOAuthConfig('anthropic', mockConfig);
       
       expect(oauthConfig).toEqual({
-        enabled: false,
+        _enabled: false,
         preferredMethod: 'api_key',
-        autoRefresh: true,
+        _autoRefresh: true,
       });
     });
 
@@ -124,8 +124,8 @@ describe('OAuth Configuration Integration', () => {
       // Add provider without OAuth config
       mockConfig.global.providers!.providers.push({
         name: 'ollama',
-        enabled: true,
-        priority: 50,
+        _enabled: true,
+        _priority: 50,
       } as any);
 
       const oauthConfig = getOAuthConfig('ollama', mockConfig);
@@ -147,29 +147,29 @@ describe('OAuth Configuration Integration', () => {
     it('should get comprehensive authentication configuration', () => {
       const googleAuth = getAuthenticationConfig('google', mockConfig);
       expect(googleAuth).toEqual({
-        hasApiKey: true,
-        hasOAuth: true,
+        _hasApiKey: true,
+        _hasOAuth: true,
         preferredMethod: 'oauth',
-        oauthEnabled: true,
-        autoRefresh: true,
+        _oauthEnabled: true,
+        _autoRefresh: true,
       });
 
       const anthropicAuth = getAuthenticationConfig('anthropic', mockConfig);
       expect(anthropicAuth).toEqual({
-        hasApiKey: true,
-        hasOAuth: false, // OAuth disabled
+        _hasApiKey: true,
+        _hasOAuth: false, // OAuth disabled
         preferredMethod: 'api_key',
-        oauthEnabled: false,
-        autoRefresh: true,
+        _oauthEnabled: false,
+        _autoRefresh: true,
       });
 
       const openrouterAuth = getAuthenticationConfig('openrouter', mockConfig);
       expect(openrouterAuth).toEqual({
-        hasApiKey: false,
-        hasOAuth: true,
+        _hasApiKey: false,
+        _hasOAuth: true,
         preferredMethod: 'oauth',
-        oauthEnabled: true,
-        autoRefresh: true,
+        _oauthEnabled: true,
+        _autoRefresh: true,
       });
     });
   });
@@ -202,22 +202,22 @@ describe('OAuth Configuration Integration', () => {
       
       // Google: Both OAuth and API key
       expect(configs[0]).toMatchObject({
-        hasApiKey: true,
-        hasOAuth: true,
+        _hasApiKey: true,
+        _hasOAuth: true,
         preferredMethod: 'oauth',
       });
 
       // Anthropic: API key only (OAuth disabled)
       expect(configs[1]).toMatchObject({
-        hasApiKey: true,
-        hasOAuth: false,
+        _hasApiKey: true,
+        _hasOAuth: false,
         preferredMethod: 'api_key',
       });
 
       // OpenRouter: OAuth only
       expect(configs[2]).toMatchObject({
-        hasApiKey: false,
-        hasOAuth: true,
+        _hasApiKey: false,
+        _hasOAuth: true,
         preferredMethod: 'oauth',
       });
     });
@@ -275,12 +275,12 @@ describe('OAuth Configuration Integration', () => {
       mockConfig.project = {
         providerOverrides: {
           google: {
-            enabled: false, // Override to disable
-            priority: 50,   // Override priority
+            _enabled: false, // Override to disable
+            _priority: 50,   // Override priority
           },
           anthropic: {
-            enabled: true,
-            priority: 100,  // Higher priority than global
+            _enabled: true,
+            _priority: 100,  // Higher priority than global
           },
         },
       };
@@ -293,8 +293,8 @@ describe('OAuth Configuration Integration', () => {
       const config = loadConfig(mockWorkspaceRoot);
       expect(config.project?.providerOverrides).toBeDefined();
       expect(config.project?.providerOverrides?.google).toMatchObject({
-        enabled: false,
-        priority: 50,
+        _enabled: false,
+        _priority: 50,
       });
     });
 
@@ -303,10 +303,10 @@ describe('OAuth Configuration Integration', () => {
       const oauthConfig = getOAuthConfig('google', mockConfig);
       
       expect(oauthConfig).toEqual({
-        enabled: true,
+        _enabled: true,
         clientId: 'test-client-id',
         preferredMethod: 'oauth',
-        autoRefresh: true,
+        _autoRefresh: true,
       });
     });
   });
@@ -320,8 +320,8 @@ describe('OAuth Configuration Integration', () => {
       const config = loadConfig(mockWorkspaceRoot);
       
       expect(config.global.oauthSerialization).toEqual({
-        includeInSerialization: true,
-        maskSensitiveData: true,
+        _includeInSerialization: true,
+        _maskSensitiveData: true,
         customSensitivePatterns: ['client_secret', 'refresh_token'],
       });
     });
@@ -348,11 +348,11 @@ describe('OAuth Configuration Integration', () => {
       const authConfig = getAuthenticationConfig('google', mockConfig);
       
       expect(authConfig).toEqual({
-        hasApiKey: false,
-        hasOAuth: false,
+        _hasApiKey: false,
+        _hasOAuth: false,
         preferredMethod: 'api_key',
-        oauthEnabled: false,
-        autoRefresh: true,
+        _oauthEnabled: false,
+        _autoRefresh: true,
       });
     });
 
@@ -362,11 +362,11 @@ describe('OAuth Configuration Integration', () => {
       const authConfig = getAuthenticationConfig('google', mockConfig);
       
       expect(authConfig).toEqual({
-        hasApiKey: false,
-        hasOAuth: false,
+        _hasApiKey: false,
+        _hasOAuth: false,
         preferredMethod: 'api_key',
-        oauthEnabled: false,
-        autoRefresh: true,
+        _oauthEnabled: false,
+        _autoRefresh: true,
       });
     });
 
@@ -380,11 +380,11 @@ describe('OAuth Configuration Integration', () => {
       const authConfig = getAuthenticationConfig('malformed', mockConfig);
       
       expect(authConfig).toEqual({
-        hasApiKey: false,
-        hasOAuth: false,
+        _hasApiKey: false,
+        _hasOAuth: false,
         preferredMethod: 'api_key',
-        oauthEnabled: false,
-        autoRefresh: true,
+        _oauthEnabled: false,
+        _autoRefresh: true,
       });
     });
 
@@ -450,17 +450,17 @@ vi.mock('../../../config/index.js', async () => {
   return {
     ...actual,
     loadConfig: vi.fn(),
-    getAuthenticationConfig: vi.fn().mockImplementation((provider: string, config: MergedConfig) => {
+    getAuthenticationConfig: vi.fn().mockImplementation((_provider: string, _config: MergedConfig) => {
       const providers = config.global.providers?.providers || [];
-      const providerConfig = providers.find((p: any) => p.name === provider);
+      const providerConfig = providers.find((_p: any) => p.name === provider);
       
       if (!providerConfig) {
         return {
-          hasApiKey: false,
-          hasOAuth: false,
+          _hasApiKey: false,
+          _hasOAuth: false,
           preferredMethod: 'api_key',
-          oauthEnabled: false,
-          autoRefresh: true,
+          _oauthEnabled: false,
+          _autoRefresh: true,
         };
       }
 
@@ -476,29 +476,31 @@ vi.mock('../../../config/index.js', async () => {
         autoRefresh: oauthConfig?.autoRefresh ?? true,
       };
     }),
-    getOAuthConfig: vi.fn().mockImplementation((provider: string, config: MergedConfig) => {
+    getOAuthConfig: vi.fn().mockImplementation((_provider: string, _config: MergedConfig) => {
       const providers = config.global.providers?.providers || [];
-      const providerConfig = providers.find((p: any) => p.name === provider);
+      const providerConfig = providers.find((_p: any) => p.name === provider);
       return providerConfig?.oauth;
     }),
-    isOAuthEnabled: vi.fn().mockImplementation((provider: string, config: MergedConfig) => {
+    isOAuthEnabled: vi.fn().mockImplementation((_provider: string, _config: MergedConfig) => {
       const providers = config.global.providers?.providers || [];
-      const providerConfig = providers.find((p: any) => p.name === provider);
+      const providerConfig = providers.find((_p: any) => p.name === provider);
       return providerConfig?.oauth?.enabled || false;
     }),
-    getPreferredAuthMethod: vi.fn().mockImplementation((provider: string, config: MergedConfig) => {
+    getPreferredAuthMethod: vi.fn().mockImplementation((_provider: string, _config: MergedConfig) => {
       const providers = config.global.providers?.providers || [];
-      const providerConfig = providers.find((p: any) => p.name === provider);
+      const providerConfig = providers.find((_p: any) => p.name === provider);
       return providerConfig?.oauth?.preferredMethod || 'api_key';
     }),
-    getApiKey: vi.fn().mockImplementation((provider: string, config: MergedConfig) => {
+    getApiKey: vi.fn().mockImplementation((_provider: string, _config: MergedConfig) => {
       // Check environment first
       const envKey = process.env[`${provider.toUpperCase()}_API_KEY`];
-      if (envKey) return envKey;
+      if (envKey) {
+    return envKey;
+  }
 
       // Check config
       const providers = config.global.providers?.providers || [];
-      const providerConfig = providers.find((p: any) => p.name === provider);
+      const providerConfig = providers.find((_p: any) => p.name === provider);
       return providerConfig?.apiKey;
     }),
   };

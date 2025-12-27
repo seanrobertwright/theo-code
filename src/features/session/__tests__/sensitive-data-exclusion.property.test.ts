@@ -28,8 +28,8 @@ vi.mock('../../../config/loader.js', async () => {
     loadConfig: vi.fn().mockReturnValue({
       global: {
         session: {
-          autoSaveInterval: 30000,
-          maxSessions: 50,
+          _autoSaveInterval: 30000,
+          _maxSessions: 50,
         },
       },
     }),
@@ -62,7 +62,7 @@ describe('Sensitive Data Exclusion Property Tests', () => {
   afterEach(async () => {
     // Clean up temp directory
     try {
-      await fs.rm(tempDir, { recursive: true, force: true });
+      await fs.rm(tempDir, { _recursive: true, _force: true });
     } catch {
       // Ignore cleanup errors
     }
@@ -81,66 +81,66 @@ describe('Sensitive Data Exclusion Property Tests', () => {
         // Generate session data with various types of sensitive information
         fc.record({
           model: fc.constantFrom('gpt-4o', 'gpt-3.5-turbo', 'claude-3-sonnet'),
-          workspaceRoot: fc.string({ minLength: 10, maxLength: 50 }).map(s => `/home/user/projects/${s}`),
-          title: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
-          tags: fc.array(fc.string({ minLength: 1, maxLength: 20 }), { maxLength: 5 }),
-          notes: fc.option(fc.string({ minLength: 1, maxLength: 200 })),
+          workspaceRoot: fc.string({ _minLength: 10, _maxLength: 50 }).map(s => `/home/user/projects/${s}`),
+          title: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
+          tags: fc.array(fc.string({ _minLength: 1, _maxLength: 20 }), { _maxLength: 5 }),
+          notes: fc.option(fc.string({ _minLength: 1, _maxLength: 200 })),
           contextFiles: fc.array(
-            fc.string({ minLength: 5, maxLength: 30 }).map(s => `/home/user/projects/myapp/src/${s}.ts`), 
-            { maxLength: 8 }
+            fc.string({ _minLength: 5, _maxLength: 30 }).map(s => `/home/user/projects/myapp/src/${s}.ts`), 
+            { _maxLength: 8 }
           ),
           sensitiveContent: fc.record({
             // API keys in various formats
             apiKeys: fc.array(
               fc.oneof(
                 // OpenAI style API keys
-                fc.string({ minLength: 20, maxLength: 30 }).map(s => `sk-${s}`),
+                fc.string({ _minLength: 20, _maxLength: 30 }).map(s => `sk-${s}`),
                 // Generic long tokens
-                fc.string({ minLength: 32, maxLength: 64 }).map(s => s.replace(/[^A-Za-z0-9]/g, '')),
+                fc.string({ _minLength: 32, _maxLength: 64 }).map(s => s.replace(/[^A-Za-z0-9]/g, '')),
                 // API keys with mixed characters
-                fc.string({ minLength: 15, maxLength: 40 }).map(s => `sk-${s}!@#$%^&*()`),
+                fc.string({ _minLength: 15, _maxLength: 40 }).map(s => `sk-${s}!@#$%^&*()`),
               ),
-              { minLength: 1, maxLength: 3 }
+              { _minLength: 1, _maxLength: 3 }
             ),
             // Email addresses in various formats
             emails: fc.array(
               fc.oneof(
                 // Standard emails
-                fc.string({ minLength: 3, maxLength: 10 }).map(s => `user${s}@example.com`),
+                fc.string({ _minLength: 3, _maxLength: 10 }).map(s => `user${s}@example.com`),
                 // Emails with special characters
-                fc.string({ minLength: 3, maxLength: 10 }).map(s => `user.${s}+test@domain.co.uk`),
+                fc.string({ _minLength: 3, _maxLength: 10 }).map(s => `user.${s}+test@domain.co.uk`),
                 // Emails with spaces (edge case)
-                fc.string({ minLength: 3, maxLength: 10 }).map(s => `user ${s} @ domain.com`),
+                fc.string({ _minLength: 3, _maxLength: 10 }).map(s => `user ${s} @ domain.com`),
               ),
-              { minLength: 1, maxLength: 3 }
+              { _minLength: 1, _maxLength: 3 }
             ),
             // Passwords and credentials
             credentials: fc.array(
               fc.oneof(
-                fc.string({ minLength: 8, maxLength: 20 }).map(s => `password=${s}`),
-                fc.string({ minLength: 8, maxLength: 20 }).map(s => `token: ${s}`),
-                fc.string({ minLength: 8, maxLength: 20 }).map(s => `key = "${s}"`),
+                fc.string({ _minLength: 8, _maxLength: 20 }).map(s => `password=${s}`),
+                fc.string({ _minLength: 8, _maxLength: 20 }).map(s => `token: ${s}`),
+                fc.string({ _minLength: 8, _maxLength: 20 }).map(s => `key = "${s}"`),
               ),
-              { minLength: 1, maxLength: 3 }
+              { _minLength: 1, _maxLength: 3 }
             ),
             // File paths
             filePaths: fc.array(
               fc.oneof(
-                fc.string({ minLength: 5, maxLength: 20 }).map(s => `/home/user/secret/${s}.txt`),
-                fc.string({ minLength: 5, maxLength: 20 }).map(s => `C:\\Users\\User\\Documents\\${s}.doc`),
-                fc.string({ minLength: 5, maxLength: 20 }).map(s => `/var/log/sensitive/${s}.log`),
+                fc.string({ _minLength: 5, _maxLength: 20 }).map(s => `/home/user/secret/${s}.txt`),
+                fc.string({ _minLength: 5, _maxLength: 20 }).map(s => `C:\\Users\\User\\Documents\\${s}.doc`),
+                fc.string({ _minLength: 5, _maxLength: 20 }).map(s => `/var/log/sensitive/${s}.log`),
               ),
-              { minLength: 1, maxLength: 3 }
+              { _minLength: 1, _maxLength: 3 }
             ),
             // URLs with credentials
             urlsWithCredentials: fc.array(
-              fc.string({ minLength: 3, maxLength: 10 }).map(s => `https://user:password@${s}.com/api`),
-              { minLength: 0, maxLength: 2 }
+              fc.string({ _minLength: 3, _maxLength: 10 }).map(s => `https://user:password@${s}.com/api`),
+              { _minLength: 0, _maxLength: 2 }
             ),
             // Environment variables
             envVars: fc.array(
-              fc.string({ minLength: 3, maxLength: 15 }).map(s => `$${s.toUpperCase()}_SECRET`),
-              { minLength: 0, maxLength: 2 }
+              fc.string({ _minLength: 3, _maxLength: 15 }).map(s => `$${s.toUpperCase()}_SECRET`),
+              { _minLength: 0, _maxLength: 2 }
             ),
           }),
         }),
@@ -149,9 +149,9 @@ describe('Sensitive Data Exclusion Property Tests', () => {
           const session = await manager.createSession({
             model: sessionData.model,
             workspaceRoot: sessionData.workspaceRoot,
-            title: sessionData.title || undefined,
+            title: sessionData.title ?? undefined,
             tags: sessionData.tags,
-            notes: sessionData.notes || undefined,
+            notes: sessionData.notes ?? undefined,
           });
           
           // Add context files
@@ -208,7 +208,7 @@ describe('Sensitive Data Exclusion Property Tests', () => {
             const message: Message = {
               id: createMessageId(),
               role: i % 2 === 0 ? 'user' : 'assistant',
-              content: messageContent,
+              _content: messageContent,
               timestamp: Date.now() + i,
             };
             
@@ -221,7 +221,7 @@ describe('Sensitive Data Exclusion Property Tests', () => {
           await manager.saveSession(session);
           
           // Filter the session using the sensitive data filter
-          const { session: filteredSession, result } = await sensitiveDataFilter.filterSession(session);
+          const { _session: filteredSession, result } = await sensitiveDataFilter.filterSession(session);
           
           // Verify that sensitive data was filtered
           expect(result.filtered).toBe(true);
@@ -314,7 +314,7 @@ describe('Sensitive Data Exclusion Property Tests', () => {
           }
         }
       ),
-      { numRuns: 100 } // Run 100 iterations to test various sensitive data patterns
+      { _numRuns: 100 } // Run 100 iterations to test various sensitive data patterns
     );
   });
 
@@ -326,9 +326,9 @@ describe('Sensitive Data Exclusion Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'gpt-3.5-turbo'),
-          workspaceRoot: fc.string({ minLength: 10, maxLength: 30 }),
-          customPattern: fc.string({ minLength: 5, maxLength: 15 }).map(s => s.replace(/[^A-Za-z0-9]/g, '')),
-          customData: fc.string({ minLength: 10, maxLength: 30 }),
+          workspaceRoot: fc.string({ _minLength: 10, _maxLength: 30 }),
+          customPattern: fc.string({ _minLength: 5, _maxLength: 15 }).map(s => s.replace(/[^A-Za-z0-9]/g, '')),
+          customData: fc.string({ _minLength: 10, _maxLength: 30 }),
         }),
         async ({ model, workspaceRoot, customPattern, customData }) => {
           // Create custom configuration with additional pattern
@@ -347,25 +347,25 @@ describe('Sensitive Data Exclusion Property Tests', () => {
           session.messages = [{
             id: createMessageId(),
             role: 'user',
-            content: messageContent,
+            _content: messageContent,
             timestamp: Date.now(),
           }];
           
           // Filter the session
-          const { session: filteredSession, result } = await customFilter.filterSession(session);
+          const { _session: filteredSession, result } = await customFilter.filterSession(session);
           
           // Verify that custom pattern was filtered if it matches
           const filteredContent = filteredSession.messages[0].content as string;
           
           // If the custom pattern appears in the content, it should be redacted
-          if (customPattern.length > 0 && messageContent.includes(customPattern)) {
+          if (customPattern.length > 0 && messageContent.includes(customPattern) {
             expect(result.filtered).toBe(true);
             expect(filteredContent).not.toContain(customPattern);
             expect(filteredContent).toContain('[REDACTED]');
           }
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
@@ -377,9 +377,9 @@ describe('Sensitive Data Exclusion Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'gpt-3.5-turbo'),
-          workspaceRoot: fc.string({ minLength: 10, maxLength: 30 }),
-          apiKey: fc.string({ minLength: 20, maxLength: 30 }).map(s => `sk-${s}`),
-          email: fc.string({ minLength: 3, maxLength: 10 }).map(s => `user${s}@example.com`),
+          workspaceRoot: fc.string({ _minLength: 10, _maxLength: 30 }),
+          apiKey: fc.string({ _minLength: 20, _maxLength: 30 }).map(s => `sk-${s}`),
+          email: fc.string({ _minLength: 3, _maxLength: 10 }).map(s => `user${s}@example.com`),
         }),
         async ({ model, workspaceRoot, apiKey, email }) => {
           // Create session
@@ -394,7 +394,7 @@ describe('Sensitive Data Exclusion Property Tests', () => {
             tokenCount: session.tokenCount,
             title: `Project with API key ${apiKey}`,
             workspaceRoot: session.workspaceRoot,
-            messageCount: 1,
+            _messageCount: 1,
             lastMessage: `Contact ${email} for more info`,
             contextFiles: session.contextFiles,
             tags: session.tags,
@@ -402,7 +402,7 @@ describe('Sensitive Data Exclusion Property Tests', () => {
           };
           
           // Filter the metadata
-          const { metadata: filteredMetadata, result } = await sensitiveDataFilter.filterSessionMetadata(metadata);
+          const { _metadata: filteredMetadata, result } = await sensitiveDataFilter.filterSessionMetadata(metadata);
           
           // Verify filtering occurred
           expect(result.filtered).toBe(true);
@@ -427,7 +427,7 @@ describe('Sensitive Data Exclusion Property Tests', () => {
           expect(filteredMetadata.workspaceRoot).toBe('[REDACTED]');
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
@@ -439,7 +439,7 @@ describe('Sensitive Data Exclusion Property Tests', () => {
       fc.asyncProperty(
         fc.record({
           model: fc.constantFrom('gpt-4o', 'gpt-3.5-turbo'),
-          workspaceRoot: fc.string({ minLength: 10, maxLength: 30 }),
+          workspaceRoot: fc.string({ _minLength: 10, _maxLength: 30 }),
           hasEmptyMessages: fc.boolean(),
           hasNullFields: fc.boolean(),
         }),
@@ -472,7 +472,7 @@ describe('Sensitive Data Exclusion Property Tests', () => {
           }
           
           // Filter should not throw errors
-          const { session: filteredSession, result } = await sensitiveDataFilter.filterSession(session);
+          const { _session: filteredSession, result } = await sensitiveDataFilter.filterSession(session);
           
           // Should complete without errors
           expect(filteredSession).toBeDefined();
@@ -483,7 +483,7 @@ describe('Sensitive Data Exclusion Property Tests', () => {
           expect(Array.isArray(result.warnings)).toBe(true);
         }
       ),
-      { numRuns: 30 }
+      { _numRuns: 30 }
     );
   });
 });

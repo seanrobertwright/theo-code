@@ -9,6 +9,7 @@
  * - Migration validation and error handling
  */
 
+import * as path from 'node:path';
 import type {
   Session,
   SessionId,
@@ -19,6 +20,7 @@ import {
   VersionedSessionSchema,
 } from '../../shared/types/index.js';
 import { safeReadFile, atomicWriteFile, fileExists, getSessionFilePath } from './filesystem.js';
+import { getSessionsDir } from '../../config/loader.js';
 
 // =============================================================================
 // MIGRATION TYPES AND INTERFACES
@@ -35,7 +37,7 @@ export type SchemaVersion = string;
  * @param data - Session data in the source version format
  * @returns Promise resolving to migrated session data
  */
-export type MigrationFunction = (data: any) => Promise<any>;
+export type MigrationFunction = (_data: any) => Promise<any>;
 
 /**
  * Migration definition for a specific version transition.
@@ -57,7 +59,7 @@ export interface MigrationDefinition {
   reversible: boolean;
   
   /** Optional validation function for migrated data */
-  validate?: (data: any) => boolean;
+  validate?: (_data: any) => boolean;
 }
 
 /**
@@ -78,8 +80,8 @@ export enum MigrationErrorType {
  */
 export class MigrationError extends Error {
   constructor(
-    public readonly type: MigrationErrorType,
-    message: string,
+    public readonly _type: MigrationErrorType,
+    _message: string,
     public readonly originalError?: Error,
     public readonly recoveryOptions?: string[]
   ) {
@@ -141,34 +143,34 @@ export interface IMigrationFramework {
   getCurrentVersion(): SchemaVersion;
   
   /** Register a migration definition */
-  registerMigration(migration: MigrationDefinition): void;
+  registerMigration(_migration: MigrationDefinition): void;
   
   /** Check if migration is needed for a session */
-  needsMigration(sessionData: any): boolean;
+  needsMigration(_sessionData: any): boolean;
   
   /** Get the version of session data */
-  getDataVersion(sessionData: any): SchemaVersion;
+  getDataVersion(_sessionData: any): SchemaVersion;
   
   /** Migrate session data to current version */
-  migrateSession(sessionId: SessionId, sessionData: any): Promise<MigrationResult>;
+  migrateSession(_sessionId: SessionId, _sessionData: any): Promise<MigrationResult>;
   
   /** Get available migration path between versions */
-  getMigrationPath(fromVersion: SchemaVersion, toVersion: SchemaVersion): SchemaVersion[] | null;
+  getMigrationPath(_fromVersion: SchemaVersion, _toVersion: SchemaVersion): SchemaVersion[] | null;
   
   /** Validate that a version is supported */
-  isSupportedVersion(version: SchemaVersion): boolean;
+  isSupportedVersion(_version: SchemaVersion): boolean;
   
   /** Get compatibility information for all versions */
   getVersionCompatibility(): VersionCompatibility[];
   
   /** Get compatibility information for a specific version */
-  getVersionInfo(version: SchemaVersion): VersionCompatibility | null;
+  getVersionInfo(_version: SchemaVersion): VersionCompatibility | null;
   
   /** Rollback a failed migration using backup */
-  rollbackMigration(sessionId: SessionId, backupPath: string): Promise<MigrationResult>;
+  rollbackMigration(_sessionId: SessionId, _backupPath: string): Promise<MigrationResult>;
   
   /** Create detailed error information for migration failures */
-  createMigrationError(type: MigrationErrorType, message: string, originalError?: Error): MigrationError;
+  createMigrationError(_type: MigrationErrorType, _message: string, originalError?: Error): MigrationError;
 }
 
 // =============================================================================
@@ -234,7 +236,7 @@ export class MigrationFramework implements IMigrationFramework {
     // Validate that backward compatibility requirements are met
     try {
       this.validateBackwardCompatibility();
-    } catch (error: any) {
+    } catch (_error: any) {
       console.error('Migration framework backward compatibility validation failed:', error.message);
       throw error;
     }
@@ -259,7 +261,7 @@ export class MigrationFramework implements IMigrationFramework {
    * @param migration - Migration definition to register
    * @throws {Error} If migration is invalid or conflicts with existing migration
    */
-  registerMigration(migration: MigrationDefinition): void {
+  registerMigration(_migration: MigrationDefinition): void {
     // Validate migration definition
     if (!migration.fromVersion || !migration.toVersion) {
       throw new Error('Migration must specify both fromVersion and toVersion');
@@ -275,7 +277,7 @@ export class MigrationFramework implements IMigrationFramework {
     
     // Check for conflicts
     const key = this.getMigrationKey(migration.fromVersion, migration.toVersion);
-    if (this.migrations.has(key)) {
+    if (this.migrations.has(key) {
       throw new Error(`Migration from ${migration.fromVersion} to ${migration.toVersion} already registered`);
     }
     
@@ -288,7 +290,7 @@ export class MigrationFramework implements IMigrationFramework {
    * @param sessionData - Session data to check
    * @returns True if migration is needed
    */
-  needsMigration(sessionData: any): boolean {
+  needsMigration(_sessionData: any): boolean {
     const dataVersion = this.getDataVersion(sessionData);
     return dataVersion !== CURRENT_SCHEMA_VERSION;
   }
@@ -299,7 +301,7 @@ export class MigrationFramework implements IMigrationFramework {
    * @param sessionData - Session data to analyze
    * @returns Schema version string
    */
-  getDataVersion(sessionData: any): SchemaVersion {
+  getDataVersion(_sessionData: any): SchemaVersion {
     // Handle VersionedSession format
     if (sessionData && typeof sessionData === 'object' && 'version' in sessionData && 'data' in sessionData) {
       return sessionData.version || '0.7.0'; // Default to oldest if not specified
@@ -321,12 +323,12 @@ export class MigrationFramework implements IMigrationFramework {
    * @param sessionData - Session data to migrate
    * @returns Promise resolving to migration result
    */
-  async migrateSession(sessionId: SessionId, sessionData: any): Promise<MigrationResult> {
+  async migrateSession(_sessionId: SessionId, _sessionData: any): Promise<MigrationResult> {
     const fromVersion = this.getDataVersion(sessionData);
     const toVersion = CURRENT_SCHEMA_VERSION;
     
     const result: MigrationResult = {
-      success: false,
+      _success: false,
       fromVersion,
       toVersion,
       migrationPath: [],
@@ -342,7 +344,7 @@ export class MigrationFramework implements IMigrationFramework {
       }
       
       // Check if version is supported
-      if (!this.isSupportedVersion(fromVersion)) {
+      if (!this.isSupportedVersion(fromVersion) {
         const error = this.createMigrationError(
           MigrationErrorType.UNSUPPORTED_VERSION,
           `Unsupported schema version: ${fromVersion}. Minimum supported version is ${MIN_SUPPORTED_VERSION}`,
@@ -377,7 +379,7 @@ export class MigrationFramework implements IMigrationFramework {
       // Create backup before migration
       try {
         result.backupPath = await this.createMigrationBackup(sessionId, sessionData);
-      } catch (backupError: any) {
+      } catch (_backupError: any) {
         const error = this.createMigrationError(
           MigrationErrorType.BACKUP_FAILED,
           `Failed to create backup: ${backupError.message}`,
@@ -453,7 +455,7 @@ export class MigrationFramework implements IMigrationFramework {
             return result;
           }
           
-        } catch (migrationError: any) {
+        } catch (_migrationError: any) {
           const error = this.createMigrationError(
             MigrationErrorType.MIGRATION_FAILED,
             `Migration failed (${currentVersion} -> ${nextVersion}): ${migrationError.message}`,
@@ -484,7 +486,7 @@ export class MigrationFramework implements IMigrationFramework {
       // Final validation with current schema
       try {
         SessionSchema.parse(currentData);
-      } catch (validationError: any) {
+      } catch (_validationError: any) {
         const error = this.createMigrationError(
           MigrationErrorType.VALIDATION_FAILED,
           `Final validation failed: ${validationError.message}`,
@@ -503,7 +505,7 @@ export class MigrationFramework implements IMigrationFramework {
       result.success = true;
       return result;
       
-    } catch (error: any) {
+    } catch (_error: any) {
       const migrationError = this.createMigrationError(
         MigrationErrorType.MIGRATION_FAILED,
         error.message || String(error),
@@ -527,7 +529,7 @@ export class MigrationFramework implements IMigrationFramework {
    * @param toVersion - Target version
    * @returns Array of versions in migration path, or null if no path exists
    */
-  getMigrationPath(fromVersion: SchemaVersion, toVersion: SchemaVersion): SchemaVersion[] | null {
+  getMigrationPath(_fromVersion: SchemaVersion, _toVersion: SchemaVersion): SchemaVersion[] | null {
     if (fromVersion === toVersion) {
       return [fromVersion];
     }
@@ -554,7 +556,7 @@ export class MigrationFramework implements IMigrationFramework {
    * @param version - Version to check
    * @returns True if version is supported
    */
-  isSupportedVersion(version: SchemaVersion): boolean {
+  isSupportedVersion(_version: SchemaVersion): boolean {
     return SUPPORTED_VERSIONS.includes(version);
   }
   
@@ -567,8 +569,8 @@ export class MigrationFramework implements IMigrationFramework {
     const compatibilityInfo: VersionCompatibility[] = [
       {
         version: '0.7.0',
-        supported: true,
-        migratable: true,
+        _supported: true,
+        _migratable: true,
         description: 'Legacy session format',
         changes: [
           'Basic session structure with messages',
@@ -578,8 +580,8 @@ export class MigrationFramework implements IMigrationFramework {
       },
       {
         version: '0.8.0',
-        supported: true,
-        migratable: true,
+        _supported: true,
+        _migratable: true,
         description: 'Added workspace context',
         changes: [
           'Added workspaceRoot field for workspace tracking',
@@ -588,8 +590,8 @@ export class MigrationFramework implements IMigrationFramework {
       },
       {
         version: '0.9.0',
-        supported: true,
-        migratable: true,
+        _supported: true,
+        _migratable: true,
         description: 'Enhanced metadata and tagging',
         changes: [
           'Added contextFiles array for file tracking',
@@ -599,8 +601,8 @@ export class MigrationFramework implements IMigrationFramework {
       },
       {
         version: '1.0.0',
-        supported: true,
-        migratable: false, // Already current version
+        _supported: true,
+        _migratable: false, // Already current version
         description: 'Current version with full feature set',
         changes: [
           'Added filesAccessed array for comprehensive file tracking',
@@ -620,7 +622,7 @@ export class MigrationFramework implements IMigrationFramework {
    * @param version - Version to get information for
    * @returns Version compatibility information or null if not found
    */
-  getVersionInfo(version: SchemaVersion): VersionCompatibility | null {
+  getVersionInfo(_version: SchemaVersion): VersionCompatibility | null {
     const allVersions = this.getVersionCompatibility();
     return allVersions.find(v => v.version === version) || null;
   }
@@ -632,9 +634,9 @@ export class MigrationFramework implements IMigrationFramework {
    * @param backupPath - Path to backup file
    * @returns Promise resolving to rollback result
    */
-  async rollbackMigration(sessionId: SessionId, backupPath: string): Promise<MigrationResult> {
+  async rollbackMigration(_sessionId: SessionId, _backupPath: string): Promise<MigrationResult> {
     const result: MigrationResult = {
-      success: false,
+      _success: false,
       fromVersion: 'unknown',
       toVersion: 'unknown',
       migrationPath: [],
@@ -642,7 +644,7 @@ export class MigrationFramework implements IMigrationFramework {
     };
     
     try {
-      if (!await fileExists(backupPath)) {
+      if (!await fileExists(backupPath) {
         const error = this.createMigrationError(
           MigrationErrorType.ROLLBACK_FAILED,
           `Backup file not found: ${backupPath}`,
@@ -658,7 +660,7 @@ export class MigrationFramework implements IMigrationFramework {
       
       try {
         backupData = JSON.parse(backupContent);
-      } catch (parseError: any) {
+      } catch (_parseError: any) {
         const error = this.createMigrationError(
           MigrationErrorType.CORRUPTED_DATA,
           `Backup file is corrupted: ${parseError.message}`,
@@ -676,14 +678,14 @@ export class MigrationFramework implements IMigrationFramework {
       
       // Write backup data to session file (this is the rollback)
       const sessionFilePath = getSessionFilePath(sessionId);
-      await atomicWriteFile(sessionFilePath, backupContent, { createBackup: false });
+      await atomicWriteFile(sessionFilePath, backupContent, { _createBackup: false });
       
       result.success = true;
       result.warnings.push('Session rolled back to backup version');
       
       return result;
       
-    } catch (error: any) {
+    } catch (_error: any) {
       const rollbackError = this.createMigrationError(
         MigrationErrorType.ROLLBACK_FAILED,
         `Rollback failed: ${error.message}`,
@@ -703,7 +705,7 @@ export class MigrationFramework implements IMigrationFramework {
    * @param originalError - Original error that caused the migration failure
    * @returns Categorized migration error
    */
-  createMigrationError(type: MigrationErrorType, message: string, originalError?: Error): MigrationError {
+  createMigrationError(_type: MigrationErrorType, _message: string, originalError?: Error): MigrationError {
     const recoveryOptions: string[] = [];
     
     switch (type) {
@@ -779,7 +781,9 @@ export class MigrationFramework implements IMigrationFramework {
     
     // Check that full migration paths exist from all supported versions to current
     for (const version of SUPPORTED_VERSIONS) {
-      if (version === CURRENT_SCHEMA_VERSION) continue;
+      if (version === CURRENT_SCHEMA_VERSION) {
+    continue;
+  }
       
       const path = this.getMigrationPath(version, CURRENT_SCHEMA_VERSION);
       if (!path) {
@@ -800,9 +804,9 @@ export class MigrationFramework implements IMigrationFramework {
     supportedVersions: SchemaVersion[];
     minSupportedVersion: SchemaVersion;
     maxBackwardVersions: number;
-    availableMigrations: Array<{ from: SchemaVersion; to: SchemaVersion; description: string }>;
+    availableMigrations: Array<{ from: SchemaVersion; to: SchemaVersion; _description: string }>;
   } {
-    const availableMigrations: Array<{ from: SchemaVersion; to: SchemaVersion; description: string }> = [];
+    const availableMigrations: Array<{ from: SchemaVersion; to: SchemaVersion; _description: string }> = [];
     
     for (const [key, migration] of this.migrations.entries()) {
       availableMigrations.push({
@@ -813,10 +817,10 @@ export class MigrationFramework implements IMigrationFramework {
     }
     
     return {
-      currentVersion: CURRENT_SCHEMA_VERSION,
+      _currentVersion: CURRENT_SCHEMA_VERSION,
       supportedVersions: [...SUPPORTED_VERSIONS],
-      minSupportedVersion: MIN_SUPPORTED_VERSION,
-      maxBackwardVersions: MAX_BACKWARD_COMPATIBILITY_VERSIONS,
+      _minSupportedVersion: MIN_SUPPORTED_VERSION,
+      _maxBackwardVersions: MAX_BACKWARD_COMPATIBILITY_VERSIONS,
       availableMigrations,
     };
   }
@@ -830,7 +834,7 @@ export class MigrationFramework implements IMigrationFramework {
    * @returns Rollback information
    */
   private createRollbackInfo(
-    canRollback: boolean, 
+    _canRollback: boolean, 
     backupPath?: string, 
     warnings: string[] = []
   ): MigrationRollback {
@@ -848,7 +852,7 @@ export class MigrationFramework implements IMigrationFramework {
     const result: MigrationRollback = {
       canRollback,
       rollbackSteps,
-      rollbackWarnings: warnings,
+      _rollbackWarnings: warnings,
     };
     
     if (backupPath !== undefined) {
@@ -869,7 +873,7 @@ export class MigrationFramework implements IMigrationFramework {
    * @param toVersion - Target version
    * @returns Migration key string
    */
-  private getMigrationKey(fromVersion: SchemaVersion, toVersion: SchemaVersion): string {
+  private getMigrationKey(_fromVersion: SchemaVersion, _toVersion: SchemaVersion): string {
     return `${fromVersion}->${toVersion}`;
   }
   
@@ -880,7 +884,7 @@ export class MigrationFramework implements IMigrationFramework {
    * @param toVersion - Target version
    * @returns Migration definition or undefined if not found
    */
-  private getMigration(fromVersion: SchemaVersion, toVersion: SchemaVersion): MigrationDefinition | undefined {
+  private getMigration(_fromVersion: SchemaVersion, _toVersion: SchemaVersion): MigrationDefinition | undefined {
     const key = this.getMigrationKey(fromVersion, toVersion);
     return this.migrations.get(key);
   }
@@ -892,12 +896,13 @@ export class MigrationFramework implements IMigrationFramework {
    * @param sessionData - Session data to backup
    * @returns Promise resolving to backup file path
    */
-  private async createMigrationBackup(sessionId: SessionId, sessionData: any): Promise<string> {
+  private async createMigrationBackup(_sessionId: SessionId, _sessionData: any): Promise<string> {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupPath = `${sessionId}.migration-backup.${timestamp}.json`;
+    const sessionsDir = getSessionsDir();
+    const backupPath = path.join(sessionsDir, `${sessionId}.migration-backup.${timestamp}.json`);
     
     const backupContent = JSON.stringify(sessionData, null, 2);
-    await atomicWriteFile(backupPath, backupContent, { createBackup: false });
+    await atomicWriteFile(backupPath, backupContent, { _createBackup: false });
     
     return backupPath;
   }
@@ -915,8 +920,8 @@ export class MigrationFramework implements IMigrationFramework {
       fromVersion: '0.7.0',
       toVersion: '0.8.0',
       description: 'Add workspaceRoot field to session schema',
-      reversible: false,
-      migrate: async (data: any) => {
+      _reversible: false,
+      migrate: async (_data: any) => {
         // Extract session data if it's in VersionedSession format
         let sessionData = data;
         if (data && typeof data === 'object' && 'data' in data) {
@@ -929,7 +934,7 @@ export class MigrationFramework implements IMigrationFramework {
           workspaceRoot: sessionData.workspaceRoot || process.cwd(), // Default to current directory
         };
       },
-      validate: (data: any) => {
+      validate: (_data: any) => {
         return data && typeof data.workspaceRoot === 'string';
       },
     });
@@ -939,8 +944,8 @@ export class MigrationFramework implements IMigrationFramework {
       fromVersion: '0.8.0',
       toVersion: '0.9.0',
       description: 'Add contextFiles and tags fields to session schema',
-      reversible: false,
-      migrate: async (data: any) => {
+      _reversible: false,
+      migrate: async (_data: any) => {
         return {
           ...data,
           version: '0.9.0',
@@ -948,7 +953,7 @@ export class MigrationFramework implements IMigrationFramework {
           tags: data.tags || [],
         };
       },
-      validate: (data: any) => {
+      validate: (_data: any) => {
         return data && Array.isArray(data.contextFiles) && Array.isArray(data.tags);
       },
     });
@@ -958,17 +963,17 @@ export class MigrationFramework implements IMigrationFramework {
       fromVersion: '0.9.0',
       toVersion: '1.0.0',
       description: 'Add filesAccessed, title, and notes fields to session schema',
-      reversible: false,
-      migrate: async (data: any) => {
+      _reversible: false,
+      migrate: async (_data: any) => {
         return {
           ...data,
           version: '1.0.0',
           filesAccessed: data.filesAccessed || [],
-          title: data.title || null,
-          notes: data.notes || null,
+          title: data.title ?? null,
+          notes: data.notes ?? null,
         };
       },
-      validate: (data: any) => {
+      validate: (_data: any) => {
         return data && 
                Array.isArray(data.filesAccessed) && 
                (data.title === null || typeof data.title === 'string') &&
@@ -998,10 +1003,10 @@ export function createMigrationFramework(): MigrationFramework {
  * @param filePath - Path to session file
  * @returns Promise resolving to migration result
  */
-export async function migrateSessionFile(sessionId: SessionId, filePath: string): Promise<MigrationResult> {
+export async function migrateSessionFile(_sessionId: SessionId, _filePath: string): Promise<MigrationResult> {
   const framework = createMigrationFramework();
   
-  if (!await fileExists(filePath)) {
+  if (!await fileExists(filePath) {
     throw new Error(`Session file not found: ${filePath}`);
   }
   
@@ -1011,14 +1016,14 @@ export async function migrateSessionFile(sessionId: SessionId, filePath: string)
   
   try {
     sessionData = JSON.parse(content);
-  } catch (error: any) {
+  } catch (_error: any) {
     throw new Error(`Invalid JSON in session file: ${error.message}`);
   }
   
   // Check if migration is needed
-  if (!framework.needsMigration(sessionData)) {
+  if (!framework.needsMigration(sessionData) {
     return {
-      success: true,
+      _success: true,
       fromVersion: framework.getDataVersion(sessionData),
       toVersion: framework.getCurrentVersion(),
       migrationPath: [framework.getDataVersion(sessionData)],
@@ -1032,7 +1037,7 @@ export async function migrateSessionFile(sessionId: SessionId, filePath: string)
   if (result.success) {
     // Write migrated data back to file
     const migratedContent = JSON.stringify(sessionData, null, 2);
-    await atomicWriteFile(filePath, migratedContent, { createBackup: true });
+    await atomicWriteFile(filePath, migratedContent, { _createBackup: true });
   }
   
   return result;
@@ -1046,7 +1051,7 @@ export async function migrateSessionFile(sessionId: SessionId, filePath: string)
  * @returns True if backward compatibility is maintained
  */
 export function validateBackwardCompatibilitySupport(
-  framework: IMigrationFramework, 
+  _framework: IMigrationFramework, 
   maxVersions: number = MAX_BACKWARD_COMPATIBILITY_VERSIONS
 ): boolean {
   const supportInfo = (framework as MigrationFramework).getMigrationSupportInfo();
@@ -1058,7 +1063,9 @@ export function validateBackwardCompatibilitySupport(
   
   // Check that all versions can migrate to current
   for (const version of supportInfo.supportedVersions) {
-    if (version === supportInfo.currentVersion) continue;
+    if (version === supportInfo.currentVersion) {
+    continue;
+  }
     
     const path = framework.getMigrationPath(version, supportInfo.currentVersion);
     if (!path) {
@@ -1084,7 +1091,7 @@ export function getOldestSupportedVersion(): SchemaVersion {
  * @param version - Version to check
  * @returns True if version is within compatibility window
  */
-export function isWithinCompatibilityWindow(version: SchemaVersion): boolean {
+export function isWithinCompatibilityWindow(_version: SchemaVersion): boolean {
   return SUPPORTED_VERSIONS.includes(version);
 }
 
@@ -1094,10 +1101,10 @@ export function isWithinCompatibilityWindow(version: SchemaVersion): boolean {
  * @param filePath - Path to session file
  * @returns Promise resolving to true if migration is needed
  */
-export async function sessionFileNeedsMigration(filePath: string): Promise<boolean> {
+export async function sessionFileNeedsMigration(_filePath: string): Promise<boolean> {
   const framework = createMigrationFramework();
   
-  if (!await fileExists(filePath)) {
+  if (!await fileExists(filePath) {
     return false;
   }
   

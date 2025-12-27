@@ -70,7 +70,7 @@ export interface SessionRestorationPromptOptions {
  * @returns Promise resolving to detection result
  */
 export async function detectAvailableSessions(
-  sessionManager: ISessionManager,
+  _sessionManager: ISessionManager,
   options: SessionDetectionOptions = {}
 ): Promise<SessionDetectionResult> {
   const {
@@ -98,10 +98,10 @@ export async function detectAvailableSessions(
   } catch (error) {
     console.error('Failed to detect available sessions:', error);
     return {
-      hasAvailableSessions: false,
+      _hasAvailableSessions: false,
       recentSessions: [],
-      mostRecentSession: null,
-      totalSessionCount: 0,
+      _mostRecentSession: null,
+      _totalSessionCount: 0,
     };
   }
 }
@@ -114,7 +114,7 @@ export async function detectAvailableSessions(
  * @returns True if auto-restore should be performed
  */
 export function shouldAutoRestore(
-  detectionResult: SessionDetectionResult,
+  _detectionResult: SessionDetectionResult,
   options: SessionDetectionOptions = {}
 ): boolean {
   const { autoRestoreMostRecent = false } = options;
@@ -141,8 +141,8 @@ export function shouldAutoRestore(
  * @returns Promise resolving to restoration result
  */
 export async function restoreSessionOnStartup(
-  sessionManager: ISessionManager,
-  sessionId: SessionId
+  _sessionManager: ISessionManager,
+  _sessionId: SessionId
 ): Promise<{
   success: boolean;
   session: any;
@@ -154,7 +154,7 @@ export async function restoreSessionOnStartup(
     const result = await sessionManager.restoreSessionWithContext(sessionId);
     
     return {
-      success: true,
+      _success: true,
       session: result.session,
       contextFilesFound: result.contextFilesFound,
       contextFilesMissing: result.contextFilesMissing,
@@ -164,11 +164,11 @@ export async function restoreSessionOnStartup(
     console.error('Failed to restore session on startup:', errorMessage);
     
     return {
-      success: false,
-      session: null,
+      _success: false,
+      _session: null,
       contextFilesFound: [],
       contextFilesMissing: [],
-      error: errorMessage,
+      _error: errorMessage,
     };
   }
 }
@@ -185,7 +185,7 @@ export async function restoreSessionOnStartup(
  * @returns Formatted session information
  */
 export function formatSessionForDisplay(
-  metadata: SessionMetadata,
+  _metadata: SessionMetadata,
   options: { showDetails?: boolean } = {}
 ): {
   title: string;
@@ -241,7 +241,7 @@ export function formatSessionForDisplay(
  * @param timestamp - Timestamp in milliseconds
  * @returns Formatted time ago string
  */
-function formatTimeAgo(timestamp: number): string {
+function formatTimeAgo(_timestamp: number): string {
   const now = Date.now();
   const diff = now - timestamp;
   

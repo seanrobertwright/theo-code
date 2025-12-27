@@ -6,7 +6,6 @@
  * for tracking AI provider performance and system health.
  */
 
-import { logger } from '../../shared/utils/index.js';
 import type { ModelProvider } from '../../shared/types/models.js';
 
 // =============================================================================
@@ -171,11 +170,11 @@ export interface PerformanceAlert {
  * Default performance monitoring configuration.
  */
 export const DEFAULT_PERFORMANCE_CONFIG: PerformanceMonitorConfig = {
-  enabled: true,
+  _enabled: true,
   samplingRate: 1.0,
-  maxMetrics: 10000,
-  aggregationWindowMs: 60000, // 1 minute
-  enableTracing: false,
+  _maxMetrics: 10000,
+  _aggregationWindowMs: 60000, // 1 minute
+  _enableTracing: false,
 };
 
 // =============================================================================
@@ -189,7 +188,7 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceMonitorConfig = {
  * ```typescript
  * const monitor = new PerformanceMonitor({
  *   samplingRate: 0.1, // Sample 10% of requests
- *   maxMetrics: 5000,
+ *   _maxMetrics: 5000,
  * });
  *
  * // Start tracking a request
@@ -200,9 +199,9 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceMonitorConfig = {
  * 
  * // End tracking
  * monitor.endRequest(requestId, {
- *   success: true,
- *   inputTokens: 100,
- *   outputTokens: 50,
+ *   _success: true,
+ *   _inputTokens: 100,
+ *   _outputTokens: 50,
  * });
  * ```
  */
@@ -253,9 +252,9 @@ export class PerformanceMonitor {
       provider,
       model,
       startTime,
-      endTime: startTime, // Will be updated when request ends
-      durationMs: 0,
-      success: false,
+      _endTime: startTime, // Will be updated when request ends
+      _durationMs: 0,
+      _success: false,
     };
 
     this.requestMetrics.set(requestId, metrics);
@@ -267,8 +266,10 @@ export class PerformanceMonitor {
   /**
    * Records time to first byte for a request.
    */
-  recordTtfb(requestId: string, ttfbMs: number): void {
-    if (!requestId || !this.config.enabled) return;
+  recordTtfb(_requestId: string, _ttfbMs: number): void {
+    if (!requestId || !this.config.enabled) {
+    return;
+  }
 
     const metrics = this.requestMetrics.get(requestId);
     if (metrics) {
@@ -280,8 +281,10 @@ export class PerformanceMonitor {
   /**
    * Records token usage for a request.
    */
-  recordTokenUsage(requestId: string, inputTokens: number, outputTokens: number): void {
-    if (!requestId || !this.config.enabled) return;
+  recordTokenUsage(_requestId: string, _inputTokens: number, _outputTokens: number): void {
+    if (!requestId || !this.config.enabled) {
+    return;
+  }
 
     const metrics = this.requestMetrics.get(requestId);
     if (metrics) {
@@ -300,8 +303,10 @@ export class PerformanceMonitor {
   /**
    * Records request and response sizes.
    */
-  recordSizes(requestId: string, requestSize: number, responseSize: number): void {
-    if (!requestId || !this.config.enabled) return;
+  recordSizes(_requestId: string, _requestSize: number, _responseSize: number): void {
+    if (!requestId || !this.config.enabled) {
+    return;
+  }
 
     const metrics = this.requestMetrics.get(requestId);
     if (metrics) {
@@ -314,8 +319,10 @@ export class PerformanceMonitor {
   /**
    * Records cache and connection metadata.
    */
-  recordMetadata(requestId: string, cached: boolean, connectionReused: boolean): void {
-    if (!requestId || !this.config.enabled) return;
+  recordMetadata(_requestId: string, _cached: boolean, _connectionReused: boolean): void {
+    if (!requestId || !this.config.enabled) {
+    return;
+  }
 
     const metrics = this.requestMetrics.get(requestId);
     if (metrics) {
@@ -328,14 +335,18 @@ export class PerformanceMonitor {
   /**
    * Ends tracking a request.
    */
-  endRequest(requestId: string, result: {
+  endRequest(_requestId: string, result: {
     success: boolean;
     errorCode?: string;
   }): void {
-    if (!requestId || !this.config.enabled) return;
+    if (!requestId || !this.config.enabled) {
+    return;
+  }
 
     const metrics = this.requestMetrics.get(requestId);
-    if (!metrics) return;
+    if (!metrics) {
+    return;
+  }
 
     const endTime = new Date();
     metrics.endTime = endTime;
@@ -369,7 +380,7 @@ export class PerformanceMonitor {
   /**
    * Gets aggregated metrics for a provider within a time window.
    */
-  getAggregatedMetrics(provider: ModelProvider, windowMs?: number): AggregatedMetrics | null {
+  getAggregatedMetrics(_provider: ModelProvider, windowMs?: number): AggregatedMetrics | null {
     const window = windowMs ?? this.config.aggregationWindowMs;
     const now = new Date();
     const windowStart = new Date(now.getTime() - window);
@@ -405,7 +416,7 @@ export class PerformanceMonitor {
     const aggregated: AggregatedMetrics = {
       provider,
       windowStart,
-      windowEnd: now,
+      _windowEnd: now,
       totalRequests: providerMetrics.length,
       successfulRequests,
       successRate: successfulRequests / providerMetrics.length,
@@ -436,9 +447,9 @@ export class PerformanceMonitor {
     );
 
     return {
-      timestamp: now,
+      _timestamp: now,
       activeConnections: this.requestMetrics.size,
-      queueSize: 0, // Would be populated by request queue
+      _queueSize: 0, // Would be populated by request queue
       cacheHitRate: recentRequests.length > 0 
         ? recentRequests.filter(m => m.cached).length / recentRequests.length 
         : 0,
@@ -480,7 +491,7 @@ export class PerformanceMonitor {
   /**
    * Adds an alert configuration.
    */
-  addAlert(config: AlertConfig): void {
+  addAlert(_config: AlertConfig): void {
     this.alertConfigs.push(config);
     logger.debug(`[PerformanceMonitor] Added alert: ${config.name}`);
   }
@@ -574,17 +585,21 @@ export class PerformanceMonitor {
     const now = new Date();
     
     for (const alertConfig of this.alertConfigs) {
-      if (!alertConfig.enabled) continue;
+      if (!alertConfig.enabled) {
+    continue;
+  }
       
       // Check cooldown
       const lastAlert = this.alertCooldowns.get(alertConfig.name);
-      if (lastAlert && now.getTime() - lastAlert.getTime() < alertConfig.cooldownMs) {
+      if (lastAlert && now.getTime() {
+    - lastAlert.getTime() < alertConfig.cooldownMs) {
+  }
         continue;
       }
       
       // Check aggregated metrics
       for (const metrics of this.aggregatedMetrics.values()) {
-        if (alertConfig.condition(metrics)) {
+        if (alertConfig.condition(metrics) {
           this.triggerAlert(alertConfig, metrics);
           this.alertCooldowns.set(alertConfig.name, now);
           break;
@@ -594,7 +609,7 @@ export class PerformanceMonitor {
       // Check system metrics
       if (this.systemMetrics.length > 0) {
         const latestSystemMetrics = this.systemMetrics[this.systemMetrics.length - 1];
-        if (latestSystemMetrics && alertConfig.condition(latestSystemMetrics)) {
+        if (latestSystemMetrics && alertConfig.condition(latestSystemMetrics) {
           this.triggerAlert(alertConfig, latestSystemMetrics);
           this.alertCooldowns.set(alertConfig.name, now);
         }
@@ -605,7 +620,7 @@ export class PerformanceMonitor {
   /**
    * Triggers an alert.
    */
-  private triggerAlert(config: AlertConfig, metrics: AggregatedMetrics | SystemMetrics): void {
+  private triggerAlert(_config: AlertConfig, metrics: AggregatedMetrics | SystemMetrics): void {
     const alert: PerformanceAlert = {
       id: `alert_${++this.alertIdCounter}`,
       name: config.name,
@@ -631,15 +646,27 @@ export class PerformanceMonitor {
   private determineSeverity(_config: AlertConfig, metrics: AggregatedMetrics | SystemMetrics): PerformanceAlert['severity'] {
     // Simple severity determination - could be made more sophisticated
     if ('successRate' in metrics) {
-      if (metrics.successRate < 0.5) return 'critical';
-      if (metrics.successRate < 0.8) return 'high';
-      if (metrics.successRate < 0.95) return 'medium';
+      if (metrics.successRate < 0.5) {
+    return 'critical';
+  }
+      if (metrics.successRate < 0.8) {
+    return 'high';
+  }
+      if (metrics.successRate < 0.95) {
+    return 'medium';
+  }
     }
     
     if ('averageResponseTimeMs' in metrics) {
-      if (metrics.averageResponseTimeMs > 10000) return 'critical';
-      if (metrics.averageResponseTimeMs > 5000) return 'high';
-      if (metrics.averageResponseTimeMs > 2000) return 'medium';
+      if (metrics.averageResponseTimeMs > 10000) {
+    return 'critical';
+  }
+      if (metrics.averageResponseTimeMs > 5000) {
+    return 'high';
+  }
+      if (metrics.averageResponseTimeMs > 2000) {
+    return 'medium';
+  }
     }
     
     return 'low';
@@ -653,24 +680,24 @@ export class PerformanceMonitor {
       name: 'High Error Rate',
       condition: (metrics) => 'successRate' in metrics && metrics.successRate < 0.9,
       message: 'Error rate is above 10%',
-      cooldownMs: 300000, // 5 minutes
-      enabled: true,
+      _cooldownMs: 300000, // 5 minutes
+      _enabled: true,
     });
     
     this.addAlert({
       name: 'Slow Response Time',
       condition: (metrics) => 'averageResponseTimeMs' in metrics && metrics.averageResponseTimeMs > 5000,
       message: 'Average response time is above 5 seconds',
-      cooldownMs: 300000, // 5 minutes
-      enabled: true,
+      _cooldownMs: 300000, // 5 minutes
+      _enabled: true,
     });
     
     this.addAlert({
       name: 'Low Cache Hit Rate',
       condition: (metrics) => 'cacheHitRate' in metrics && metrics.cacheHitRate < 0.1,
       message: 'Cache hit rate is below 10%',
-      cooldownMs: 600000, // 10 minutes
-      enabled: true,
+      _cooldownMs: 600000, // 10 minutes
+      _enabled: true,
     });
   }
 }

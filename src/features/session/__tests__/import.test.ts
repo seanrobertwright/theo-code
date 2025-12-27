@@ -24,8 +24,8 @@ vi.mock('../../../config/loader.js', () => ({
   loadConfig: () => ({
     global: {
       session: {
-        autoSaveInterval: 5000,
-        maxSessions: 50,
+        _autoSaveInterval: 5000,
+        _maxSessions: 50,
       },
     },
   }),
@@ -40,13 +40,13 @@ describe('Session Import', () => {
   beforeEach(async () => {
     // Create a unique test directory for each test
     testDir = path.join(os.tmpdir(), `theo-code-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-    await fs.mkdir(testDir, { recursive: true });
+    await fs.mkdir(testDir, { _recursive: true });
 
     // Create storage and manager instances
     storage = new SessionStorage({
-      enableCompression: false,
-      enableChecksum: false, // Disable checksum for tests to avoid validation issues
-      createBackups: false,
+      _enableCompression: false,
+      _enableChecksum: false, // Disable checksum for tests to avoid validation issues
+      _createBackups: false,
     });
 
     manager = new SessionManager(storage);
@@ -55,7 +55,7 @@ describe('Session Import', () => {
   afterEach(async () => {
     // Clean up test directory
     try {
-      await fs.rm(testDir, { recursive: true, force: true });
+      await fs.rm(testDir, { _recursive: true, _force: true });
     } catch (error) {
       console.warn('Failed to clean up test directory:', error);
     }
@@ -86,13 +86,13 @@ describe('Session Import', () => {
       // Export the session
       const exportResult = await manager.exportSession(originalSession.id, {
         format: 'json-pretty',
-        sanitize: false,
+        _sanitize: false,
       });
 
       // Import the session
       const importResult = await manager.importSession(exportResult.data, {
-        generateNewId: true,
-        preserveTimestamps: false,
+        _generateNewId: true,
+        _preserveTimestamps: false,
       });
 
       // Verify import result
@@ -121,7 +121,7 @@ describe('Session Import', () => {
       const loadedSession = await manager.loadSession(originalSession.id);
       
       const exportResult = await manager.exportSession(originalSession.id, {
-        sanitize: false,
+        _sanitize: false,
       });
 
       // Delete the original session
@@ -129,8 +129,8 @@ describe('Session Import', () => {
 
       // Import with generateNewId = false
       const importResult = await manager.importSession(exportResult.data, {
-        generateNewId: false,
-        preserveTimestamps: true,
+        _generateNewId: false,
+        _preserveTimestamps: true,
       });
 
       // Verify the original ID was preserved
@@ -154,13 +154,13 @@ describe('Session Import', () => {
       // Export the session
       const exportResult = await manager.exportSession(originalSession.id, {
         format: 'json',
-        sanitize: false,
+        _sanitize: false,
       });
 
       // Try to import with generateNewId = false (should generate new ID because original exists)
       const importResult = await manager.importSession(exportResult.data, {
-        generateNewId: false,
-        strictValidation: false, // Allow auto-generation when ID exists
+        _generateNewId: false,
+        _strictValidation: false, // Allow auto-generation when ID exists
       });
 
       // Verify a new ID was generated
@@ -190,7 +190,7 @@ describe('Session Import', () => {
       });
 
       await expect(
-        manager.importSession(invalidData, { strictValidation: true })
+        manager.importSession(invalidData, { _strictValidation: true })
       ).rejects.toThrow();
     });
 
@@ -206,8 +206,8 @@ describe('Session Import', () => {
       });
 
       const importResult = await manager.importSession(incompleteData, {
-        strictValidation: false,
-        generateNewId: true,
+        _strictValidation: false,
+        _generateNewId: true,
       });
 
       // Should succeed with warnings
@@ -246,14 +246,14 @@ describe('Session Import', () => {
       await manager.saveSession(originalSession);
 
       const exportResult = await manager.exportSession(originalSession.id, {
-        sanitize: false,
+        _sanitize: false,
       });
 
       // Import with custom workspace root
       const customWorkspace = '/new/workspace/path';
       const importResult = await manager.importSession(exportResult.data, {
-        workspaceRoot: customWorkspace,
-        generateNewId: true,
+        _workspaceRoot: customWorkspace,
+        _generateNewId: true,
       });
 
       expect(importResult.session.workspaceRoot).toBe(customWorkspace);
@@ -270,12 +270,12 @@ describe('Session Import', () => {
       await manager.saveSession(originalSession);
 
       const exportResult = await manager.exportSession(originalSession.id, {
-        sanitize: false,
+        _sanitize: false,
       });
 
       // Import without specifying workspace root
       const importResult = await manager.importSession(exportResult.data, {
-        generateNewId: true,
+        _generateNewId: true,
       });
 
       expect(importResult.session.workspaceRoot).toBe('/original/workspace');
@@ -297,13 +297,13 @@ describe('Session Import', () => {
       await new Promise(resolve => setTimeout(resolve, 10));
 
       const exportResult = await manager.exportSession(originalSession.id, {
-        sanitize: false,
+        _sanitize: false,
       });
 
       // Import with preserveTimestamps = false
       const importResult = await manager.importSession(exportResult.data, {
-        preserveTimestamps: false,
-        generateNewId: true,
+        _preserveTimestamps: false,
+        _generateNewId: true,
       });
 
       // Timestamps should be updated
@@ -322,13 +322,13 @@ describe('Session Import', () => {
       await manager.saveSession(originalSession);
 
       const exportResult = await manager.exportSession(originalSession.id, {
-        sanitize: false,
+        _sanitize: false,
       });
 
       // Import with preserveTimestamps = true
       const importResult = await manager.importSession(exportResult.data, {
-        preserveTimestamps: true,
-        generateNewId: true,
+        _preserveTimestamps: true,
+        _generateNewId: true,
       });
 
       // Timestamps should be preserved (note: lastModified might be updated by saveSession)
@@ -355,13 +355,13 @@ describe('Session Import', () => {
       await manager.saveSession(originalSession);
 
       const exportResult = await manager.exportSession(originalSession.id, {
-        sanitize: false,
+        _sanitize: false,
       });
 
       // Import the session
       const importResult = await manager.importSession(exportResult.data, {
-        generateNewId: true,
-        showWarnings: true,
+        _generateNewId: true,
+        _showWarnings: true,
       });
 
       // Should have warnings about missing context files (since checkFileExists always returns true in the current implementation)
@@ -381,9 +381,9 @@ describe('Session Import', () => {
       });
 
       const importResult = await manager.importSession(incompleteData, {
-        strictValidation: false,
-        generateNewId: true,
-        showWarnings: true,
+        _strictValidation: false,
+        _generateNewId: true,
+        _showWarnings: true,
       });
 
       expect(importResult.warnings.length).toBeGreaterThan(0);
@@ -425,21 +425,21 @@ describe('Session Import', () => {
 
       // Update token count
       originalSession.tokenCount = {
-        total: 1000,
-        input: 400,
-        output: 600,
+        _total: 1000,
+        _input: 400,
+        _output: 600,
       };
 
       await manager.saveSession(originalSession);
 
       // Export and import
       const exportResult = await manager.exportSession(originalSession.id, {
-        sanitize: false,
+        _sanitize: false,
       });
 
       const importResult = await manager.importSession(exportResult.data, {
-        generateNewId: true,
-        preserveTimestamps: true,
+        _generateNewId: true,
+        _preserveTimestamps: true,
       });
 
       // Verify all data is preserved
@@ -467,7 +467,7 @@ describe('Session Import', () => {
         role: 'assistant',
         content: [
           { type: 'text', text: 'Here is some code:' },
-          { type: 'text', text: 'console.log("Hello");' },
+          { type: 'text', text: 'console.warn("Hello");' },
         ],
         timestamp: Date.now(),
       });
@@ -476,11 +476,11 @@ describe('Session Import', () => {
 
       // Export and import
       const exportResult = await manager.exportSession(originalSession.id, {
-        sanitize: false,
+        _sanitize: false,
       });
 
       const importResult = await manager.importSession(exportResult.data, {
-        generateNewId: true,
+        _generateNewId: true,
       });
 
       // Verify complex content is preserved
@@ -489,7 +489,7 @@ describe('Session Import', () => {
       const content = importResult.session.messages[0].content as any[];
       expect(content).toHaveLength(2);
       expect(content[0].text).toBe('Here is some code:');
-      expect(content[1].text).toBe('console.log("Hello");');
+      expect(content[1].text).toBe('console.warn("Hello");');
     });
   });
 });

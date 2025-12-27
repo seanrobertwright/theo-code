@@ -29,34 +29,34 @@ const providerArb = fc.constantFrom(
   'together',
   'perplexity',
   'ollama'
-) as fc.Arbitrary<ModelProvider>;
+);
 
 /**
  * Generate a valid ModelConfig for testing.
  */
 const modelConfigArb = fc.record({
-  provider: providerArb,
-  model: fc.string({ minLength: 3 }),
-  apiKey: fc.option(fc.string({ minLength: 10 })),
+  _provider: providerArb,
+  model: fc.string({ _minLength: 3 }),
+  apiKey: fc.option(fc.string({ _minLength: 10 })),
   baseUrl: fc.option(fc.webUrl()),
-  contextLimit: fc.integer({ min: 1000, max: 200000 }),
-  maxOutputTokens: fc.integer({ min: 100, max: 8192 }),
-  fallbackProviders: fc.option(fc.array(providerArb, { maxLength: 3 })),
-  priority: fc.integer({ min: 0, max: 100 }),
+  contextLimit: fc.integer({ _min: 1000, _max: 200000 }),
+  maxOutputTokens: fc.integer({ _min: 100, _max: 8192 }),
+  fallbackProviders: fc.option(fc.array(providerArb, { _maxLength: 3 })),
+  priority: fc.integer({ _min: 0, _max: 100 }),
   enabled: fc.boolean(),
 }) as fc.Arbitrary<ModelConfig>;
 
 /**
  * Generate a fallback chain of providers.
  */
-const fallbackChainArb = fc.array(providerArb, { minLength: 1, maxLength: 5 });
+const fallbackChainArb = fc.array(providerArb, { _minLength: 1, _maxLength: 5 });
 
 /**
  * Generate provider manager configuration.
  */
 const providerManagerConfigArb = fc.record({
   fallbackChain: fc.option(fallbackChainArb),
-  healthCheckInterval: fc.option(fc.integer({ min: 1000, max: 300000 })),
+  healthCheckInterval: fc.option(fc.integer({ _min: 1000, _max: 300000 })),
   enableHealthChecking: fc.option(fc.boolean()),
 }) as fc.Arbitrary<ProviderManagerConfig>;
 
@@ -68,7 +68,7 @@ const providerManagerConfigArb = fc.record({
  * Mock adapter for testing.
  */
 class MockAdapter {
-  constructor(public config: ModelConfig) {}
+  constructor(public _config: ModelConfig) {}
   
   validateConfig(): void {
     if (!this.config.enabled) {
@@ -91,7 +91,7 @@ describe('Fallback Provider Selection Properties', () => {
   let manager: ProviderManager;
 
   beforeEach(() => {
-    manager = new ProviderManager({ enableHealthChecking: false });
+    manager = new ProviderManager({ _enableHealthChecking: false });
   });
 
   afterEach(() => {
@@ -102,7 +102,7 @@ describe('Fallback Provider Selection Properties', () => {
     fc.assert(
       fc.property(
         fallbackChainArb,
-        fc.array(modelConfigArb, { minLength: 1, maxLength: 5 }),
+        fc.array(modelConfigArb, { _minLength: 1, _maxLength: 5 }),
         (fallbackChain, configs) => {
           // Setup: Register providers and set fallback chain
           manager.setFallbackChain(fallbackChain);
@@ -130,14 +130,14 @@ describe('Fallback Provider Selection Properties', () => {
           const testConfig: ModelConfig = {
             provider: uniqueEnabledConfigs[0].provider,
             model: 'test-model',
-            contextLimit: 4000,
-            maxOutputTokens: 1000,
-            enabled: true,
-            priority: 50,
+            _contextLimit: 4000,
+            _maxOutputTokens: 1000,
+            _enabled: true,
+            _priority: 50,
           };
           
           // Register the primary provider if not already registered
-          manager.registerProvider({...testConfig, priority: 50});
+          manager.registerProvider({...testConfig, _priority: 50});
           
           // Use reflection to access private method for testing
           const buildProviderChain = (manager as any).buildProviderChain.bind(manager);
@@ -176,18 +176,18 @@ describe('Fallback Provider Selection Properties', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
   it('Property: Fallback chain excludes disabled providers', () => {
     fc.assert(
       fc.property(
-        fc.array(providerArb, { minLength: 1, maxLength: 3 }),
-        fc.array(providerArb, { minLength: 1, maxLength: 3 }),
+        fc.array(providerArb, { _minLength: 1, _maxLength: 3 }),
+        fc.array(providerArb, { _minLength: 1, _maxLength: 3 }),
         (enabledProviders, disabledProviders) => {
           // Create a fresh manager for each property iteration
-          const testManager = new ProviderManager({ enableHealthChecking: false });
+          const testManager = new ProviderManager({ _enableHealthChecking: false });
           
           try {
             // Ensure no overlap between enabled and disabled providers
@@ -208,22 +208,22 @@ describe('Fallback Provider Selection Properties', () => {
               testManager.registerProvider({
                 provider,
                 model: 'test-model',
-                contextLimit: 4000,
-                maxOutputTokens: 1000,
-                enabled: true,
-                priority: 50,
+                _contextLimit: 4000,
+                _maxOutputTokens: 1000,
+                _enabled: true,
+                _priority: 50,
               });
             }
             
             // Choose primary provider from enabled providers
             const primaryProvider = enabledProviders[0];
             const testConfig: ModelConfig = {
-              provider: primaryProvider,
+              _provider: primaryProvider,
               model: 'test-model',
-              contextLimit: 4000,
-              maxOutputTokens: 1000,
-              enabled: true,
-              priority: 50,
+              _contextLimit: 4000,
+              _maxOutputTokens: 1000,
+              _enabled: true,
+              _priority: 50,
             };
             
             // Test: Build provider chain should only include registered (enabled) providers
@@ -245,7 +245,7 @@ describe('Fallback Provider Selection Properties', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
@@ -254,7 +254,7 @@ describe('Fallback Provider Selection Properties', () => {
       fc.property(
         fallbackChainArb,
         modelConfigArb,
-        fc.option(fc.array(providerArb, { maxLength: 3 })),
+        fc.option(fc.array(providerArb, { _maxLength: 3 })),
         (globalFallbacks, baseConfig, configFallbacks) => {
           // Skip test if base config is disabled
           if (!baseConfig.enabled) {
@@ -266,13 +266,13 @@ describe('Fallback Provider Selection Properties', () => {
           
           const testConfig: ModelConfig = {
             ...baseConfig,
-            fallbackProviders: configFallbacks || undefined,
-            enabled: true,
-            priority: 50,
+            fallbackProviders: configFallbacks ?? undefined,
+            _enabled: true,
+            _priority: 50,
           };
           
           // Register the primary provider
-          manager.registerProvider({...testConfig, priority: 50});
+          manager.registerProvider({...testConfig, _priority: 50});
           
           // Register some fallback providers (only enabled ones)
           const allFallbacks = [
@@ -285,10 +285,10 @@ describe('Fallback Provider Selection Properties', () => {
               manager.registerProvider({
                 provider,
                 model: 'test-model',
-                contextLimit: 4000,
-                maxOutputTokens: 1000,
-                enabled: true, // Always register as enabled
-                priority: 50,
+                _contextLimit: 4000,
+                _maxOutputTokens: 1000,
+                _enabled: true, // Always register as enabled
+                _priority: 50,
               });
             }
           }
@@ -317,7 +317,7 @@ describe('Fallback Provider Selection Properties', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
@@ -326,7 +326,7 @@ describe('Fallback Provider Selection Properties', () => {
       fc.property(
         fallbackChainArb,
         modelConfigArb,
-        fc.option(fc.array(providerArb, { maxLength: 3 })),
+        fc.option(fc.array(providerArb, { _maxLength: 3 })),
         (globalFallbacks, baseConfig, configFallbacks) => {
           // Skip test if base config is disabled
           if (!baseConfig.enabled) {
@@ -338,9 +338,9 @@ describe('Fallback Provider Selection Properties', () => {
           
           const testConfig: ModelConfig = {
             ...baseConfig,
-            fallbackProviders: configFallbacks || undefined,
-            enabled: true,
-            priority: 50,
+            fallbackProviders: configFallbacks ?? undefined,
+            _enabled: true,
+            _priority: 50,
           };
           
           // Register providers (only enabled ones) - ensure unique providers
@@ -356,10 +356,10 @@ describe('Fallback Provider Selection Properties', () => {
             manager.registerProvider({
               provider,
               model: 'test-model',
-              contextLimit: 4000,
-              maxOutputTokens: 1000,
-              enabled: true, // Always register as enabled
-              priority: 50,
+              _contextLimit: 4000,
+              _maxOutputTokens: 1000,
+              _enabled: true, // Always register as enabled
+              _priority: 50,
             });
           }
           
@@ -371,7 +371,7 @@ describe('Fallback Provider Selection Properties', () => {
           expect(chain.length).toBe(uniqueProvidersInChain.size);
         }
       ),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 
@@ -388,11 +388,11 @@ describe('Fallback Provider Selection Properties', () => {
         
         const testConfig: ModelConfig = {
           ...config,
-          enabled: true,
-          priority: 50,
+          _enabled: true,
+          _priority: 50,
         };
         
-        manager.registerProvider({...testConfig, priority: 50});
+        manager.registerProvider({...testConfig, _priority: 50});
         
         // Test: Chain should still include primary provider
         const buildProviderChain = (manager as any).buildProviderChain.bind(manager);
@@ -401,7 +401,7 @@ describe('Fallback Provider Selection Properties', () => {
         expect(chain).toContain(testConfig.provider);
         expect(chain[0]).toBe(testConfig.provider);
       }),
-      { numRuns: 50 }
+      { _numRuns: 50 }
     );
   });
 });

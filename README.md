@@ -2,6 +2,16 @@
 
 **Universal TUI Agent CLI** - A model-agnostic AI coding assistant for your terminal.
 
+## Session Data Storage
+
+Session data is stored locally in the `./session_data` directory within your project workspace. This includes:
+
+- Session files (conversation history, context, metadata)
+- Session index for quick lookup
+- Backup files for data recovery
+
+The `session_data` directory is automatically created when needed and is excluded from version control via `.gitignore`.
+
 ## Features
 
 - 🤖 **Multi-Model Support** - OpenAI, Anthropic, Google Gemini, and local LLMs via Ollama

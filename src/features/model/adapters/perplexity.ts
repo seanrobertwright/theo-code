@@ -22,8 +22,6 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
-import { logger } from '../../../shared/utils/index.js';
-
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -87,7 +85,7 @@ const ERROR_CODE_MAP: Record<string, string> = {
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(message: Message): string {
+function getMessageContent(_message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -122,7 +120,7 @@ function convertMessages(messages: Message[]): OpenAI.Chat.Completions.ChatCompl
         // Assistant message with tool calls
         openaiMessages.push({
           role: 'assistant',
-          content: content || null,
+          content: content ?? null,
           tool_calls: message.toolCalls.map((toolCall) => ({
             id: toolCall.id,
             type: 'function' as const,
@@ -194,7 +192,7 @@ function convertTools(tools: UniversalToolDefinition[]): OpenAI.Chat.Completions
 /**
  * Maps Perplexity/OpenAI API errors to StreamChunk error format.
  */
-function handleApiError(error: unknown): StreamChunk {
+function handleApiError(_error: unknown): StreamChunk {
   if (error instanceof OpenAI.APIError) {
     const errorType = error.type || 'unknown';
     const code = ERROR_CODE_MAP[errorType] || 'API_ERROR';
@@ -297,7 +295,7 @@ function estimateTokens(messages: Message[]): number {
  * });
  *
  * for await (const chunk of adapter.generateStream(messages, tools)) {
- *   console.log(chunk);
+ *   console.warn(chunk);
  * }
  * ```
  */
@@ -314,7 +312,7 @@ export class PerplexityAdapter implements IModelAdapter {
   /**
    * Creates a new Perplexity adapter.
    */
-  constructor(config: ModelConfig) {
+  constructor(_config: ModelConfig) {
     this.config = config;
     this.model = config.model;
     const defaultContextLimit = MODEL_CONTEXT_LIMITS[config.model] || 8192;
@@ -323,7 +321,7 @@ export class PerplexityAdapter implements IModelAdapter {
     this.isOnlineModel = ONLINE_MODELS.has(config.model);
 
     const apiKey = config.apiKey ?? process.env['PERPLEXITY_API_KEY'];
-    if (apiKey === undefined || apiKey === '') {
+    if (apiKey === undefined ?? apiKey === '') {
       throw new AdapterError(
         'INVALID_CONFIG',
         'perplexity',
@@ -418,7 +416,7 @@ export class PerplexityAdapter implements IModelAdapter {
     const requestParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
       model: this.model,
       messages,
-      stream: true,
+      _stream: true,
       max_tokens: options?.maxTokens ?? this.config.maxOutputTokens ?? 4096,
       temperature: options?.temperature ?? 0.7,
       ...(tools !== undefined ? { tools } : {}),
@@ -471,7 +469,9 @@ export class PerplexityAdapter implements IModelAdapter {
         
         if (chunk.choices && chunk.choices.length > 0) {
           const choice = chunk.choices[0];
-          if (!choice) continue;
+          if (!choice) {
+    continue;
+  }
           
           if (choice.delta?.content) {
             yield { type: 'text', text: choice.delta.content };
@@ -481,11 +481,11 @@ export class PerplexityAdapter implements IModelAdapter {
             for (const toolCall of choice.delta.tool_calls) {
               if (toolCall.id && toolCall.function?.name) {
                 // Start or update tool call accumulator
-                if (!toolCallAccumulators.has(toolCall.id)) {
+                if (!toolCallAccumulators.has(toolCall.id) {
                   toolCallAccumulators.set(toolCall.id, {
                     id: toolCall.id,
                     name: toolCall.function.name,
-                    arguments: toolCall.function.arguments || '',
+                    arguments: toolCall.function.arguments ?? '',
                   });
                 } else {
                   const acc = toolCallAccumulators.get(toolCall.id)!;
@@ -560,7 +560,7 @@ export class PerplexityAdapter implements IModelAdapter {
 /**
  * Creates a Perplexity adapter from configuration.
  */
-function createPerplexityAdapter(config: ModelConfig): IModelAdapter {
+function createPerplexityAdapter(_config: ModelConfig): IModelAdapter {
   return new PerplexityAdapter(config);
 }
 

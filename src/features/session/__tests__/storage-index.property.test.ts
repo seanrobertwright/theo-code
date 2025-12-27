@@ -38,15 +38,15 @@ import {
 // Create a custom SessionStorage that takes the directory as a parameter
 class TestableSessionStorage {
   private readonly options = {
-    enableCompression: true,
-    enableChecksum: true,
-    createBackups: true,
+    _enableCompression: true,
+    _enableChecksum: true,
+    _createBackups: true,
     maxFileSize: 10 * 1024 * 1024,
   };
   
-  constructor(private sessionsDir: string) {}
+  constructor(private _sessionsDir: string) {}
   
-  private getSessionFilePath(sessionId: SessionId): string {
+  private getSessionFilePath(_sessionId: SessionId): string {
     return path.join(this.sessionsDir, `${sessionId}.json`);
   }
   
@@ -54,8 +54,8 @@ class TestableSessionStorage {
     return path.join(this.sessionsDir, 'index.json');
   }
   
-  async writeSession(sessionId: SessionId, session: Session): Promise<void> {
-    await fs.mkdir(this.sessionsDir, { recursive: true });
+  async writeSession(_sessionId: SessionId, _session: Session): Promise<void> {
+    await fs.mkdir(this.sessionsDir, { _recursive: true });
     
     // Validate session data
     const validatedSession = SessionSchema.parse(session);
@@ -116,7 +116,7 @@ class TestableSessionStorage {
       const content = await safeReadFile(indexPath);
       const parsed = JSON.parse(content);
       return SessionIndexSchema.parse(parsed);
-    } catch (error: any) {
+    } catch (_error: any) {
       // Index is corrupted, rebuild it
       console.warn(`Index corrupted, rebuilding: ${error.message}`);
       await this.rebuildIndex();
@@ -124,7 +124,7 @@ class TestableSessionStorage {
     }
   }
   
-  async updateIndex(metadata: SessionMetadata): Promise<void> {
+  async updateIndex(_metadata: SessionMetadata): Promise<void> {
     const indexPath = this.getSessionIndexPath();
     
     // Load existing index or create new one
@@ -141,7 +141,7 @@ class TestableSessionStorage {
           sessions: {},
         };
       }
-    } catch (error: any) {
+    } catch (_error: any) {
       // If index is corrupted, rebuild it
       console.warn(`Index corrupted, rebuilding: ${error.message}`);
       await this.rebuildIndex();
@@ -176,7 +176,7 @@ class TestableSessionStorage {
         const session = await this.readSession(sessionId);
         const metadata = this.createSessionMetadata(session);
         index.sessions[sessionId] = metadata;
-      } catch (error: any) {
+      } catch (_error: any) {
         console.warn(`Failed to process session file ${filePath}: ${error.message}`);
         // Continue with other files
       }
@@ -185,11 +185,11 @@ class TestableSessionStorage {
     // Write rebuilt index
     const content = JSON.stringify(index, null, 2);
     await atomicWriteFile(indexPath, content, {
-      createBackup: false, // Don't backup during rebuild
+      _createBackup: false, // Don't backup during rebuild
     });
   }
   
-  async readSession(sessionId: SessionId): Promise<Session> {
+  async readSession(_sessionId: SessionId): Promise<Session> {
     const filePath = this.getSessionFilePath(sessionId);
     
     // Read file content
@@ -202,7 +202,7 @@ class TestableSessionStorage {
     try {
       const parsed = JSON.parse(content);
       versionedSession = VersionedSessionSchema.parse(parsed);
-    } catch (error: any) {
+    } catch (_error: any) {
       const errorMessage = error?.message || String(error);
       throw new Error(`Invalid session file format: ${errorMessage}`);
     }
@@ -227,7 +227,7 @@ class TestableSessionStorage {
     
     // Verify checksum if present
     if (versionedSession.checksum && this.options.enableChecksum) {
-      if (!verifyChecksum(sessionData, versionedSession.checksum)) {
+      if (!verifyChecksum(sessionData, versionedSession.checksum) {
         throw new Error('Session data checksum verification failed');
       }
     }
@@ -237,14 +237,14 @@ class TestableSessionStorage {
     try {
       const parsed = JSON.parse(sessionData);
       session = SessionSchema.parse(parsed);
-    } catch (error: any) {
+    } catch (_error: any) {
       throw new Error(`Invalid session data: ${error.message}`);
     }
     
     return session;
   }
   
-  async deleteSession(sessionId: SessionId): Promise<void> {
+  async deleteSession(_sessionId: SessionId): Promise<void> {
     const filePath = this.getSessionFilePath(sessionId);
     
     // Delete session file
@@ -254,7 +254,7 @@ class TestableSessionStorage {
     await this.removeFromIndex(sessionId);
   }
   
-  private async removeFromIndex(sessionId: SessionId): Promise<void> {
+  private async removeFromIndex(_sessionId: SessionId): Promise<void> {
     const index = await this.getIndex();
     delete index.sessions[sessionId];
     index.lastUpdated = Date.now();
@@ -272,19 +272,19 @@ class TestableSessionStorage {
       return files
         .filter(file => file.endsWith('.json') && file !== 'index.json')
         .map(file => path.join(this.sessionsDir, file));
-    } catch (error: any) {
+    } catch (_error: any) {
       throw new Error(`Failed to list session files: ${error.message}`);
     }
   }
   
-  private createSessionMetadata(session: Session): SessionMetadata {
+  private createSessionMetadata(_session: Session): SessionMetadata {
     // Get preview from first user message or first message
     let preview: string | undefined;
     const firstUserMessage = session.messages.find(m => m.role === 'user');
     if (firstUserMessage) {
       const content = typeof firstUserMessage.content === 'string' 
         ? firstUserMessage.content 
-        : firstUserMessage.content.find(block => block.type === 'text')?.text || '';
+        : firstUserMessage.content.find(block => block.type === 'text')?.text ?? '';
       preview = content.slice(0, 100);
     }
     
@@ -294,7 +294,7 @@ class TestableSessionStorage {
       const last = session.messages[session.messages.length - 1];
       const content = typeof last.content === 'string'
         ? last.content
-        : last.content.find(block => block.type === 'text')?.text || '';
+        : last.content.find(block => block.type === 'text')?.text ?? '';
       lastMessage = content.slice(0, 50);
     }
     
@@ -328,7 +328,7 @@ describe('SessionStorage Index Consistency Property Tests', () => {
   afterEach(async () => {
     // Clean up temp directory
     try {
-      await fs.rm(tempDir, { recursive: true, force: true });
+      await fs.rm(tempDir, { _recursive: true, _force: true });
     } catch {
       // Ignore cleanup errors
     }
@@ -345,21 +345,21 @@ describe('SessionStorage Index Consistency Property Tests', () => {
         // Generate a single session with diverse properties
         fc.record({
           model: fc.constantFrom('gpt-4o', 'gpt-3.5-turbo', 'claude-3-sonnet'),
-          messageCount: fc.integer({ min: 0, max: 10 }),
-          workspaceRoot: fc.string({ minLength: 5, maxLength: 50 }),
-          tags: fc.array(fc.string({ minLength: 1, maxLength: 10 }), { maxLength: 3 }),
-          contextFiles: fc.array(fc.string({ minLength: 5, maxLength: 30 }), { maxLength: 5 }),
-          title: fc.option(fc.string({ minLength: 1, maxLength: 50 })),
+          messageCount: fc.integer({ _min: 0, _max: 10 }),
+          workspaceRoot: fc.string({ _minLength: 5, _maxLength: 50 }),
+          tags: fc.array(fc.string({ _minLength: 1, _maxLength: 10 }), { _maxLength: 3 }),
+          contextFiles: fc.array(fc.string({ _minLength: 5, _maxLength: 30 }), { _maxLength: 5 }),
+          title: fc.option(fc.string({ _minLength: 1, _maxLength: 50 })),
         }),
         async (config) => {
           const sessionId = createSessionId();
           const now = Date.now();
           
           const session: Session = {
-            id: sessionId,
+            _id: sessionId,
             version: '1.0.0',
-            created: now,
-            lastModified: now,
+            _created: now,
+            _lastModified: now,
             model: config.model,
             workspaceRoot: config.workspaceRoot,
             tokenCount: { 
@@ -376,7 +376,7 @@ describe('SessionStorage Index Consistency Property Tests', () => {
             })),
             contextFiles: config.contextFiles,
             tags: config.tags,
-            title: config.title || undefined,
+            title: config.title ?? undefined,
           };
 
           // Write session
@@ -417,7 +417,7 @@ describe('SessionStorage Index Consistency Property Tests', () => {
           expect(typeof index.lastUpdated).toBe('number');
         }
       ),
-      { numRuns: 20 }
+      { _numRuns: 20 }
     );
   });
 
@@ -428,7 +428,7 @@ describe('SessionStorage Index Consistency Property Tests', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.record({
-          operationsCount: fc.integer({ min: 2, max: 5 }),
+          operationsCount: fc.integer({ _min: 2, _max: 5 }),
         }),
         async ({ operationsCount }) => {
           // Create a fresh temp directory for this property iteration
@@ -443,13 +443,13 @@ describe('SessionStorage Index Consistency Property Tests', () => {
             sessionIds.push(initialSessionId);
 
             const initialSession: Session = {
-              id: initialSessionId,
+              _id: initialSessionId,
               version: '1.0.0',
               created: Date.now(),
               lastModified: Date.now(),
               model: 'gpt-4o',
               workspaceRoot: '/workspace',
-              tokenCount: { total: 10, input: 5, output: 5 },
+              tokenCount: { _total: 10, _input: 5, _output: 5 },
               filesAccessed: [],
               messages: [{
                 id: createMessageId(),
@@ -485,7 +485,7 @@ describe('SessionStorage Index Consistency Property Tests', () => {
                 sessionIds.push(newSessionId);
 
                 const newSession: Session = {
-                  id: newSessionId,
+                  _id: newSessionId,
                   version: '1.0.0',
                   created: Date.now(),
                   lastModified: Date.now(),
@@ -524,14 +524,14 @@ describe('SessionStorage Index Consistency Property Tests', () => {
           } finally {
             // Clean up iteration temp directory
             try {
-              await fs.rm(iterationTempDir, { recursive: true, force: true });
+              await fs.rm(iterationTempDir, { _recursive: true, _force: true });
             } catch {
               // Ignore cleanup errors
             }
           }
         }
       ),
-      { numRuns: 8 }
+      { _numRuns: 8 }
     );
   });
 
@@ -543,10 +543,10 @@ describe('SessionStorage Index Consistency Property Tests', () => {
       fc.asyncProperty(
         fc.array(
           fc.record({
-            messageCount: fc.integer({ min: 1, max: 20 }),
+            messageCount: fc.integer({ _min: 1, _max: 20 }),
             model: fc.constantFrom('gpt-4o', 'claude-3-sonnet'),
           }),
-          { minLength: 2, maxLength: 6 }
+          { _minLength: 2, _maxLength: 6 }
         ),
         async (sessionConfigs) => {
           // Create a fresh temp directory for this property iteration
@@ -562,7 +562,7 @@ describe('SessionStorage Index Consistency Property Tests', () => {
               sessionIds.push(sessionId);
 
               const session: Session = {
-                id: sessionId,
+                _id: sessionId,
                 version: '1.0.0',
                 created: Date.now(),
                 lastModified: Date.now(),
@@ -614,14 +614,14 @@ describe('SessionStorage Index Consistency Property Tests', () => {
           } finally {
             // Clean up iteration temp directory
             try {
-              await fs.rm(iterationTempDir, { recursive: true, force: true });
+              await fs.rm(iterationTempDir, { _recursive: true, _force: true });
             } catch {
               // Ignore cleanup errors
             }
           }
         }
       ),
-      { numRuns: 12 }
+      { _numRuns: 12 }
     );
   });
 });

@@ -88,7 +88,7 @@ export const providerCommandHandler: CommandHandler = async (args, context) => {
 /**
  * Lists all available providers with their status.
  */
-async function handleListProviders(args: string[], context: CommandContext): Promise<void> {
+async function handleListProviders(args: string[], _context: CommandContext): Promise<void> {
   try {
     const config = loadConfig(context.workspaceRoot);
     const providers = getAvailableProviders(config);
@@ -104,7 +104,7 @@ async function handleListProviders(args: string[], context: CommandContext): Pro
     if (displayProviders.length === 0) {
       message += 'No providers configured or enabled.\n\n';
       message += 'Use `/provider help` for setup instructions.';
-      context.addMessage({ role: 'assistant', content: message });
+      context.addMessage({ role: 'assistant', _content: message });
       return;
     }
     
@@ -168,9 +168,9 @@ async function handleListProviders(args: string[], context: CommandContext): Pro
     message += '\n**Current Provider:** ' + config.global.defaultProvider;
     message += '\n**Current Model:** ' + context.currentModel;
     
-    context.addMessage({ role: 'assistant', content: message });
+    context.addMessage({ role: 'assistant', _content: message });
     
-  } catch (error: any) {
+  } catch (_error: any) {
     context.setError(`Failed to list providers: ${error.message}`);
   }
 }
@@ -178,7 +178,7 @@ async function handleListProviders(args: string[], context: CommandContext): Pro
 /**
  * Shows detailed status for a specific provider or all providers.
  */
-async function handleProviderStatus(args: string[], context: CommandContext): Promise<void> {
+async function handleProviderStatus(args: string[], _context: CommandContext): Promise<void> {
   try {
     const config = loadConfig(context.workspaceRoot);
     const targetProvider = args[0];
@@ -191,7 +191,7 @@ async function handleProviderStatus(args: string[], context: CommandContext): Pr
       await showAllProvidersStatus(config, context);
     }
     
-  } catch (error: any) {
+  } catch (_error: any) {
     context.setError(`Failed to get provider status: ${error.message}`);
   }
 }
@@ -199,7 +199,7 @@ async function handleProviderStatus(args: string[], context: CommandContext): Pr
 /**
  * Switches to a different provider.
  */
-async function handleSwitchProvider(args: string[], context: CommandContext): Promise<void> {
+async function handleSwitchProvider(args: string[], _context: CommandContext): Promise<void> {
   const targetProvider = args[0];
   
   if (!targetProvider) {
@@ -264,7 +264,7 @@ async function handleSwitchProvider(args: string[], context: CommandContext): Pr
                `Current conversation will continue with the existing provider.`
     });
     
-  } catch (error: any) {
+  } catch (_error: any) {
     context.setError(`Failed to switch provider: ${error.message}`);
   }
 }
@@ -272,7 +272,7 @@ async function handleSwitchProvider(args: string[], context: CommandContext): Pr
 /**
  * Validates a provider's configuration.
  */
-async function handleValidateProvider(args: string[], context: CommandContext): Promise<void> {
+async function handleValidateProvider(args: string[], _context: CommandContext): Promise<void> {
   const targetProvider = args[0];
   
   if (!targetProvider) {
@@ -322,9 +322,9 @@ async function handleValidateProvider(args: string[], context: CommandContext): 
       }
     }
     
-    context.addMessage({ role: 'assistant', content: message });
+    context.addMessage({ role: 'assistant', _content: message });
     
-  } catch (error: any) {
+  } catch (_error: any) {
     context.setError(`Failed to validate provider: ${error.message}`);
   }
 }
@@ -332,7 +332,7 @@ async function handleValidateProvider(args: string[], context: CommandContext): 
 /**
  * Shows provider selection UI.
  */
-async function handleProviderUI(_args: string[], context: CommandContext): Promise<void> {
+async function handleProviderUI(_args: string[], _context: CommandContext): Promise<void> {
   try {
     const config = loadConfig(context.workspaceRoot);
     const providers = getAvailableProviders(config);
@@ -356,13 +356,13 @@ async function handleProviderUI(_args: string[], context: CommandContext): Promi
     
     // TODO: In a full implementation, this would show the ProviderSelection component
     // For now, we'll show the information as a message
-    context.addMessage({ role: 'assistant', content: message });
+    context.addMessage({ role: 'assistant', _content: message });
     
-  } catch (error: any) {
+  } catch (_error: any) {
     context.setError(`Failed to show provider UI: ${error.message}`);
   }
 }
-async function handleTestProvider(args: string[], context: CommandContext): Promise<void> {
+async function handleTestProvider(args: string[], _context: CommandContext): Promise<void> {
   const targetProvider = args[0];
   
   if (!targetProvider) {
@@ -396,7 +396,7 @@ async function handleTestProvider(args: string[], context: CommandContext): Prom
     // TODO: Implement actual connectivity testing
     // This would require integration with the provider adapters
     
-  } catch (error: any) {
+  } catch (_error: any) {
     context.setError(`Failed to test provider: ${error.message}`);
   }
 }
@@ -408,7 +408,7 @@ async function handleTestProvider(args: string[], context: CommandContext): Prom
 /**
  * Shows help for provider commands.
  */
-async function showProviderHelp(context: CommandContext): Promise<void> {
+async function showProviderHelp(_context: CommandContext): Promise<void> {
   const helpText = `**Provider Management Commands**
 
 **Usage:** \`/provider <subcommand> [options]\`
@@ -449,16 +449,16 @@ async function showProviderHelp(context: CommandContext): Promise<void> {
 **Configuration:**
 Providers are configured in your global config file (\`~/.theo-code/config.yaml\`) or via environment variables. Use \`/provider validate <provider>\` to check your setup.`;
 
-  context.addMessage({ role: 'assistant', content: helpText });
+  context.addMessage({ role: 'assistant', _content: helpText });
 }
 
 /**
  * Shows status for a single provider.
  */
 async function showSingleProviderStatus(
-  provider: string, 
-  config: any, 
-  context: CommandContext
+  _provider: string, 
+  _config: any, 
+  _context: CommandContext
 ): Promise<void> {
   const providerConfig = getProviderConfig(provider, config);
   
@@ -538,13 +538,13 @@ async function showSingleProviderStatus(
     message += '\n🎯 **This is your current default provider**\n';
   }
   
-  context.addMessage({ role: 'assistant', content: message });
+  context.addMessage({ role: 'assistant', _content: message });
 }
 
 /**
  * Shows status for all providers.
  */
-async function showAllProvidersStatus(config: any, context: CommandContext): Promise<void> {
+async function showAllProvidersStatus(_config: any, _context: CommandContext): Promise<void> {
   const providers = getAvailableProviders(config);
   
   let message = '**Provider Status Overview:**\n\n';
@@ -579,9 +579,15 @@ async function showAllProvidersStatus(config: any, context: CommandContext): Pro
       
       // Show why it's not ready
       const issues: string[] = [];
-      if (!provider.enabled) issues.push('disabled');
-      if (!validation.valid) issues.push('config errors');
-      if (String(provider.name) !== 'ollama' && !hasAuth) issues.push('missing authentication');
+      if (!provider.enabled) {
+    issues.push('disabled');
+  }
+      if (!validation.valid) {
+    issues.push('config errors');
+  }
+      if (String(provider.name) {
+    !== 'ollama' && !hasAuth) issues.push('missing authentication');
+  }
       
       if (issues.length > 0) {
         message += `  Issues: ${issues.join(', ')}\n`;
@@ -598,5 +604,5 @@ async function showAllProvidersStatus(config: any, context: CommandContext): Pro
     message += `\n💡 Use \`/provider validate <provider>\` to see specific issues`;
   }
   
-  context.addMessage({ role: 'assistant', content: message });
+  context.addMessage({ role: 'assistant', _content: message });
 }

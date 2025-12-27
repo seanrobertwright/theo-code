@@ -37,8 +37,6 @@ import {
   type BackgroundTaskConfig,
   type PerformanceMetrics,
 } from './performance.js';
-import { getAuditLogger, logOperation } from './audit.js';
-
 // =============================================================================
 // INTERFACES
 // =============================================================================
@@ -72,24 +70,24 @@ interface EnhancedSessionManagerConfig {
  */
 const DEFAULT_CONFIG: EnhancedSessionManagerConfig = {
   cache: {
-    enabled: true,
-    maxSize: 1000,
+    _enabled: true,
+    _maxSize: 1000,
     defaultTtl: 5 * 60 * 1000, // 5 minutes
   },
   lazyLoading: {
-    pageSize: 50,
+    _pageSize: 50,
     preloadThreshold: 0.8,
-    maxCachedPages: 10,
-    backgroundPreload: true,
+    _maxCachedPages: 10,
+    _backgroundPreload: true,
   },
   backgroundTasks: {
-    interval: 30000, // 30 seconds
-    maxConcurrent: 3,
-    timeout: 60000, // 1 minute
-    persistQueue: false,
+    _interval: 30000, // 30 seconds
+    _maxConcurrent: 3,
+    _timeout: 60000, // 1 minute
+    _persistQueue: false,
   },
   monitoring: {
-    enabled: true,
+    _enabled: true,
     sampleRate: 1.0, // 100% sampling
   },
 };
@@ -172,7 +170,7 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
    * @param options - Session creation options
    * @returns Promise resolving to the created session
    */
-  async createSession(options: CreateSessionOptions): Promise<Session> {
+  async createSession(_options: CreateSessionOptions): Promise<Session> {
     const startTime = performance.now();
     
     try {
@@ -200,7 +198,7 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
    * 
    * @param session - Session to save
    */
-  async saveSession(session: Session): Promise<void> {
+  async saveSession(_session: Session): Promise<void> {
     const startTime = performance.now();
     
     try {
@@ -228,7 +226,7 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
    * @param options - Load options
    * @returns Promise resolving to the loaded session
    */
-  async loadSession(sessionId: SessionId, options?: LoadSessionOptions): Promise<Session> {
+  async loadSession(_sessionId: SessionId, options?: LoadSessionOptions): Promise<Session> {
     const startTime = performance.now();
     
     try {
@@ -245,7 +243,7 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
    * 
    * @param sessionId - Session identifier to delete
    */
-  async deleteSession(sessionId: SessionId): Promise<void> {
+  async deleteSession(_sessionId: SessionId): Promise<void> {
     const startTime = performance.now();
     
     try {
@@ -308,7 +306,7 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
         const limit = options.limit || sessions.length;
         
         // Initialize lazy loader if needed
-        if (!this.lazyLoader.getCacheStatus().totalPages) {
+        if (totalPages) {
           this.lazyLoader.initialize(sessions.length);
         }
         
@@ -342,7 +340,7 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
    * @returns Promise resolving to array of search results
    */
   async searchSessions(
-    query: string,
+    _query: string,
     options: SearchSessionsOptions = {}
   ): Promise<SessionSearchResult[]> {
     const startTime = performance.now();
@@ -391,13 +389,13 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
   scheduleBackgroundCleanup(options: CleanupOptions = {}): void {
     this.backgroundTasks.queueTask({
       type: 'cleanup',
-      priority: 5,
+      _priority: 5,
       execute: async () => {
         await logOperation(
           'background.cleanup',
           async () => {
             const result = await this.cleanupOldSessions(options);
-            console.log(`Background cleanup completed: ${result.deletedSessions.length} sessions deleted`);
+            console.warn(`Background cleanup completed: ${result.deletedSessions.length} sessions deleted`);
           }
         );
       },
@@ -410,7 +408,7 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
   scheduleIndexRebuild(): void {
     this.backgroundTasks.queueTask({
       type: 'index-rebuild',
-      priority: 3,
+      _priority: 3,
       execute: async () => {
         await logOperation(
           'background.index-rebuild',
@@ -420,7 +418,7 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
             // Clear cache to force reload
             this.cache.clear();
             
-            console.log('Background index rebuild completed');
+            console.warn('Background index rebuild completed');
           }
         );
       },
@@ -476,8 +474,13 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
       // Preload specific sessions
       const preloadPromises = sessionIds.map(async (sessionId) => {
         try {
-          if (!this.cache.get(sessionId)) {
-            const session = await this.loadSession(sessionId, { validateIntegrity: false });
+    for (let i = 0; i < count; i++) {
+      const pageNumber = startPage + i;
+      if (pageNumber < this.totalPages && !this.pageCache.has(pageNumber) && !this.loadingPages.has(pageNumber)) {
+        preloadPromises.push(
+          this.loadPage(pageNumber, loader).then(() => {
+
+            const session = await this.loadSession(sessionId, { _validateIntegrity: false });
             const metadata = this.createSessionMetadataFromSession(session);
             this.cache.set(sessionId, metadata);
           }
@@ -527,14 +530,14 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
    * @param session - Full session data
    * @returns Session metadata
    */
-  private createSessionMetadataFromSession(session: Session): SessionMetadata {
+  private createSessionMetadataFromSession(_session: Session): SessionMetadata {
     // Get preview from first user message
     let preview: string | undefined;
     const firstUserMessage = session.messages.find(m => m.role === 'user');
     if (firstUserMessage) {
       const content = typeof firstUserMessage.content === 'string' 
         ? firstUserMessage.content 
-        : firstUserMessage.content.find(block => block.type === 'text')?.text || '';
+        : firstUserMessage.content.find(block => block.type === 'text')?.text ?? '';
       preview = content.slice(0, 100);
     }
     
@@ -545,7 +548,7 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
       if (last) {
         const content = typeof last.content === 'string'
           ? last.content
-          : last.content.find(block => block.type === 'text')?.text || '';
+          : last.content.find(block => block.type === 'text')?.text ?? '';
         lastMessage = content.slice(0, 50);
       }
     }
@@ -605,8 +608,8 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
    * @param options - Filter options
    * @returns Filtered sessions
    */
-  private applyFilters(sessions: SessionMetadata[], options: ListSessionsOptions): SessionMetadata[] {
-    let filtered = sessions;
+  private applyFilters(sessions: SessionMetadata[], _options: ListSessionsOptions): SessionMetadata[] {
+    const filtered = sessions;
     
     if (options.model) {
       filtered = filtered.filter(session => session.model === options.model);
@@ -628,7 +631,7 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
    * @param options - Sort options
    * @returns Sorted sessions
    */
-  private applySorting(sessions: SessionMetadata[], options: ListSessionsOptions): SessionMetadata[] {
+  private applySorting(sessions: SessionMetadata[], _options: ListSessionsOptions): SessionMetadata[] {
     const sortBy = options.sortBy || 'lastModified';
     const sortOrder = options.sortOrder || 'desc';
     
@@ -670,7 +673,7 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
     // Schedule cache maintenance
     this.backgroundTasks.queueTask({
       type: 'cache-maintenance',
-      priority: 1,
+      _priority: 1,
       execute: async () => {
         this.performCacheMaintenance();
       },
@@ -679,9 +682,9 @@ export class EnhancedSessionManager extends SessionManager implements ISessionMa
     // Schedule periodic cleanup (low priority)
     this.backgroundTasks.queueTask({
       type: 'cleanup',
-      priority: 2,
+      _priority: 2,
       execute: async () => {
-        await this.cleanupOldSessions({ dryRun: false });
+        await this.cleanupOldSessions({ _dryRun: false });
       },
     });
   }
