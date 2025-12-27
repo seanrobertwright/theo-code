@@ -4,7 +4,82 @@
  */
 
 import { z } from 'zod';
-import { ModelProviderSchema } from '../shared/types/index.js';
+import { ModelProviderSchema, RateLimitConfigSchema, RetryConfigSchema, ProviderSpecificConfigSchema } from '../shared/types/models.js';
+
+// =============================================================================
+// PROVIDER CONFIGURATION SCHEMAS
+// =============================================================================
+
+/**
+ * Individual provider configuration.
+ */
+export const ProviderConfigSchema = z.object({
+  /** Provider name */
+  name: ModelProviderSchema,
+  
+  /** API key (optional, can be set via environment) */
+  apiKey: z.string().optional(),
+  
+  /** Custom base URL for the provider */
+  baseUrl: z.string().url().optional(),
+  
+  /** Whether this provider is enabled */
+  enabled: z.boolean().default(true),
+  
+  /** Priority for fallback ordering (higher = preferred) */
+  priority: z.number().int().nonnegative().default(0),
+  
+  /** Rate limiting configuration */
+  rateLimit: RateLimitConfigSchema.optional(),
+  
+  /** Retry configuration */
+  retryConfig: RetryConfigSchema.optional(),
+  
+  /** Provider-specific configuration */
+  providerConfig: ProviderSpecificConfigSchema.optional(),
+  
+  /** Available models for this provider */
+  models: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    contextLimit: z.number().int().positive(),
+    maxOutputTokens: z.number().int().positive(),
+    supportsToolCalling: z.boolean().default(false),
+    supportsStreaming: z.boolean().default(false),
+    supportsMultimodal: z.boolean().default(false),
+    supportsImageGeneration: z.boolean().default(false),
+    supportsReasoning: z.boolean().default(false),
+    costPer1kTokens: z.object({
+      input: z.number().nonnegative().optional(),
+      output: z.number().nonnegative().optional(),
+    }).optional(),
+  })).optional(),
+});
+export type ProviderConfig = z.infer<typeof ProviderConfigSchema>;
+
+/**
+ * Multi-provider configuration schema.
+ */
+export const MultiProviderConfigSchema = z.object({
+  /** List of configured providers */
+  providers: z.array(ProviderConfigSchema).default([]),
+  
+  /** Default fallback chain */
+  fallbackChain: z.array(ModelProviderSchema).optional(),
+  
+  /** Default rate limiting for all providers */
+  defaultRateLimit: RateLimitConfigSchema.optional(),
+  
+  /** Health check interval in milliseconds */
+  healthCheckInterval: z.number().int().positive().default(300000), // 5 minutes
+  
+  /** Whether to enable automatic provider switching on failures */
+  autoSwitchOnFailure: z.boolean().default(true),
+  
+  /** Maximum number of fallback attempts */
+  maxFallbackAttempts: z.number().int().nonnegative().default(3),
+});
+export type MultiProviderConfig = z.infer<typeof MultiProviderConfigSchema>;
 
 // =============================================================================
 // GLOBAL CONFIG SCHEMA
@@ -43,19 +118,7 @@ export const GlobalConfigSchema = z.object({
     .optional(),
 
   /** Provider configurations */
-  providers: z
-    .object({
-      fallbackChain: z.array(ModelProviderSchema).optional(),
-      defaultRateLimit: z
-        .object({
-          requestsPerMinute: z.number().int().positive().default(60),
-          tokensPerMinute: z.number().int().positive().default(100000),
-          concurrentRequests: z.number().int().positive().default(5),
-        })
-        .optional(),
-      healthCheckInterval: z.number().int().positive().default(300000), // 5 minutes
-    })
-    .optional(),
+  providers: MultiProviderConfigSchema.optional(),
 
   /** Session settings */
   session: z
@@ -86,6 +149,9 @@ export type GlobalConfig = z.infer<typeof GlobalConfigSchema>;
 export const ProjectConfigSchema = z.object({
   /** Override model for this project */
   model: z.string().optional(),
+  
+  /** Override provider for this project */
+  provider: ModelProviderSchema.optional(),
 
   /** Files/directories to auto-load into context */
   contextFiles: z.array(z.string()).optional(),
@@ -95,6 +161,14 @@ export const ProjectConfigSchema = z.object({
 
   /** Custom system prompt additions */
   systemPrompt: z.string().optional(),
+  
+  /** Project-specific provider overrides */
+  providerOverrides: z.record(ModelProviderSchema, z.object({
+    enabled: z.boolean().optional(),
+    priority: z.number().int().nonnegative().optional(),
+    rateLimit: RateLimitConfigSchema.optional(),
+    providerConfig: ProviderSpecificConfigSchema.optional(),
+  })).optional(),
 
   /** MCP servers to connect */
   mcpServers: z

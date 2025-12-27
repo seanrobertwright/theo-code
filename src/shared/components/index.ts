@@ -13,3 +13,11 @@ export {
   type SessionRestorationProps,
   type SessionDetectionErrorProps 
 } from './SessionRestoration/index.js';
+export { 
+  ProviderSelection, 
+  ProviderStatus, 
+  ProviderConfigWizard,
+  type ProviderSelectionProps,
+  type ProviderStatusProps,
+  type ProviderConfigWizardProps,
+} from './ProviderSelection/index.js';

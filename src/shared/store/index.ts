@@ -83,6 +83,9 @@ export interface AppState extends SessionPersistenceActions {
   /** Current model identifier */
   currentModel: string;
 
+  /** Current provider identifier */
+  currentProvider: string;
+
   // -------------------------------------------------------------------------
   // Actions
   // -------------------------------------------------------------------------
@@ -120,6 +123,8 @@ export interface AppState extends SessionPersistenceActions {
   // General actions
   setWorkspaceRoot: (path: string) => void;
   setCurrentModel: (model: string) => void;
+  setCurrentProvider: (provider: string) => void;
+  switchProvider: (provider: string, model?: string) => Promise<void>;
   setError: (error: string | null) => void;
   reset: () => void;
 }
@@ -148,6 +153,8 @@ const initialState: Omit<
   | 'clearContextFiles'
   | 'setWorkspaceRoot'
   | 'setCurrentModel'
+  | 'setCurrentProvider'
+  | 'switchProvider'
   | 'setError'
   | 'showConfirmation'
   | 'hideConfirmation'
@@ -174,6 +181,7 @@ const initialState: Omit<
   contextFiles: new Map(),
   workspaceRoot: process.cwd(),
   currentModel: 'gpt-4o',
+  currentProvider: 'openai',
 };
 
 // =============================================================================
@@ -242,12 +250,14 @@ export const useAppStore = create<AppState>()(
 
     createNewSession: (model): Session => {
       const now = Date.now();
+      const currentProvider = get().currentProvider;
       const session: Session = {
         id: createSessionId(),
         version: '1.0.0',
         created: now,
         lastModified: now,
         model,
+        provider: currentProvider,
         workspaceRoot: get().workspaceRoot,
         tokenCount: { total: 0, input: 0, output: 0 },
         filesAccessed: [],
@@ -570,6 +580,43 @@ export const useAppStore = create<AppState>()(
         debouncedSave(state.session, (error) => {
           get().setError(`Failed to save session: ${error.message}`);
         });
+      }
+    },
+
+    setCurrentProvider: (provider): void => {
+      set({ currentProvider: provider });
+    },
+
+    switchProvider: async (provider, model): Promise<void> => {
+      try {
+        const state = get();
+        
+        // Update current provider
+        set({ currentProvider: provider });
+        
+        // If there's a current session, switch its provider
+        if (state.session) {
+          await sessionManager.switchProvider(provider, model);
+          
+          // Update the session in the store
+          const updatedSession = {
+            ...state.session,
+            provider,
+            model: model || state.session.model,
+            lastModified: Date.now(),
+          };
+          
+          set({ 
+            session: updatedSession,
+            currentModel: model || state.session.model,
+          });
+        } else if (model) {
+          // Update current model if provided
+          set({ currentModel: model });
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to switch provider';
+        get().setError(errorMessage);
       }
     },
 

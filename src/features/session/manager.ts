@@ -32,6 +32,9 @@ interface CreateSessionOptions {
   /** Model identifier for the session */
   model: string;
   
+  /** Provider identifier for the session */
+  provider?: string;
+  
   /** Workspace root directory */
   workspaceRoot: string;
   
@@ -43,6 +46,9 @@ interface CreateSessionOptions {
   
   /** Optional notes */
   notes?: string;
+  
+  /** Optional provider-specific data */
+  providerData?: Record<string, any>;
 }
 
 /**
@@ -475,6 +481,11 @@ interface ISessionManager {
   exportSession(sessionId: SessionId, options?: ExportSessionOptions): Promise<ExportResult>;
   importSession(data: string, options?: ImportSessionOptions): Promise<ImportResult>;
   
+  // Provider Management
+  switchProvider(provider: string, model?: string): Promise<void>;
+  migrateSessionProvider(sessionId: SessionId, provider: string, model?: string): Promise<void>;
+  getSessionsByProvider(provider: string): Promise<SessionMetadata[]>;
+  
   // Configuration Management
   getConfiguration(): Promise<SessionConfiguration>;
   setConfiguration(key: string, value: string): Promise<void>;
@@ -532,6 +543,7 @@ export class SessionManager implements ISessionManager {
           created: now,
           lastModified: now,
           model: options.model,
+          provider: options.provider,
           workspaceRoot: options.workspaceRoot,
           tokenCount: { total: 0, input: 0, output: 0 },
           filesAccessed: [],
@@ -540,6 +552,7 @@ export class SessionManager implements ISessionManager {
           title: options.title ?? null,
           tags: options.tags ?? [],
           notes: options.notes ?? null,
+          providerData: options.providerData,
         };
         
         // Validate session data
@@ -556,6 +569,7 @@ export class SessionManager implements ISessionManager {
       undefined, // No sessionId yet
       {
         model: options.model,
+        provider: options.provider,
         workspaceRoot: options.workspaceRoot,
         title: options.title,
       }
@@ -2904,6 +2918,72 @@ export class SessionManager implements ISessionManager {
         estimatedSpaceSavings: 0,
       };
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Provider Management Methods
+  // -------------------------------------------------------------------------
+
+  /**
+   * Switches the current session to a different provider.
+   * 
+   * @param provider - New provider to switch to
+   * @param model - Optional new model (defaults to provider's default)
+   */
+  async switchProvider(provider: string, model?: string): Promise<void> {
+    if (!this.currentSession) {
+      throw new Error('No current session to switch provider for');
+    }
+
+    // Update current session with new provider
+    const updatedSession: Session = {
+      ...this.currentSession,
+      provider,
+      model: model || this.currentSession.model,
+      lastModified: Date.now(),
+    };
+
+    // Save the updated session
+    await this.saveSession(updatedSession);
+  }
+
+  /**
+   * Migrates a specific session to a different provider.
+   * 
+   * @param sessionId - Session to migrate
+   * @param provider - New provider
+   * @param model - Optional new model
+   */
+  async migrateSessionProvider(sessionId: SessionId, provider: string, model?: string): Promise<void> {
+    // Load the session
+    const session = await this.loadSession(sessionId);
+
+    // Update provider information
+    const updatedSession: Session = {
+      ...session,
+      provider,
+      model: model || session.model,
+      lastModified: Date.now(),
+    };
+
+    // Save the updated session
+    await this.saveSession(updatedSession);
+
+    // Update current session if it matches
+    if (this.currentSession?.id === sessionId) {
+      this.currentSession = updatedSession;
+    }
+  }
+
+  /**
+   * Gets all sessions that use a specific provider.
+   * 
+   * @param provider - Provider to filter by
+   * @returns Array of session metadata for the provider
+   */
+  async getSessionsByProvider(provider: string): Promise<SessionMetadata[]> {
+    const allSessions = await this.listSessions();
+    return allSessions.filter(session => session.provider === provider);
   }
 
   /**

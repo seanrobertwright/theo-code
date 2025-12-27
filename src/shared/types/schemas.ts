@@ -217,6 +217,7 @@ export const SessionSchema = z.object({
   created: z.number().int().positive(),
   lastModified: z.number().int().positive(),
   model: z.string(),
+  provider: z.string().optional(), // AI provider used for this session
   workspaceRoot: z.string(),
   tokenCount: SessionTokenCountSchema,
   filesAccessed: z.array(z.string()),
@@ -225,6 +226,8 @@ export const SessionSchema = z.object({
   title: z.string().optional().nullable(),
   tags: z.array(z.string()).default([]),
   notes: z.string().optional().nullable(),
+  // Provider-specific session data
+  providerData: z.record(z.any()).optional(),
 });
 export type Session = z.infer<typeof SessionSchema>;
 
@@ -236,6 +239,7 @@ export const SessionMetadataSchema = z.object({
   created: z.number().int().positive(),
   lastModified: z.number().int().positive(),
   model: z.string(),
+  provider: z.string().optional(), // AI provider used for this session
   tokenCount: SessionTokenCountSchema,
   title: z.string().optional().nullable(),
   workspaceRoot: z.string().optional().nullable(),

@@ -18,10 +18,14 @@ import {
   ProjectConfigSchema,
   SecurityPolicySchema,
   MergedConfigSchema,
+  ProviderConfigSchema,
+  MultiProviderConfigSchema,
   type GlobalConfig,
   type ProjectConfig,
   type SecurityPolicy,
   type MergedConfig,
+  type ProviderConfig,
+  type MultiProviderConfig,
 } from './schemas.js';
 
 // =============================================================================
@@ -185,7 +189,14 @@ export function getApiKeyFromEnv(provider: string): string | undefined {
   const envVarMap: Record<string, string> = {
     openai: 'OPENAI_API_KEY',
     anthropic: 'ANTHROPIC_API_KEY',
-    gemini: 'GOOGLE_API_KEY',
+    google: 'GOOGLE_API_KEY',
+    gemini: 'GOOGLE_API_KEY', // Alias for Google
+    openrouter: 'OPENROUTER_API_KEY',
+    cohere: 'COHERE_API_KEY',
+    mistral: 'MISTRAL_API_KEY',
+    together: 'TOGETHER_API_KEY',
+    perplexity: 'PERPLEXITY_API_KEY',
+    ollama: 'OLLAMA_API_KEY', // Optional for Ollama
   };
 
   const envVar = envVarMap[provider];
@@ -259,6 +270,168 @@ export function loadConfig(workspaceRoot: string): MergedConfig {
 }
 
 // =============================================================================
+// PROVIDER CONFIGURATION UTILITIES
+// =============================================================================
+
+/**
+ * Validates provider configuration.
+ *
+ * @param provider - Provider name
+ * @param config - Merged configuration
+ * @returns Validation result with details
+ */
+export function validateProviderConfig(provider: string, config: MergedConfig): {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+} {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Check if provider is supported
+  const supportedProviders = ['openai', 'anthropic', 'google', 'openrouter', 'cohere', 'mistral', 'together', 'perplexity', 'ollama'];
+  if (!supportedProviders.includes(provider)) {
+    errors.push(`Unsupported provider: ${provider}`);
+    return { valid: false, errors, warnings };
+  }
+
+  // Check provider-specific configuration
+  const providers = config.global.providers?.providers;
+  let providerConfig: any = undefined;
+  if (providers && Array.isArray(providers)) {
+    providerConfig = providers.find((p: any) => p.name === provider);
+  }
+
+  // Check if provider is disabled
+  const isDisabled = providerConfig && providerConfig.enabled === false;
+  if (isDisabled) {
+    warnings.push(`Provider ${provider} is disabled in configuration`);
+  }
+
+  // Validate base URL if provided
+  if (providerConfig && providerConfig.baseUrl) {
+    try {
+      new URL(providerConfig.baseUrl);
+    } catch {
+      errors.push(`Invalid base URL for provider ${provider}`);
+    }
+  }
+
+  // Validate rate limits
+  if (providerConfig && providerConfig.rateLimit) {
+    if (providerConfig.rateLimit.requestsPerMinute !== undefined && providerConfig.rateLimit.requestsPerMinute <= 0) {
+      errors.push(`Invalid requests per minute for provider ${provider}`);
+    }
+    if (providerConfig.rateLimit.tokensPerMinute !== undefined && providerConfig.rateLimit.tokensPerMinute <= 0) {
+      errors.push(`Invalid tokens per minute for provider ${provider}`);
+    }
+  }
+
+  // Check API key availability (not required for Ollama or disabled providers)
+  if (provider !== 'ollama' && !isDisabled) {
+    const apiKey = getApiKey(provider, config);
+    if (!apiKey) {
+      errors.push(`No API key found for provider ${provider}`);
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Gets effective provider configuration with fallbacks.
+ *
+ * @param provider - Provider name
+ * @param config - Merged configuration
+ * @returns Effective provider configuration
+ */
+export function getProviderConfig(provider: string, config: MergedConfig): ProviderConfig | undefined {
+  // Find provider in configuration
+  const providers = config.global.providers?.providers;
+  let providerConfig: ProviderConfig | undefined;
+  
+  if (providers && Array.isArray(providers)) {
+    providerConfig = providers.find((p: any) => p.name === provider);
+  }
+  
+  if (!providerConfig) {
+    // Return default configuration for known providers
+    const supportedProviders = ['openai', 'anthropic', 'google', 'openrouter', 'cohere', 'mistral', 'together', 'perplexity', 'ollama'];
+    if (supportedProviders.includes(provider)) {
+      return {
+        name: provider as any,
+        enabled: true,
+        priority: 0,
+      };
+    }
+    return undefined;
+  }
+
+  // Apply project-level overrides if available
+  const projectOverrides = config.project?.providerOverrides;
+  if (projectOverrides && typeof projectOverrides === 'object') {
+    const override = (projectOverrides as any)[provider];
+    if (override) {
+      return {
+        ...providerConfig,
+        enabled: override.enabled ?? providerConfig.enabled,
+        priority: override.priority ?? providerConfig.priority,
+        rateLimit: override.rateLimit ?? providerConfig.rateLimit,
+        providerConfig: providerConfig.providerConfig ? {
+          ...providerConfig.providerConfig,
+          ...override.providerConfig,
+        } : override.providerConfig,
+      };
+    }
+  }
+
+  return providerConfig;
+}
+
+/**
+ * Gets all available providers with their configurations.
+ *
+ * @param config - Merged configuration
+ * @returns Array of provider configurations
+ */
+export function getAvailableProviders(config: MergedConfig): ProviderConfig[] {
+  const providers = config.global.providers?.providers;
+  const configuredProviders = (providers && Array.isArray(providers)) ? providers as ProviderConfig[] : [];
+  const supportedProviders = ['openai', 'anthropic', 'google', 'openrouter', 'cohere', 'mistral', 'together', 'perplexity', 'ollama'];
+  
+  // Ensure all supported providers have at least default configuration
+  const allProviders = new Map<string, ProviderConfig>();
+  
+  // Add configured providers
+  for (const provider of configuredProviders) {
+    if (provider && typeof provider === 'object' && 'name' in provider) {
+      allProviders.set(String(provider.name), provider);
+    }
+  }
+  
+  // Add default configurations for unconfigured providers
+  for (const provider of supportedProviders) {
+    if (!allProviders.has(provider)) {
+      allProviders.set(provider, {
+        name: provider as any,
+        enabled: true,
+        priority: 0,
+      });
+    }
+  }
+  
+  return Array.from(allProviders.values()).sort((a, b) => {
+    const aPriority = typeof a.priority === 'number' ? a.priority : 0;
+    const bPriority = typeof b.priority === 'number' ? b.priority : 0;
+    return bPriority - aPriority;
+  });
+}
+
+// =============================================================================
 // CONFIG INITIALIZATION
 // =============================================================================
 
@@ -297,10 +470,63 @@ defaultProvider: openai
 defaultModel: gpt-4o
 
 # API keys can also be set via environment variables:
-# OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY
+# OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY, etc.
 # apiKeys:
 #   openai: sk-...
 #   anthropic: sk-ant-...
+
+# Multi-provider configuration
+providers:
+  # Default fallback chain (optional)
+  # fallbackChain: [openai, anthropic, google]
+  
+  # Auto-switch on provider failures
+  autoSwitchOnFailure: true
+  maxFallbackAttempts: 3
+  
+  # Health check interval (5 minutes)
+  healthCheckInterval: 300000
+  
+  # Default rate limits for all providers
+  defaultRateLimit:
+    requestsPerMinute: 60
+    tokensPerMinute: 100000
+    concurrentRequests: 5
+  
+  # Individual provider configurations
+  providers:
+    - name: openai
+      enabled: true
+      priority: 100
+      # apiKey: sk-...  # Or set OPENAI_API_KEY
+      
+    - name: anthropic
+      enabled: true
+      priority: 90
+      # apiKey: sk-ant-...  # Or set ANTHROPIC_API_KEY
+      
+    - name: google
+      enabled: true
+      priority: 80
+      # apiKey: ...  # Or set GOOGLE_API_KEY
+      providerConfig:
+        google:
+          thinkingLevel: medium
+          mediaResolution: high
+          
+    - name: openrouter
+      enabled: false
+      priority: 70
+      # apiKey: sk-or-...  # Or set OPENROUTER_API_KEY
+      
+    - name: ollama
+      enabled: false
+      priority: 60
+      baseUrl: http://localhost:11434
+      providerConfig:
+        ollama:
+          keepAlive: 5m
+          numCtx: 4096
 
 # Session settings
 session:
@@ -329,13 +555,22 @@ editor:
 export function getApiKey(provider: string, config: MergedConfig): string | undefined {
   // 1. Check environment variable
   const envKey = getApiKeyFromEnv(provider);
-  if (envKey !== undefined) {
+  if (envKey !== undefined && envKey !== '') {
     return envKey;
   }
 
   // 2. TODO: Check keychain (keytar)
 
-  // 3. Check config file
+  // 3. Check provider-specific configuration
+  const providers = config.global.providers?.providers;
+  if (providers && Array.isArray(providers)) {
+    const providerConfig = providers.find((p: any) => p.name === provider);
+    if (providerConfig?.apiKey) {
+      return providerConfig.apiKey;
+    }
+  }
+
+  // 4. Check legacy config file format
   if (config.global.apiKeys !== undefined) {
     const configKey = config.global.apiKeys[provider as keyof typeof config.global.apiKeys];
     if (configKey !== undefined) {

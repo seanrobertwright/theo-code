@@ -6,6 +6,7 @@
 import type { CommandDefinition, CommandHandler, CommandContext } from './types.js';
 import { resumeCommandHandler } from './handlers/resume.js';
 import { sessionsCommandHandler } from './handlers/sessions.js';
+import { providerCommandHandler } from './handlers/provider.js';
 
 // =============================================================================
 // COMMAND REGISTRY
@@ -107,12 +108,28 @@ export class CommandRegistry {
       cmd.name.startsWith('resume') || cmd.name.startsWith('sessions')
     );
     const otherCommands = commands.filter(cmd => 
-      !cmd.name.startsWith('resume') && !cmd.name.startsWith('sessions')
+      !cmd.name.startsWith('resume') && !cmd.name.startsWith('sessions') && !cmd.name.startsWith('provider')
     );
     
     if (sessionCommands.length > 0) {
       help += `**Session Management:**\n`;
       for (const cmd of sessionCommands) {
+        help += `• \`/${cmd.name}\` - ${cmd.description}\n`;
+        if (cmd.aliases && cmd.aliases.length > 0) {
+          help += `  Aliases: ${cmd.aliases.map(a => `\`/${a}\``).join(', ')}\n`;
+        }
+      }
+      help += '\n';
+    }
+    
+    // Provider commands
+    const providerCommands = commands.filter(cmd => 
+      cmd.name.startsWith('provider')
+    );
+    
+    if (providerCommands.length > 0) {
+      help += `**Provider Management:**\n`;
+      for (const cmd of providerCommands) {
         help += `• \`/${cmd.name}\` - ${cmd.description}\n`;
         if (cmd.aliases && cmd.aliases.length > 0) {
           help += `  Aliases: ${cmd.aliases.map(a => `\`/${a}\``).join(', ')}\n`;
@@ -168,6 +185,14 @@ export function createDefaultCommandRegistry(): CommandRegistry {
     usage: '/sessions [subcommand] [options]',
     handler: sessionsCommandHandler,
     aliases: ['session', 'sess'],
+  });
+  
+  registry.register({
+    name: 'provider',
+    description: 'Manage AI providers',
+    usage: '/provider [subcommand] [options]',
+    handler: providerCommandHandler,
+    aliases: ['providers', 'prov'],
   });
   
   return registry;

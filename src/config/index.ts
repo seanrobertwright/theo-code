@@ -9,11 +9,15 @@ export {
   ProjectConfigSchema,
   SecurityPolicySchema,
   MergedConfigSchema,
+  ProviderConfigSchema,
+  MultiProviderConfigSchema,
   // Types
   type GlobalConfig,
   type ProjectConfig,
   type SecurityPolicy,
   type MergedConfig,
+  type ProviderConfig,
+  type MultiProviderConfig,
 } from './schemas.js';
 
 export {
@@ -32,6 +36,10 @@ export {
   getModelFromEnv,
   isSafeModeEnabled,
   getApiKey,
+  // Provider utilities
+  validateProviderConfig,
+  getProviderConfig,
+  getAvailableProviders,
   // Initialization
   ensureConfigDir,
   createDefaultConfig,

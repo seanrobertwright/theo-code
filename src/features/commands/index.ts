@@ -30,6 +30,10 @@ export {
 } from './handlers/sessions.js';
 
 export {
+  providerCommandHandler,
+} from './handlers/provider.js';
+
+export {
   formatSessionList,
   formatSingleSession,
   formatSessionPreview,
