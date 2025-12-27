@@ -14,6 +14,7 @@ import type {
   ErrorStreamChunk,
 } from '../../shared/types/models.js';
 import type { ToolCall } from '../../shared/types/index.js';
+import { createToolCallId } from '../../shared/types/schemas.js';
 import { logger } from '../../shared/utils/index.js';
 
 // =============================================================================
@@ -305,6 +306,10 @@ export function convertOpenAIResponse(
   }
   
   const choice = chunk.choices[0];
+  if (!choice) {
+    return chunks;
+  }
+  
   const delta = choice.delta;
   
   // Handle text content
@@ -327,7 +332,7 @@ export function convertOpenAIResponse(
   }
   
   // Handle completion
-  if (choice.finish_reason) {
+  if (choice && choice.finish_reason) {
     // Emit accumulated tool calls
     chunks.push(...accumulators.getToolCallChunks());
     accumulators.clear();
@@ -446,6 +451,9 @@ export function convertGoogleResponse(
   }
   
   const candidate = chunk.candidates[0];
+  if (!candidate) {
+    return chunks;
+  }
   
   // Handle safety blocks
   if (candidate.safetyRatings) {
@@ -603,6 +611,10 @@ export function convertPerplexityResponse(
   }
   
   const choice = chunk.choices[0];
+  if (!choice) {
+    return chunks;
+  }
+  
   const delta = choice.delta;
   
   // Handle text content
@@ -756,7 +768,7 @@ export function standardizeToolCall(
     case 'together':
       const openaiName = toolCall.function?.name || toolCall.name || 'unknown';
       return {
-        id: ensureValidId(toolCall.id, openaiName),
+        id: createToolCallId(ensureValidId(toolCall.id, openaiName)),
         name: openaiName,
         arguments: parseToolCallArguments(toolCall.function?.arguments || toolCall.arguments),
       };
@@ -764,7 +776,7 @@ export function standardizeToolCall(
     case 'anthropic':
       const anthropicName = toolCall.name || 'unknown';
       return {
-        id: ensureValidId(toolCall.id, anthropicName),
+        id: createToolCallId(ensureValidId(toolCall.id, anthropicName)),
         name: anthropicName,
         arguments: parseToolCallArguments(toolCall.input || toolCall.arguments),
       };
@@ -772,7 +784,7 @@ export function standardizeToolCall(
     case 'google':
       const googleName = toolCall.name || 'unknown';
       return {
-        id: ensureValidId(toolCall.id, googleName),
+        id: createToolCallId(ensureValidId(toolCall.id, googleName)),
         name: googleName,
         arguments: parseToolCallArguments(toolCall.args || toolCall.arguments),
       };
@@ -780,7 +792,7 @@ export function standardizeToolCall(
     case 'cohere':
       const cohereName = toolCall.name || 'unknown';
       return {
-        id: ensureValidId(toolCall.id, cohereName),
+        id: createToolCallId(ensureValidId(toolCall.id, cohereName)),
         name: cohereName,
         arguments: parseToolCallArguments(toolCall.parameters || toolCall.arguments),
       };
@@ -789,7 +801,7 @@ export function standardizeToolCall(
     case 'ollama':
       const localName = toolCall.name || 'unknown';
       return {
-        id: ensureValidId(toolCall.id, localName),
+        id: createToolCallId(ensureValidId(toolCall.id, localName)),
         name: localName,
         arguments: parseToolCallArguments(toolCall.arguments),
       };
@@ -798,7 +810,7 @@ export function standardizeToolCall(
       logger.warn(`[ResponseFormat] Unknown provider for tool call standardization: ${provider}`);
       const unknownName = toolCall.name || 'unknown';
       return {
-        id: ensureValidId(toolCall.id, unknownName),
+        id: createToolCallId(ensureValidId(toolCall.id, unknownName)),
         name: unknownName,
         arguments: parseToolCallArguments(toolCall.arguments || {}),
       };

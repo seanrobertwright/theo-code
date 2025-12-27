@@ -384,10 +384,10 @@ export class SessionMonitoringService {
     return {
       cache: cacheStats,
       operationTimes: {
-        listSessions: operationTimes.listSessions || 0,
-        searchSessions: operationTimes.searchSessions || 0,
-        loadSession: operationTimes.loadSession || 0,
-        saveSession: operationTimes.saveSession || 0,
+        listSessions: operationTimes['listSessions'] || 0,
+        searchSessions: operationTimes['searchSessions'] || 0,
+        loadSession: operationTimes['loadSession'] || 0,
+        saveSession: operationTimes['saveSession'] || 0,
       },
       memory: {
         totalUsage: cacheStats.memoryUsage,

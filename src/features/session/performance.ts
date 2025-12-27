@@ -928,9 +928,8 @@ export class PerformanceMonitor {
     }
     
     // Calculate memory usage
-    const currentMemory = this.memorySnapshots.length > 0 
-      ? this.memorySnapshots[this.memorySnapshots.length - 1].usage 
-      : 0;
+    const lastSnapshot = this.memorySnapshots[this.memorySnapshots.length - 1];
+    const currentMemory = lastSnapshot ? lastSnapshot.usage : 0;
     
     const cacheStats = cache.getStats();
     const taskStatus = backgroundTasks.getStatus();
@@ -938,13 +937,10 @@ export class PerformanceMonitor {
     return {
       cache: cacheStats,
       operationTimes: {
-        listSessions: operationTimes.listSessions || 0,
-        searchSessions: operationTimes.searchSessions || 0,
-        loadSession: operationTimes.loadSession || 0,
-        saveSession: operationTimes.saveSession || 0,
-        testOperation: operationTimes.testOperation || 0,
-        testOp: operationTimes.testOp || 0,
-        ...operationTimes,
+        listSessions: operationTimes['listSessions'] || 0,
+        searchSessions: operationTimes['searchSessions'] || 0,
+        loadSession: operationTimes['loadSession'] || 0,
+        saveSession: operationTimes['saveSession'] || 0,
       },
       memory: {
         totalUsage: currentMemory,

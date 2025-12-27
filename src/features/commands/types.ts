@@ -186,12 +186,4 @@ export interface SessionSearchResult extends CommandResult {
 // EXPORTS
 // =============================================================================
 
-export type {
-  CommandContext,
-  CommandHandler,
-  CommandDefinition,
-  CommandResult,
-  SessionRestoreResult,
-  SessionListResult,
-  SessionSearchResult,
-};
+// All types are already exported inline above

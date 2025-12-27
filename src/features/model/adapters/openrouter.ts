@@ -410,7 +410,7 @@ class OpenRouterClient {
    */
   async getModels(): Promise<OpenRouterModel[]> {
     const response = await this.makeRequest('/models');
-    const data: OpenRouterModelsResponse = await response.json();
+    const data = await response.json() as OpenRouterModelsResponse;
     return data.data;
   }
 
@@ -422,7 +422,7 @@ class OpenRouterClient {
       method: 'POST',
       body: JSON.stringify(request),
     });
-    return response.json();
+    return response.json() as Promise<OpenRouterResponse>;
   }
 
   /**

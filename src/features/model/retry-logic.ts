@@ -291,7 +291,7 @@ export class RetryExecutor {
 
     return {
       success: false,
-      error: finalError,
+      ...(finalError !== undefined && { error: finalError }),
       context: retryContext,
     };
   }
@@ -316,6 +316,9 @@ export class RetryExecutor {
 
     for (let i = 0; i < operations.length; i++) {
       const operation = operations[i];
+      if (!operation) {
+        continue;
+      }
       
       const executePromise = this.execute(operation, `${operationName}[${i}]`)
         .then(result => {
@@ -516,8 +519,8 @@ export function withRetryDecorator(
   customConfig?: Partial<RetryConfig>
 ) {
   return function <T extends (...args: any[]) => Promise<any>>(
-    target: any,
-    propertyKey: string,
+    _target: any,
+    _propertyKey: string,
     descriptor: TypedPropertyDescriptor<T>
   ) {
     const originalMethod = descriptor.value!;

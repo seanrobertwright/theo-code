@@ -265,6 +265,8 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
       contextLimit: 128000,
       maxOutputTokens: 4096,
       baseUrl: provider === 'ollama' ? config.global.ollama?.baseUrl : undefined,
+      enabled: true,
+      priority: 1,
     };
   }, [config, initialModel]);
 

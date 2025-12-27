@@ -173,14 +173,14 @@ export class HttpClient {
    * Makes a POST request.
    */
   async post(url: string, body?: string | ArrayBuffer | Uint8Array | FormData | URLSearchParams | ReadableStream, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
-    return this.fetch(url, { ...options, method: 'POST', body });
+    return this.fetch(url, { ...options, method: 'POST', ...(body !== undefined && { body }) });
   }
 
   /**
    * Makes a PUT request.
    */
   async put(url: string, body?: string | ArrayBuffer | Uint8Array | FormData | URLSearchParams | ReadableStream, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
-    return this.fetch(url, { ...options, method: 'PUT', body });
+    return this.fetch(url, { ...options, method: 'PUT', ...(body !== undefined && { body }) });
   }
 
   /**

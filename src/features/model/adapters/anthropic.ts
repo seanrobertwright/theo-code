@@ -159,7 +159,11 @@ function convertMessages(messages: Message[]): { messages: MessageParam[]; syste
     }
   }
 
-  return { messages: anthropicMessages, system: systemMessage };
+  const result: { messages: MessageParam[]; system?: string } = { messages: anthropicMessages };
+  if (systemMessage !== undefined) {
+    result.system = systemMessage;
+  }
+  return result;
 }
 
 /**
@@ -214,7 +218,9 @@ function parseToolCallArguments(argumentsJson: string, toolName: string): any {
  */
 function handleApiError(error: unknown): StreamChunk {
   if (error instanceof Anthropic.APIError) {
-    const code = ERROR_CODE_MAP[error.type] ?? 'API_ERROR';
+    // Use status or error code from the API error
+    const errorType = (error as any).type || error.status?.toString() || 'unknown_error';
+    const code = ERROR_CODE_MAP[errorType] ?? 'API_ERROR';
     return {
       type: 'error',
       error: { code, message: error.message },
@@ -292,7 +298,7 @@ function estimateTokens(messages: Message[]): number {
  * Counts tokens using Anthropic's API (when available).
  * Currently falls back to estimation as Anthropic doesn't have a public token counting API.
  */
-async function countTokensWithAPI(client: Anthropic, messages: Message[], model: string): Promise<number> {
+async function countTokensWithAPI(_client: Anthropic, messages: Message[], _model: string): Promise<number> {
   // TODO: Implement when Anthropic provides a token counting API
   // For now, use estimation
   return estimateTokens(messages);
@@ -524,7 +530,10 @@ export class AnthropicAdapter implements IModelAdapter {
             yield {
               type: 'done',
               usage: event.usage !== undefined
-                ? { inputTokens: event.usage.input_tokens, outputTokens: event.usage.output_tokens }
+                ? { 
+                    inputTokens: event.usage.input_tokens ?? 0, 
+                    outputTokens: event.usage.output_tokens 
+                  }
                 : undefined,
             };
             hasFinished = true;
@@ -549,13 +558,14 @@ export class AnthropicAdapter implements IModelAdapter {
             yield { type: 'done' };
             hasFinished = true;
           }
-        } else if (event.type === 'error') {
-          logger.error('[Anthropic] Stream error:', event.error);
+        } else if ((event as any).type === 'error') {
+          const errorEvent = event as any;
+          logger.error('[Anthropic] Stream error:', errorEvent.error);
           yield {
             type: 'error',
             error: {
-              code: ERROR_CODE_MAP[event.error.type] ?? 'API_ERROR',
-              message: event.error.message,
+              code: ERROR_CODE_MAP[errorEvent.error?.type] ?? 'API_ERROR',
+              message: errorEvent.error?.message ?? 'Unknown error',
             },
           };
           return;

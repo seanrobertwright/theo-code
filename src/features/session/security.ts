@@ -160,7 +160,9 @@ export class SensitiveDataFilter {
   
   constructor(config: SensitiveDataConfig, auditLogger?: AuditLogger) {
     this.config = config;
-    this.auditLogger = auditLogger;
+    if (auditLogger !== undefined) {
+      this.auditLogger = auditLogger;
+    }
   }
   
   /**
@@ -585,7 +587,9 @@ export class FilePermissionManager {
   
   constructor(config: FilePermissionConfig, auditLogger?: AuditLogger) {
     this.config = config;
-    this.auditLogger = auditLogger;
+    if (auditLogger !== undefined) {
+      this.auditLogger = auditLogger;
+    }
   }
   
   /**
@@ -943,7 +947,7 @@ export class AuditLogger {
   async close(): Promise<void> {
     if (this.flushTimer) {
       clearInterval(this.flushTimer);
-      this.flushTimer = undefined;
+      delete (this as any).flushTimer;
     }
     
     await this.flushLogs();
@@ -1004,11 +1008,4 @@ export function createDefaultAuditLogConfig(logFile: string): AuditLogConfig {
 // EXPORTS
 // =============================================================================
 
-export type {
-  SensitiveDataConfig,
-  FilePermissionConfig,
-  AuditLogConfig,
-  AuditLogEntry,
-  FilterResult,
-  PermissionCheckResult,
-};
+// All types are already exported inline above

@@ -85,7 +85,7 @@ async function restoreSpecificSession(
     
     // Get session metadata for confirmation
     const sessions = await sessionManager.listSessions({ limit: 1000 });
-    const sessionMetadata = sessions.find(s => s.id === sessionId);
+    const sessionMetadata = sessions.find((s: any) => s.id === sessionId);
     
     if (!sessionMetadata) {
       throw new Error(`Session metadata not found for ${sessionId}`);

@@ -21,6 +21,8 @@ import {
   HarmCategory,
   HarmBlockThreshold,
   GenerationConfig,
+  SchemaType,
+  DynamicRetrievalMode,
 } from '@google/generative-ai';
 
 import type {
@@ -28,6 +30,7 @@ import type {
   UniversalToolDefinition,
   ContentBlock,
 } from '../../../shared/types/index.js';
+import { createToolCallId, createMessageId } from '../../../shared/types/index.js';
 import type {
   StreamChunk,
   GenerateOptions,
@@ -169,7 +172,7 @@ function getMessageContent(message: Message): string {
  */
 function convertMultimodalContent(
   content: string | ContentBlock[], 
-  mediaResolution?: 'low' | 'medium' | 'high' | 'ultra_high'
+  _mediaResolution?: 'low' | 'medium' | 'high' | 'ultra_high'
 ): Part[] {
   if (typeof content === 'string') {
     return [{ text: content }];
@@ -183,48 +186,48 @@ function convertMultimodalContent(
         parts.push({ text: block.text });
         break;
         
-      case 'image':
-        if (block.source?.type === 'base64') {
-          parts.push({
-            inlineData: {
-              mimeType: block.source.media_type || 'image/jpeg',
-              data: block.source.data,
-            },
-          });
-        } else if (block.source?.type === 'url') {
-          // For URL-based images, we'd need to fetch and convert to base64
-          // For now, add as text description
-          parts.push({ 
-            text: `[Image: ${block.source.url}]` 
-          });
-        }
+      case 'tool_use':
+        // Tool use blocks are handled elsewhere
         break;
         
-      case 'video':
-        if (block.source?.type === 'base64') {
-          parts.push({
-            inlineData: {
-              mimeType: block.source.media_type || 'video/mp4',
-              data: block.source.data,
-            },
-          });
-        }
-        break;
-        
-      case 'audio':
-        if (block.source?.type === 'base64') {
-          parts.push({
-            inlineData: {
-              mimeType: block.source.media_type || 'audio/wav',
-              data: block.source.data,
-            },
-          });
-        }
+      case 'tool_result':
+        // Tool result blocks are handled elsewhere
         break;
         
       default:
-        // Fallback for unknown content types
-        parts.push({ text: `[Unsupported content type: ${(block as any).type}]` });
+        // Handle potential multimodal content with type assertion
+        const multimodalBlock = block as any;
+        if (multimodalBlock.type === 'image' && multimodalBlock.source?.type === 'base64') {
+          parts.push({
+            inlineData: {
+              mimeType: multimodalBlock.source.media_type || 'image/jpeg',
+              data: multimodalBlock.source.data,
+            },
+          });
+        } else if (multimodalBlock.type === 'image' && multimodalBlock.source?.type === 'url') {
+          // For URL-based images, we'd need to fetch and convert to base64
+          // For now, add as text description
+          parts.push({ 
+            text: `[Image: ${multimodalBlock.source.url}]` 
+          });
+        } else if (multimodalBlock.type === 'video' && multimodalBlock.source?.type === 'base64') {
+          parts.push({
+            inlineData: {
+              mimeType: multimodalBlock.source.media_type || 'video/mp4',
+              data: multimodalBlock.source.data,
+            },
+          });
+        } else if (multimodalBlock.type === 'audio' && multimodalBlock.source?.type === 'base64') {
+          parts.push({
+            inlineData: {
+              mimeType: multimodalBlock.source.media_type || 'audio/wav',
+              data: multimodalBlock.source.data,
+            },
+          });
+        } else {
+          // Fallback for unknown content types
+          parts.push({ text: `[Unsupported content type: ${multimodalBlock.type}]` });
+        }
     }
   }
   
@@ -396,7 +399,7 @@ function convertTools(tools: UniversalToolDefinition[]): Tool[] {
       name: tool.name,
       description: tool.description,
       parameters: {
-        type: 'OBJECT',
+        type: SchemaType.OBJECT,
         properties: convertedProperties,
         required: tool.parameters.required ?? [],
       },
@@ -478,7 +481,7 @@ function createBuiltInTools(): Tool[] {
   builtInTools.push({
     googleSearchRetrieval: {
       dynamicRetrievalConfig: {
-        mode: 'MODE_DYNAMIC',
+        mode: DynamicRetrievalMode.MODE_DYNAMIC,
         dynamicThreshold: 0.7,
       },
     },
@@ -1015,6 +1018,8 @@ export class GoogleAdapter implements IModelAdapter {
       
       for (let i = currentResIndex - 1; i >= 0; i--) {
         const testResolution = resolutions[i];
+        if (!testResolution) continue;
+        
         const originalResolution = this.config.gemini?.mediaResolution;
         
         // Temporarily change resolution for testing
@@ -1043,7 +1048,8 @@ export class GoogleAdapter implements IModelAdapter {
         // Remove the oldest non-system message
         let removedIndex = -1;
         for (let i = 0; i < currentMessages.length; i++) {
-          if (currentMessages[i].role !== 'system') {
+          const message = currentMessages[i];
+          if (message && message.role !== 'system') {
             currentMessages.splice(i, 1);
             removedIndex = i;
             break;
@@ -1061,7 +1067,7 @@ export class GoogleAdapter implements IModelAdapter {
     if (options?.allowContentTruncation && currentTokens > maxTokens) {
       for (let i = currentMessages.length - 1; i >= 0; i--) {
         const message = currentMessages[i];
-        if (message.role === 'system') continue; // Don't truncate system messages
+        if (!message || message.role === 'system') continue; // Don't truncate system messages
         
         const content = getMessageContent(message);
         if (content.length > 500) { // Only truncate long messages
@@ -1069,7 +1075,7 @@ export class GoogleAdapter implements IModelAdapter {
           
           if (typeof message.content === 'string') {
             message.content = truncatedContent;
-          } else {
+          } else if (Array.isArray(message.content)) {
             // Find and truncate text blocks
             for (const block of message.content) {
               if (block.type === 'text') {
@@ -1163,11 +1169,12 @@ export class GoogleAdapter implements IModelAdapter {
       // Count media tokens
       if (typeof message.content !== 'string') {
         for (const block of message.content) {
-          if (block.type === 'image') {
+          const blockType = (block as any).type;
+          if (blockType === 'image') {
             mediaTokens += estimateMediaTokens('image', resolution);
-          } else if (block.type === 'video') {
+          } else if (blockType === 'video') {
             mediaTokens += estimateMediaTokens('video', resolution);
-          } else if (block.type === 'audio') {
+          } else if (blockType === 'audio') {
             mediaTokens += estimateMediaTokens('audio', resolution);
           }
         }
@@ -1210,6 +1217,8 @@ export class GoogleAdapter implements IModelAdapter {
         
         for (let i = currentIndex - 1; i >= 0; i--) {
           const testResolution = resolutions[i];
+          if (!testResolution) continue;
+          
           const testEstimate = this.estimateMultimodalTokens(messages, testResolution);
           
           if (testEstimate.totalTokens <= options.maxTokens) {
@@ -1305,7 +1314,7 @@ export class GoogleAdapter implements IModelAdapter {
    * Clears the current thought signature.
    */
   clearThoughtSignature(): void {
-    this.thoughtSignature = undefined;
+    delete (this as any).thoughtSignature;
     logger.debug('[Google] Thought signature cleared');
   }
 
@@ -1367,10 +1376,12 @@ export class GoogleAdapter implements IModelAdapter {
           const callMessages: Message[] = [
             ...messages,
             {
+              id: createMessageId(),
               role: 'assistant',
               content: `Executing function: ${call.name}`,
+              timestamp: Date.now(),
               toolCalls: [{
-                id: `call_${index}`,
+                id: createToolCallId(`call_${index}`),
                 name: call.name,
                 arguments: call.arguments,
               }],
@@ -1397,13 +1408,22 @@ export class GoogleAdapter implements IModelAdapter {
         results.map(r => r.thoughtSignature).filter(Boolean) as ThoughtSignature[]
       );
       
-      return {
+      const returnValue: { results: any[]; thoughtSignature?: ThoughtSignature } = {
         results,
-        thoughtSignature: finalSignature,
       };
+      
+      if (finalSignature !== undefined) {
+        returnValue.thoughtSignature = finalSignature;
+      }
+      
+      return returnValue;
     } finally {
       // Restore original signature
-      this.thoughtSignature = currentSignature;
+      if (currentSignature !== undefined) {
+        this.thoughtSignature = currentSignature;
+      } else {
+        delete (this as any).thoughtSignature;
+      }
     }
   }
 
@@ -1706,14 +1726,29 @@ export class GoogleAdapter implements IModelAdapter {
         includeSearchGrounding: true,
       });
 
-      return {
+      const returnValue: {
+        imageData: string;
+        mimeType: string;
+        searchContext?: string;
+        metadata?: {
+          aspectRatio: string;
+          imageSize: string;
+          searchGrounded: boolean;
+          generatedAt: string;
+        };
+      } = {
         ...result,
-        searchContext: searchQuery,
         metadata: {
           ...result.metadata!,
           searchGrounded: true,
         },
       };
+      
+      if (searchQuery !== undefined) {
+        returnValue.searchContext = searchQuery;
+      }
+      
+      return returnValue;
     } catch (error) {
       if (error instanceof AdapterError) {
         throw error;
@@ -1770,7 +1805,7 @@ export class GoogleAdapter implements IModelAdapter {
     logger.debug('[Google] Creating request with:', {
       contentCount: contents.length,
       hasTools: !!tools,
-      toolsCount: tools?.[0]?.functionDeclarations?.length ?? 0,
+      toolsCount: tools?.[0] && 'functionDeclarations' in tools[0] ? tools[0].functionDeclarations?.length ?? 0 : 0,
       model: this.model
     });
 
@@ -1781,9 +1816,10 @@ export class GoogleAdapter implements IModelAdapter {
     const migrationContext = (this as any).migrationContext;
     if (migrationContext && contents.length > 0) {
       const migrationPrompt = this.createMigrationPrompt(migrationContext);
-      if (migrationPrompt && contents[0].role === 'user') {
+      const firstContent = contents[0];
+      if (migrationPrompt && firstContent && firstContent.role === 'user') {
         // Prepend migration context to the first user message
-        const firstPart = contents[0].parts[0];
+        const firstPart = firstContent.parts[0];
         if (firstPart && firstPart.text) {
           firstPart.text = migrationPrompt + '\n\n' + firstPart.text;
         }
@@ -1910,10 +1946,12 @@ export class GoogleAdapter implements IModelAdapter {
         if (chunk.candidates && chunk.candidates.length > 0) {
           const candidate = chunk.candidates[0];
           
+          if (!candidate) continue;
+          
           // Handle safety ratings and blocks
           if (candidate.safetyRatings) {
             const blockedRating = candidate.safetyRatings.find(rating => 
-              rating.blocked === true
+              (rating as any).blocked === true
             );
             if (blockedRating) {
               logger.warn('[Google] Content blocked by safety filter:', blockedRating.category);

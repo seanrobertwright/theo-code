@@ -202,4 +202,4 @@ export function createDefaultCommandRegistry(): CommandRegistry {
 // EXPORTS
 // =============================================================================
 
-export { CommandRegistry, createDefaultCommandRegistry };
+// All exports are already declared inline above

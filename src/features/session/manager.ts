@@ -2389,25 +2389,35 @@ export class SessionManager implements ISessionManager {
       // Validate the value
       const validation = this.validateConfigurationValue(key, parsedValue);
       if (!validation.valid) {
-        return {
+        const result: ConfigurationValidationResult = {
           valid: false,
           error: validation.error!,
           currentValue: String(currentValue),
-          suggestions: validation.suggestions,
         };
+        
+        if (validation.suggestions !== undefined) {
+          result.suggestions = validation.suggestions;
+        }
+        
+        return result;
       }
       
       // Check if confirmation is required for disruptive changes
       const requiresConfirmation = this.configChangeRequiresConfirmation(key, parsedValue, currentValue);
       const warning = requiresConfirmation ? this.getConfigChangeWarning(key, parsedValue) : undefined;
       
-      return {
+      const result: ConfigurationValidationResult = {
         valid: true,
         currentValue: String(currentValue),
         requiresConfirmation,
-        warning,
         restartRequired: this.configChangeRequiresRestart(key),
       };
+      
+      if (warning !== undefined) {
+        result.warning = warning;
+      }
+      
+      return result;
       
     } catch (error: any) {
       return {
@@ -2534,16 +2544,26 @@ export class SessionManager implements ISessionManager {
       
       const valid = issues.length === 0;
       
-      return {
+      const result: ConfigurationValidationResult = {
         valid,
+        currentValue: 'N/A', // This is a bulk validation, not for a specific setting
         checkedSettings,
-        issues: issues.length > 0 ? issues : undefined,
-        warnings: warnings.length > 0 ? warnings : undefined,
       };
+      
+      if (issues.length > 0) {
+        result.issues = issues;
+      }
+      
+      if (warnings.length > 0) {
+        result.warnings = warnings;
+      }
+      
+      return result;
       
     } catch (error: any) {
       return {
         valid: false,
+        currentValue: 'N/A',
         checkedSettings,
         issues: [{
           setting: 'general',
@@ -2750,7 +2770,7 @@ export class SessionManager implements ISessionManager {
    * @param newValue - New value
    * @returns Warning message
    */
-  private getConfigChangeWarning(key: string, newValue: any): string {
+  private getConfigChangeWarning(key: string, _newValue: any): string {
     switch (key) {
       case 'max-sessions':
         return 'Reducing max sessions may trigger immediate cleanup of existing sessions.';

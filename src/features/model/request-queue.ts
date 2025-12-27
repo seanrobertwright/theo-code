@@ -249,8 +249,8 @@ export class RequestQueue<T = any, R = any> {
         createdAt: new Date(),
         resolve,
         reject,
-        batchable,
-        batchKey,
+        ...(batchable !== undefined && { batchable }),
+        ...(batchKey !== undefined && { batchKey }),
       };
 
       // Add to queue with priority ordering
@@ -381,7 +381,8 @@ export class RequestQueue<T = any, R = any> {
     // Find insertion point to maintain priority order
     let insertIndex = this.queue.length;
     for (let i = 0; i < this.queue.length; i++) {
-      if (this.queue[i].priority < request.priority) {
+      const queueItem = this.queue[i];
+      if (queueItem && queueItem.priority < request.priority) {
         insertIndex = i;
         break;
       }
@@ -558,7 +559,12 @@ export class RequestQueue<T = any, R = any> {
     }
 
     try {
-      logger.debug(`[RequestQueue] Processing batch of ${requests.length} requests for ${requests[0].provider}`);
+      const firstRequest = requests[0];
+      if (!firstRequest) {
+        throw new Error('Empty batch request');
+      }
+      
+      logger.debug(`[RequestQueue] Processing batch of ${requests.length} requests for ${firstRequest.provider}`);
       
       // Clear timeouts for all requests in batch
       for (const request of requests) {
@@ -576,21 +582,24 @@ export class RequestQueue<T = any, R = any> {
         const request = requests[i];
         const result = results[i];
         
-        request.resolve(result);
-        
-        // Update statistics
-        const waitTime = startTime - request.createdAt.getTime();
-        this.totalWaitTime += waitTime;
-        this.totalProcessed++;
+        if (request) {
+          request.resolve(result);
+          
+          // Update statistics
+          const waitTime = startTime - request.createdAt.getTime();
+          this.totalWaitTime += waitTime;
+          this.totalProcessed++;
+        }
       }
       
       this.totalBatches++;
-      this.updateRateLimit(requests[0].provider, 'request', requests.length);
+      this.updateRateLimit(firstRequest.provider, 'request', requests.length);
       
-      logger.debug(`[RequestQueue] Completed batch of ${requests.length} requests for ${requests[0].provider}`);
+      logger.debug(`[RequestQueue] Completed batch of ${requests.length} requests for ${firstRequest.provider}`);
       
     } catch (error) {
-      logger.error(`[RequestQueue] Batch processing failed for ${requests[0].provider}:`, error);
+      const firstRequest = requests[0];
+      logger.error(`[RequestQueue] Batch processing failed for ${firstRequest?.provider || 'unknown'}:`, error);
       
       // Reject all requests in the batch
       for (const request of requests) {

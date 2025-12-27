@@ -14,6 +14,7 @@ import type {
   ErrorStreamChunk,
 } from '../../shared/types/models.js';
 import type { ToolCall } from '../../shared/types/index.js';
+import { createToolCallId } from '../../shared/types/schemas.js';
 import { logger } from '../../shared/utils/index.js';
 
 // =============================================================================
@@ -224,7 +225,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatDoneChunk(chunk: DoneStreamChunk, accumulated: FormattedResponse): string {
+  private formatDoneChunk(chunk: DoneStreamChunk, _accumulated: FormattedResponse): string {
     const lines: string[] = [];
 
     if (chunk.usage && this.options.includeUsage) {
@@ -548,7 +549,7 @@ export class ResponsePrettyPrinter {
           } else if (part.functionCall) {
             if (lines.length > 0) lines.push('');
             lines.push(this.formatToolCalls([{
-              id: `google_${part.functionCall.name}_${Date.now()}`,
+              id: createToolCallId(`google_${part.functionCall.name}_${Date.now()}`),
               name: part.functionCall.name,
               arguments: part.functionCall.args || {},
             }]));
@@ -607,8 +608,11 @@ export class ResponsePrettyPrinter {
       const lines = formatted.split('\n');
       const metadataIndex = lines.findIndex(line => line.includes('ℹ️  Metadata:'));
       
-      if (metadataIndex !== -1) {
-        lines[metadataIndex + 1] = lines[metadataIndex + 1].replace('openai', 'openrouter');
+      if (metadataIndex !== -1 && lines[metadataIndex + 1]) {
+        const lineToReplace = lines[metadataIndex + 1];
+        if (lineToReplace) {
+          lines[metadataIndex + 1] = lineToReplace.replace('openai', 'openrouter');
+        }
       }
       
       return lines.join('\n');
@@ -701,8 +705,11 @@ export class ResponsePrettyPrinter {
       const lines = formatted.split('\n');
       const metadataIndex = lines.findIndex(line => line.includes('ℹ️  Metadata:'));
       
-      if (metadataIndex !== -1) {
-        lines[metadataIndex + 1] = lines[metadataIndex + 1].replace('openai', 'mistral');
+      if (metadataIndex !== -1 && lines[metadataIndex + 1]) {
+        const lineToReplace = lines[metadataIndex + 1];
+        if (lineToReplace) {
+          lines[metadataIndex + 1] = lineToReplace.replace('openai', 'mistral');
+        }
       }
       
       return lines.join('\n');
@@ -719,8 +726,11 @@ export class ResponsePrettyPrinter {
       const lines = formatted.split('\n');
       const metadataIndex = lines.findIndex(line => line.includes('ℹ️  Metadata:'));
       
-      if (metadataIndex !== -1) {
-        lines[metadataIndex + 1] = lines[metadataIndex + 1].replace('openai', 'together');
+      if (metadataIndex !== -1 && lines[metadataIndex + 1]) {
+        const lineToReplace = lines[metadataIndex + 1];
+        if (lineToReplace) {
+          lines[metadataIndex + 1] = lineToReplace.replace('openai', 'together');
+        }
       }
       
       return lines.join('\n');
@@ -906,7 +916,7 @@ export function accumulateStreamChunks(chunks: StreamChunk[]): FormattedResponse
         }
         
         result.toolCalls!.push({
-          id: chunk.id,
+          id: createToolCallId(chunk.id),
           name: chunk.name,
           arguments: parsedArguments,
         });

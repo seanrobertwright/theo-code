@@ -264,7 +264,7 @@ export class Cache<T> {
   /**
    * Estimates the size of a value in bytes.
    */
-  private estimateSize(value: T): number {
+  protected estimateSize(value: T): number {
     try {
       const json = JSON.stringify(value);
       return new Blob([json]).size;
@@ -294,7 +294,10 @@ export class Cache<T> {
     });
 
     for (let i = 0; i < entriesToEvict && i < sortedEntries.length; i++) {
-      this.entries.delete(sortedEntries[i].key);
+      const entry = sortedEntries[i];
+      if (entry) {
+        this.entries.delete(entry.key);
+      }
     }
 
     logger.debug(`[Cache] Evicted ${entriesToEvict} entries using ${this.config.evictionStrategy} strategy`);
@@ -520,17 +523,6 @@ export class ResponseCache extends Cache<ResponseCacheEntry> {
     return hash.toString(36);
   }
 
-  /**
-   * Estimates the size of a value in bytes.
-   */
-  private estimateSize(value: any): number {
-    try {
-      const json = JSON.stringify(value);
-      return new Blob([json]).size;
-    } catch {
-      return 100; // Default size estimate
-    }
-  }
 }
 
 // =============================================================================

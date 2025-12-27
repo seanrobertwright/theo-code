@@ -304,7 +304,7 @@ export class SessionMetricsCollector {
    * @param success - Whether operation succeeded
    * @param duration - Operation duration in milliseconds
    */
-  endOperation(operation: string, token: string, success: boolean, duration: number): void {
+  endOperation(operation: string, _token: string, success: boolean, duration: number): void {
     if (!this.operationMetrics.has(operation)) {
       this.operationMetrics.set(operation, {
         times: [],
@@ -376,7 +376,7 @@ export class SessionMetricsCollector {
     
     // Calculate operations per minute (last 5 minutes)
     const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-    const recentOperations = times.filter((_, index) => {
+    const recentOperations = times.filter((_time, _index) => {
       // This is a simplified calculation - in a real implementation,
       // you'd track timestamps for each operation
       return metrics.lastOperation > fiveMinutesAgo;
@@ -390,9 +390,9 @@ export class SessionMetricsCollector {
       failureCount: metrics.failures,
       successRate,
       averageTime,
-      minTime,
-      maxTime,
-      p95Time,
+      minTime: minTime ?? 0,
+      maxTime: maxTime ?? 0,
+      p95Time: p95Time ?? 0,
       lastOperation: metrics.lastOperation,
       operationsPerMinute,
     };
@@ -474,12 +474,15 @@ export class SessionMetricsCollector {
     if (this.storageHistory.length >= 2) {
       const recent = this.storageHistory[this.storageHistory.length - 1];
       const older = this.storageHistory[Math.max(0, this.storageHistory.length - 10)];
-      const timeDiff = recent.timestamp - older.timestamp;
-      const sizeDiff = recent.totalSize - older.totalSize;
       
-      if (timeDiff > 0) {
-        // Convert to bytes per day
-        growthRate = (sizeDiff / timeDiff) * (24 * 60 * 60 * 1000);
+      if (recent && older) {
+        const timeDiff = recent.timestamp - older.timestamp;
+        const sizeDiff = recent.totalSize - older.totalSize;
+        
+        if (timeDiff > 0) {
+          // Convert to bytes per day
+          growthRate = (sizeDiff / timeDiff) * (24 * 60 * 60 * 1000);
+        }
       }
     }
     
@@ -802,7 +805,8 @@ export class SystemHealthMonitor {
     const retentionCutoff = now - this.config.alertRetentionMs;
     
     for (let i = this.alerts.length - 1; i >= 0; i--) {
-      if (this.alerts[i].timestamp < retentionCutoff) {
+      const alert = this.alerts[i];
+      if (alert && alert.timestamp < retentionCutoff) {
         this.alerts.splice(i, 1);
       }
     }

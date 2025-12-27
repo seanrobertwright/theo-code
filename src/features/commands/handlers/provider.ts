@@ -302,7 +302,7 @@ async function handleValidateProvider(args: string[], context: CommandContext): 
 /**
  * Shows provider selection UI.
  */
-async function handleProviderUI(args: string[], context: CommandContext): Promise<void> {
+async function handleProviderUI(_args: string[], context: CommandContext): Promise<void> {
   try {
     const config = loadConfig(context.workspaceRoot);
     const providers = getAvailableProviders(config);

@@ -403,6 +403,21 @@ export class MigrationFramework implements IMigrationFramework {
         const currentVersion = migrationPath[i];
         const nextVersion = migrationPath[i + 1];
         
+        if (!currentVersion || !nextVersion) {
+          const error = this.createMigrationError(
+            MigrationErrorType.MIGRATION_FAILED,
+            `Invalid migration path: undefined version at index ${i}`,
+          );
+          result.error = error.message;
+          result.errorType = error.type;
+          result.rollback = this.createRollbackInfo(
+            !!result.backupPath,
+            result.backupPath,
+            [`Migration path contains undefined versions`]
+          );
+          return result;
+        }
+        
         const migration = this.getMigration(currentVersion, nextVersion);
         if (!migration) {
           const error = this.createMigrationError(
@@ -752,6 +767,10 @@ export class MigrationFramework implements IMigrationFramework {
       const fromVersion = SUPPORTED_VERSIONS[i];
       const toVersion = SUPPORTED_VERSIONS[i + 1];
       
+      if (!fromVersion || !toVersion) {
+        throw new Error(`Invalid supported versions array: undefined version at index ${i}`);
+      }
+      
       const migration = this.getMigration(fromVersion, toVersion);
       if (!migration) {
         throw new Error(`Missing migration from ${fromVersion} to ${toVersion}`);
@@ -826,12 +845,17 @@ export class MigrationFramework implements IMigrationFramework {
       rollbackSteps.push('Manual data recovery may be required');
     }
     
-    return {
+    const result: MigrationRollback = {
       canRollback,
-      backupPath,
       rollbackSteps,
       rollbackWarnings: warnings,
     };
+    
+    if (backupPath !== undefined) {
+      result.backupPath = backupPath;
+    }
+    
+    return result;
   }
   
   // -------------------------------------------------------------------------
@@ -1090,10 +1114,4 @@ export async function sessionFileNeedsMigration(filePath: string): Promise<boole
 // EXPORTS
 // =============================================================================
 
-export type {
-  MigrationDefinition,
-  MigrationResult,
-  IMigrationFramework,
-  VersionCompatibility,
-  MigrationRollback,
-};
+// All types are already exported inline above

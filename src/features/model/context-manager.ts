@@ -253,6 +253,8 @@ export class ContextManager {
     // Identify truncatable and preserved messages
     for (let i = 0; i < extendedMessages.length; i++) {
       const message = extendedMessages[i];
+      if (!message) continue;
+      
       const isSystemMessage = message.role === 'system';
       const isLastUserMessage = i === extendedMessages.length - 1 && message.role === 'user';
 
@@ -359,14 +361,19 @@ export class ContextManager {
         logger.warn(`[ContextManager] Truncation failed to fit within limits (${finalTokens} + ${requestedOutputTokens} > ${availableTokens})`);
       }
 
-      return {
+      const result: TruncationResult = {
         messages: truncatedMessages,
         messagesRemoved,
         tokensRemoved,
         strategyUsed: strategy,
         success,
-        warning: success ? undefined : 'Truncation may not have achieved target token count',
       };
+      
+      if (!success) {
+        result.warning = 'Truncation may not have achieved target token count';
+      }
+      
+      return result;
 
     } catch (error) {
       logger.error(`[ContextManager] Truncation failed:`, error);
@@ -519,6 +526,8 @@ export class ContextManager {
       if (messageIndex === -1) break;
 
       const message = result[messageIndex];
+      if (!message) break;
+      
       tokensRemoved += message.tokenCount ?? 0;
       messagesRemoved++;
       result.splice(messageIndex, 1);
@@ -557,6 +566,8 @@ export class ContextManager {
       if (actualIndex === -1) continue;
 
       const message = result[actualIndex];
+      if (!message) continue;
+      
       tokensRemoved += message.tokenCount ?? 0;
       messagesRemoved++;
       result.splice(actualIndex, 1);
@@ -582,23 +593,26 @@ export class ContextManager {
 
     // Add preserved messages
     for (const index of analysis.preservedMessages) {
-      if (messages[index]) {
-        result.push(messages[index]);
+      const message = messages[index];
+      if (message) {
+        result.push(message);
       }
     }
 
     // Add recent messages up to window size
     const recentStart = Math.max(0, messages.length - windowSize);
     for (let i = recentStart; i < messages.length; i++) {
-      if (!preservedIndices.has(i) && messages[i]) {
-        result.push(messages[i]);
+      const message = messages[i];
+      if (!preservedIndices.has(i) && message) {
+        result.push(message);
       }
     }
 
     // Calculate removed tokens and messages
     for (let i = 0; i < recentStart; i++) {
-      if (!preservedIndices.has(i) && messages[i]) {
-        tokensRemoved += messages[i].tokenCount ?? 0;
+      const message = messages[i];
+      if (!preservedIndices.has(i) && message) {
+        tokensRemoved += message.tokenCount ?? 0;
         messagesRemoved++;
       }
     }

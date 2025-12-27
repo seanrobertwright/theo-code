@@ -341,7 +341,9 @@ export class PerformanceMonitor {
     metrics.endTime = endTime;
     metrics.durationMs = endTime.getTime() - metrics.startTime.getTime();
     metrics.success = result.success;
-    metrics.errorCode = result.errorCode;
+    if (result.errorCode !== undefined) {
+      metrics.errorCode = result.errorCode;
+    }
 
     // Calculate tokens per second if we have token data
     if (metrics.totalTokens && metrics.durationMs > 0) {
@@ -411,7 +413,9 @@ export class PerformanceMonitor {
       medianResponseTimeMs: responseTimes[medianIndex] ?? 0,
       p95ResponseTimeMs: responseTimes[p95Index] ?? 0,
       p99ResponseTimeMs: responseTimes[p99Index] ?? 0,
-      averageTtfbMs: ttfbTimes.length > 0 ? ttfbTimes.reduce((sum, time) => sum + time, 0) / ttfbTimes.length : undefined,
+      ...(ttfbTimes.length > 0 && { 
+        averageTtfbMs: ttfbTimes.reduce((sum, time) => sum + time, 0) / ttfbTimes.length 
+      }),
       totalTokens,
       averageTokensPerSecond: providerMetrics.reduce((sum, m) => sum + (m.tokensPerSecond ?? 0), 0) / providerMetrics.length,
       cacheHitRate: cachedRequests / providerMetrics.length,
@@ -590,7 +594,7 @@ export class PerformanceMonitor {
       // Check system metrics
       if (this.systemMetrics.length > 0) {
         const latestSystemMetrics = this.systemMetrics[this.systemMetrics.length - 1];
-        if (alertConfig.condition(latestSystemMetrics)) {
+        if (latestSystemMetrics && alertConfig.condition(latestSystemMetrics)) {
           this.triggerAlert(alertConfig, latestSystemMetrics);
           this.alertCooldowns.set(alertConfig.name, now);
         }
@@ -624,7 +628,7 @@ export class PerformanceMonitor {
   /**
    * Determines alert severity based on metrics.
    */
-  private determineSeverity(config: AlertConfig, metrics: AggregatedMetrics | SystemMetrics): PerformanceAlert['severity'] {
+  private determineSeverity(_config: AlertConfig, metrics: AggregatedMetrics | SystemMetrics): PerformanceAlert['severity'] {
     // Simple severity determination - could be made more sophisticated
     if ('successRate' in metrics) {
       if (metrics.successRate < 0.5) return 'critical';
