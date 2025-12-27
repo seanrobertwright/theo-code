@@ -590,14 +590,14 @@ export class ContextManager {
     // Add recent messages up to window size
     const recentStart = Math.max(0, messages.length - windowSize);
     for (let i = recentStart; i < messages.length; i++) {
-      if (!preservedIndices.has(i)) {
+      if (!preservedIndices.has(i) && messages[i]) {
         result.push(messages[i]);
       }
     }
 
     // Calculate removed tokens and messages
     for (let i = 0; i < recentStart; i++) {
-      if (!preservedIndices.has(i)) {
+      if (!preservedIndices.has(i) && messages[i]) {
         tokensRemoved += messages[i].tokenCount ?? 0;
         messagesRemoved++;
       }
@@ -619,7 +619,8 @@ export class ContextManager {
 
     // Sort truncatable messages by token count (largest first)
     const truncatableWithTokens = analysis.truncatableMessages
-      .map(i => ({ index: i, tokens: messages[i].tokenCount ?? 0 }))
+      .map(i => messages[i] ? { index: i, tokens: messages[i].tokenCount ?? 0 } : null)
+      .filter((item): item is { index: number; tokens: number } => item !== null)
       .sort((a, b) => b.tokens - a.tokens);
 
     for (const { index, tokens } of truncatableWithTokens) {
@@ -653,7 +654,7 @@ export class ContextManager {
 
     for (const priority of priorityOrder) {
       const candidateIndices = analysis.truncatableMessages.filter(i => 
-        messages[i].priority === priority
+        messages[i] && messages[i].priority === priority
       );
 
       for (const index of candidateIndices) {
@@ -665,9 +666,11 @@ export class ContextManager {
         if (actualIndex === -1) continue;
 
         const message = result[actualIndex];
-        tokensRemoved += message.tokenCount ?? 0;
-        messagesRemoved++;
-        result.splice(actualIndex, 1);
+        if (message) {
+          tokensRemoved += message.tokenCount ?? 0;
+          messagesRemoved++;
+          result.splice(actualIndex, 1);
+        }
       }
 
       if (tokensRemoved >= analysis.tokensToRemove) {

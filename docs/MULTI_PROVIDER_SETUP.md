@@ -588,3 +588,293 @@ chmod 600 .theo/config.yaml
 - [Configuration Examples](./MULTI_PROVIDER_CONFIG_EXAMPLES.md) - See example configurations
 - [Provider Features](./MULTI_PROVIDER_FEATURES.md) - Compare provider capabilities
 - [Troubleshooting](./MULTI_PROVIDER_TROUBLESHOOTING.md) - Common issues and solutions
+
+## Troubleshooting Guide
+
+### Common Issues and Solutions
+
+#### Authentication Errors
+
+**Problem**: `Invalid API key` or `Authentication failed`
+
+**Solutions**:
+1. **Verify API key format**:
+   - Anthropic: Should start with `sk-ant-`
+   - Google: Should start with `AIza`
+   - OpenRouter: Should start with `sk-or-`
+   
+2. **Check key validity**:
+   ```bash
+   # Test individual provider
+   theo provider test anthropic
+   theo provider test google
+   theo provider test openrouter
+   ```
+
+3. **Verify environment variables**:
+   ```bash
+   echo $ANTHROPIC_API_KEY
+   echo $GOOGLE_API_KEY
+   ```
+
+4. **Check configuration file**:
+   ```bash
+   theo config get providers.anthropic.apiKey
+   ```
+
+#### Rate Limiting Issues
+
+**Problem**: `Rate limit exceeded` or `Too many requests`
+
+**Solutions**:
+1. **Check current rate limits**:
+   ```bash
+   theo provider status anthropic
+   ```
+
+2. **Adjust rate limits in config**:
+   ```yaml
+   providers:
+     anthropic:
+       rateLimit:
+         requestsPerMinute: 30  # Reduce from default
+         tokensPerMinute: 50000
+   ```
+
+3. **Enable request queuing**:
+   ```yaml
+   providers:
+     anthropic:
+       features:
+         requestQueuing: true
+         maxQueueSize: 100
+   ```
+
+4. **Use fallback providers**:
+   ```yaml
+   fallbackChain:
+     - anthropic
+     - google
+     - openrouter
+   ```
+
+#### Connection Issues
+
+**Problem**: `Connection timeout` or `Service unavailable`
+
+**Solutions**:
+1. **Check internet connectivity**:
+   ```bash
+   ping api.anthropic.com
+   ping generativelanguage.googleapis.com
+   ```
+
+2. **Verify base URLs**:
+   ```bash
+   theo config get providers.anthropic.baseUrl
+   ```
+
+3. **Test with curl**:
+   ```bash
+   curl -H "x-api-key: $ANTHROPIC_API_KEY" https://api.anthropic.com/v1/messages
+   ```
+
+4. **Check firewall/proxy settings**:
+   - Ensure ports 443 (HTTPS) is open
+   - Configure proxy if needed:
+   ```yaml
+   providers:
+     anthropic:
+       proxy: "http://proxy.company.com:8080"
+   ```
+
+#### Model Not Found
+
+**Problem**: `Model not found` or `Invalid model name`
+
+**Solutions**:
+1. **List available models**:
+   ```bash
+   theo provider models anthropic
+   theo provider models google
+   ```
+
+2. **Check model name spelling**:
+   ```yaml
+   # Correct
+   model: "claude-3-5-sonnet-20241022"
+   
+   # Incorrect
+   model: "claude-3.5-sonnet"
+   ```
+
+3. **Verify model availability**:
+   - Some models may be region-restricted
+   - Check provider documentation for availability
+
+#### Context Length Exceeded
+
+**Problem**: `Context length exceeded` or `Input too long`
+
+**Solutions**:
+1. **Check model context limits**:
+   ```bash
+   theo provider info claude-3-5-sonnet-20241022
+   ```
+
+2. **Enable automatic truncation**:
+   ```yaml
+   providers:
+     anthropic:
+       features:
+         autoTruncate: true
+         maxContextTokens: 180000  # Leave buffer for response
+   ```
+
+3. **Use models with larger context**:
+   - Claude 3.5 Sonnet: 200K tokens
+   - Gemini 1.5 Pro: 1M tokens
+   - GPT-4 Turbo: 128K tokens
+
+#### Ollama Issues
+
+**Problem**: Ollama connection or model issues
+
+**Solutions**:
+1. **Check Ollama service**:
+   ```bash
+   # Check if running
+   ps aux | grep ollama
+   
+   # Start service
+   ollama serve
+   ```
+
+2. **Verify model installation**:
+   ```bash
+   ollama list
+   ollama pull llama2  # Install if missing
+   ```
+
+3. **Check port availability**:
+   ```bash
+   netstat -an | grep 11434
+   curl http://localhost:11434/api/tags
+   ```
+
+4. **Update Ollama**:
+   ```bash
+   # macOS/Linux
+   curl -fsSL https://ollama.ai/install.sh | sh
+   ```
+
+#### Provider-Specific Issues
+
+**Anthropic Claude**:
+- **Content Policy**: Claude may refuse certain requests due to safety guidelines
+- **System Messages**: Use proper system message format for Claude
+- **Tool Calling**: Ensure tools are properly formatted for Anthropic's schema
+
+**Google Gemini**:
+- **Safety Settings**: Adjust safety settings if content is blocked
+- **Multimodal**: Ensure media files are in supported formats
+- **Thinking Levels**: Only available on Gemini 3.0+ models
+
+**OpenRouter**:
+- **Credits**: Check account balance and credit usage
+- **Model Availability**: Some models may be temporarily unavailable
+- **Rate Limits**: Vary by model and account tier
+
+### Debugging Commands
+
+**Enable debug logging**:
+```bash
+export THEO_DEBUG=true
+export THEO_LOG_LEVEL=debug
+theo chat --provider anthropic --debug
+```
+
+**Test provider connectivity**:
+```bash
+# Test all providers
+theo provider test-all
+
+# Test specific provider with verbose output
+theo provider test anthropic --verbose
+```
+
+**Check configuration**:
+```bash
+# Show current config
+theo config show
+
+# Validate configuration
+theo config validate
+
+# Show provider status
+theo provider status
+```
+
+**Monitor API usage**:
+```bash
+# Show usage statistics
+theo provider usage anthropic
+
+# Show rate limit status
+theo provider limits anthropic
+```
+
+### Getting Help
+
+If you're still experiencing issues:
+
+1. **Check the logs**:
+   ```bash
+   tail -f ~/.theo/logs/theo.log
+   ```
+
+2. **Search existing issues**: Check the project's GitHub issues
+
+3. **Create a bug report** with:
+   - Provider name and model
+   - Error message (sanitized of API keys)
+   - Configuration (sanitized)
+   - Steps to reproduce
+
+4. **Community support**: Join the project's Discord or forum
+
+### Performance Optimization
+
+**Improve response times**:
+```yaml
+providers:
+  anthropic:
+    features:
+      connectionPooling: true
+      keepAlive: true
+      maxConnections: 10
+    timeout:
+      connect: 5000
+      request: 30000
+```
+
+**Optimize token usage**:
+```yaml
+providers:
+  anthropic:
+    features:
+      tokenCaching: true
+      smartTruncation: true
+    limits:
+      maxInputTokens: 150000
+      reserveOutputTokens: 4000
+```
+
+**Enable caching**:
+```yaml
+cache:
+  enabled: true
+  provider: "redis"  # or "memory"
+  ttl: 3600  # 1 hour
+  maxSize: "100MB"
+```

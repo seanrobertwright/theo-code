@@ -4,6 +4,7 @@
 
 import { execSync } from 'node:child_process';
 import * as path from 'node:path';
+import { z } from 'zod';
 import type { Tool } from '../../../shared/types/tools.js';
 import { logger } from '../../../shared/utils/index.js';
 
@@ -24,7 +25,7 @@ export const createAstGrepTool = (): Tool => ({
       properties: {
         pattern: {
           type: 'string',
-          description: 'AST pattern to search (e.g., "function $NAME($ARGS) { $$$ }")'
+          description: 'AST pattern to search (e.g., "function $NAME($ARGS) { $$ }")'
         },
         language: {
           type: 'string',
@@ -44,9 +45,29 @@ export const createAstGrepTool = (): Tool => ({
       required: ['pattern', 'language']
     }
   },
+  inputSchema: z.object({
+    pattern: z.string(),
+    language: z.enum(['typescript', 'javascript', 'python', 'rust', 'go']),
+    files: z.array(z.string()).optional(),
+    rewrite: z.string().optional()
+  }),
+  outputSchema: z.object({
+    success: z.boolean(),
+    data: z.object({
+      matches: z.array(z.any()),
+      total: z.number(),
+      pattern: z.string(),
+      language: z.string(),
+      rewrite: z.boolean()
+    }).optional(),
+    error: z.string().optional()
+  }),
+  requiresConfirmation: false,
+  category: 'search',
 
-  async execute(params, context) {
-    const { pattern, language, files = [], rewrite } = params;
+  async execute(params: unknown, context) {
+    const typedParams = params as { pattern: string; language: string; files?: string[]; rewrite?: string };
+    const { pattern, language, files = [], rewrite } = typedParams;
     const workspaceRoot = context.workspaceRoot;
 
     try {
@@ -61,7 +82,7 @@ export const createAstGrepTool = (): Tool => ({
       }
 
       if (files.length > 0) {
-        files.forEach(file => cmd.push(file));
+        files.forEach((file: string) => cmd.push(file));
       } else {
         cmd.push('.');
       }
@@ -116,16 +137,48 @@ export const createAstGrepRewriteTool = (): Tool => ({
       properties: {
         pattern: { type: 'string', description: 'AST pattern to match' },
         rewrite: { type: 'string', description: 'Replacement pattern' },
-        language: { type: 'string', enum: ['typescript', 'javascript', 'python', 'rust', 'go'] },
-        files: { type: 'array', items: { type: 'string' } },
-        dryRun: { type: 'boolean', default: true, description: 'Preview changes without applying' }
+        language: { 
+          type: 'string', 
+          enum: ['typescript', 'javascript', 'python', 'rust', 'go'],
+          description: 'Programming language'
+        },
+        files: { 
+          type: 'array', 
+          items: { type: 'string' },
+          description: 'File patterns to process'
+        },
+        dryRun: { 
+          type: 'boolean', 
+          default: true, 
+          description: 'Preview changes without applying' 
+        }
       },
       required: ['pattern', 'rewrite', 'language']
     }
   },
+  inputSchema: z.object({
+    pattern: z.string(),
+    rewrite: z.string(),
+    language: z.enum(['typescript', 'javascript', 'python', 'rust', 'go']),
+    files: z.array(z.string()).optional(),
+    dryRun: z.boolean().optional()
+  }),
+  outputSchema: z.object({
+    success: z.boolean(),
+    data: z.object({
+      changes: z.string(),
+      dryRun: z.boolean(),
+      pattern: z.string(),
+      rewrite: z.string()
+    }).optional(),
+    error: z.string().optional()
+  }),
+  requiresConfirmation: true,
+  category: 'search',
 
-  async execute(params, context) {
-    const { pattern, rewrite, language, files = [], dryRun = true } = params;
+  async execute(params: unknown, context) {
+    const typedParams = params as { pattern: string; rewrite: string; language: string; files?: string[]; dryRun?: boolean };
+    const { pattern, rewrite, language, files = [], dryRun = true } = typedParams;
 
     try {
       const cmd = ['ast-grep', 'run'];
@@ -138,7 +191,7 @@ export const createAstGrepRewriteTool = (): Tool => ({
       }
 
       if (files.length > 0) {
-        files.forEach(file => cmd.push(file));
+        files.forEach((file: string) => cmd.push(file));
       }
 
       const result = execSync(cmd.join(' '), {

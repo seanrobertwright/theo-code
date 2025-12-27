@@ -135,6 +135,8 @@ export const ToolCategorySchema = z.enum([
   'terminal',
   'git',
   'mcp',
+  'lsp',
+  'ast-grep',
 ]);
 export type ToolCategory = z.infer<typeof ToolCategorySchema>;
 

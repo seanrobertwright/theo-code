@@ -804,7 +804,7 @@ export class GoogleAdapter implements IModelAdapter {
    * Validates the adapter configuration.
    */
   validateConfig(): void {
-    if (this.config.model === '') {
+    if (!this.config.model || this.config.model === '') {
       throw new AdapterError('INVALID_CONFIG', 'google', 'Model name is required');
     }
 

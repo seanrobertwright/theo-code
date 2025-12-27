@@ -381,12 +381,12 @@ export function mapProviderError(
         errorMessage,
         {
           retryable: pattern.retryable,
-          retryAfterMs: pattern.retryAfterMs,
-          cause: error instanceof Error ? error : undefined,
+          ...(pattern.retryAfterMs !== undefined && { retryAfterMs: pattern.retryAfterMs }),
+          ...(error instanceof Error && { cause: error }),
           severity: pattern.severity,
           recoveryStrategy: pattern.recoveryStrategy,
           originalError: error,
-          context,
+          ...(context !== undefined && { context }),
         }
       );
     }
@@ -417,7 +417,7 @@ function mapGenericError(
         severity: 'high',
         recoveryStrategy: 'retry',
         originalError: error,
-        context,
+        ...(context !== undefined && { context }),
       }
     );
   }
@@ -433,7 +433,7 @@ function mapGenericError(
         severity: 'medium',
         recoveryStrategy: 'retry',
         originalError: error,
-        context,
+        ...(context !== undefined && { context }),
       }
     );
   }
@@ -449,7 +449,7 @@ function mapGenericError(
         severity: 'medium',
         recoveryStrategy: 'abort',
         originalError: error,
-        context,
+        ...(context !== undefined && { context }),
       }
     );
   }
@@ -464,7 +464,7 @@ function mapGenericError(
       severity: 'medium',
       recoveryStrategy: 'fallback',
       originalError: error,
-      context,
+      ...(context !== undefined && { context }),
     }
   );
 }
@@ -558,7 +558,7 @@ export function getRecoveryAction(
   }
 
   // For context length errors, try truncation first
-  if (error.code === 'CONTEXT_LENGTH_EXCEEDED') {
+  if ((error as ExtendedAdapterError).code === 'CONTEXT_LENGTH_EXCEEDED') {
     return 'truncate';
   }
 

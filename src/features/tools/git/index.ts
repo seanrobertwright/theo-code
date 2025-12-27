@@ -4,6 +4,7 @@
 
 import { execSync } from 'node:child_process';
 import * as path from 'node:path';
+import { z } from 'zod';
 import type { Tool } from '../../../shared/types/tools.js';
 import { logger } from '../../../shared/utils/index.js';
 
@@ -17,10 +18,10 @@ interface GitChange {
 
 interface CommitAnalysis {
   type: 'feat' | 'fix' | 'docs' | 'style' | 'refactor' | 'test' | 'chore';
-  scope?: string;
+  scope: string | undefined;
   description: string;
   body?: string;
-  breaking?: boolean;
+  breaking: boolean;
 }
 
 class GitAnalyzer {
@@ -49,7 +50,9 @@ class GitAnalyzer {
       .map(dir => dir.split('/')[0]);
 
     const commonDir = directories.reduce((acc, dir) => {
-      acc[dir] = (acc[dir] || 0) + 1;
+      if (dir !== undefined) {
+        acc[dir] = (acc[dir] || 0) + 1;
+      }
       return acc;
     }, {} as Record<string, number>);
 
@@ -66,15 +69,18 @@ class GitAnalyzer {
     const deletedFiles = changes.filter(c => c.status === 'deleted').length;
 
     if (addedFiles > 0 && modifiedFiles === 0) {
-      return `add ${addedFiles === 1 ? changes[0].file : `${addedFiles} new files`}`;
+      const firstChange = changes[0];
+      return `add ${addedFiles === 1 ? (firstChange?.file || 'file') : `${addedFiles} new files`}`;
     }
 
     if (modifiedFiles > 0 && addedFiles === 0 && deletedFiles === 0) {
-      return `update ${modifiedFiles === 1 ? path.basename(changes[0].file) : `${modifiedFiles} files`}`;
+      const firstChange = changes[0];
+      return `update ${modifiedFiles === 1 ? path.basename(firstChange?.file || 'file') : `${modifiedFiles} files`}`;
     }
 
     if (deletedFiles > 0 && addedFiles === 0 && modifiedFiles === 0) {
-      return `remove ${deletedFiles === 1 ? path.basename(changes[0].file) : `${deletedFiles} files`}`;
+      const firstChange = changes[0];
+      return `remove ${deletedFiles === 1 ? path.basename(firstChange?.file || 'file') : `${deletedFiles} files`}`;
     }
 
     return `modify ${totalFiles} files`;
@@ -133,14 +139,29 @@ export const createGitTools = (): Tool[] => [
       parameters: {
         type: 'object',
         properties: {
-          porcelain: { type: 'boolean', default: true }
-        }
+          porcelain: { type: 'boolean', default: true, description: 'Use porcelain format for machine-readable output' }
+        },
+        required: []
       }
     },
+    inputSchema: z.object({
+      porcelain: z.boolean().optional()
+    }),
+    outputSchema: z.object({
+      success: z.boolean(),
+      data: z.object({
+        status: z.string(),
+        hasChanges: z.boolean()
+      }).optional(),
+      error: z.string().optional()
+    }),
+    requiresConfirmation: false,
+    category: 'git',
 
-    async execute(params, context) {
+    async execute(params: unknown, context) {
       try {
-        const cmd = params.porcelain ? 'git status --porcelain' : 'git status';
+        const typedParams = params as { porcelain?: boolean };
+        const cmd = typedParams.porcelain ? 'git status --porcelain' : 'git status';
         const result = execSync(cmd, {
           cwd: context.workspaceRoot,
           encoding: 'utf8'
@@ -169,16 +190,36 @@ export const createGitTools = (): Tool[] => [
       parameters: {
         type: 'object',
         properties: {
-          staged: { type: 'boolean', default: false },
-          files: { type: 'array', items: { type: 'string' } },
-          generateCommit: { type: 'boolean', default: false }
-        }
+          staged: { type: 'boolean', default: false, description: 'Show staged changes only' },
+          files: { type: 'array', items: { type: 'string' }, description: 'Specific files to diff' },
+          generateCommit: { type: 'boolean', default: false, description: 'Generate commit message suggestion' }
+        },
+        required: []
       }
     },
+    inputSchema: z.object({
+      staged: z.boolean().optional(),
+      files: z.array(z.string()).optional(),
+      generateCommit: z.boolean().optional()
+    }),
+    outputSchema: z.object({
+      success: z.boolean(),
+      data: z.object({
+        changes: z.array(z.any()),
+        totalFiles: z.number(),
+        totalAdditions: z.number(),
+        totalDeletions: z.number(),
+        commitSuggestion: z.any().optional()
+      }).optional(),
+      error: z.string().optional()
+    }),
+    requiresConfirmation: false,
+    category: 'git',
 
-    async execute(params, context) {
+    async execute(params: unknown, context) {
       try {
-        const { staged, files = [], generateCommit } = params;
+        const typedParams = params as { staged?: boolean; files?: string[]; generateCommit?: boolean };
+        const { staged, files = [], generateCommit } = typedParams;
         
         let cmd = 'git diff --numstat';
         if (staged) cmd += ' --cached';
@@ -194,7 +235,14 @@ export const createGitTools = (): Tool[] => [
           .split('\n')
           .filter(line => line)
           .map(line => {
-            const [additions, deletions, file] = line.split('\t');
+            const parts = line.split('\t');
+            const additions = parts[0];
+            const deletions = parts[1];
+            const file = parts[2];
+            
+            if (!file) {
+              throw new Error('Invalid git diff output format');
+            }
             
             // Get detailed diff for this file
             const diffCmd = `git diff ${staged ? '--cached' : ''} -- "${file}"`;
@@ -211,8 +259,8 @@ export const createGitTools = (): Tool[] => [
             return {
               file,
               status,
-              additions: parseInt(additions) || 0,
-              deletions: parseInt(deletions) || 0,
+              additions: parseInt(additions || '0') || 0,
+              deletions: parseInt(deletions || '0') || 0,
               diff
             };
           });
@@ -254,16 +302,35 @@ export const createGitTools = (): Tool[] => [
         type: 'object',
         properties: {
           message: { type: 'string', description: 'Custom commit message' },
-          autoGenerate: { type: 'boolean', default: true },
-          addAll: { type: 'boolean', default: false },
-          files: { type: 'array', items: { type: 'string' } }
-        }
+          autoGenerate: { type: 'boolean', default: true, description: 'Auto-generate commit message if not provided' },
+          addAll: { type: 'boolean', default: false, description: 'Add all changes before committing' },
+          files: { type: 'array', items: { type: 'string' }, description: 'Specific files to add before committing' }
+        },
+        required: []
       }
     },
+    inputSchema: z.object({
+      message: z.string().optional(),
+      autoGenerate: z.boolean().optional(),
+      addAll: z.boolean().optional(),
+      files: z.array(z.string()).optional()
+    }),
+    outputSchema: z.object({
+      success: z.boolean(),
+      data: z.object({
+        message: z.string(),
+        output: z.string(),
+        generated: z.boolean()
+      }).optional(),
+      error: z.string().optional()
+    }),
+    requiresConfirmation: true,
+    category: 'git',
 
-    async execute(params, context) {
+    async execute(params: unknown, context) {
       try {
-        const { message, autoGenerate, addAll, files = [] } = params;
+        const typedParams = params as { message?: string; autoGenerate?: boolean; addAll?: boolean; files?: string[] };
+        const { message, autoGenerate, addAll, files = [] } = typedParams;
 
         // Add files if specified
         if (addAll) {
@@ -293,12 +360,20 @@ export const createGitTools = (): Tool[] => [
             .trim()
             .split('\n')
             .map(line => {
-              const [additions, deletions, file] = line.split('\t');
+              const parts = line.split('\t');
+              const additions = parts[0];
+              const deletions = parts[1];
+              const file = parts[2];
+              
+              if (!file) {
+                throw new Error('Invalid git diff output format');
+              }
+              
               return {
                 file,
                 status: 'modified' as const,
-                additions: parseInt(additions) || 0,
-                deletions: parseInt(deletions) || 0,
+                additions: parseInt(additions || '0') || 0,
+                deletions: parseInt(deletions || '0') || 0,
                 diff: ''
               };
             });
@@ -345,16 +420,38 @@ export const createGitTools = (): Tool[] => [
       parameters: {
         type: 'object',
         properties: {
-          limit: { type: 'number', default: 10 },
-          oneline: { type: 'boolean', default: false },
+          limit: { type: 'number', default: 10, description: 'Maximum number of commits to return' },
+          oneline: { type: 'boolean', default: false, description: 'Use oneline format' },
           since: { type: 'string', description: 'Date filter (e.g., "1 week ago")' }
-        }
+        },
+        required: []
       }
     },
+    inputSchema: z.object({
+      limit: z.number().optional(),
+      oneline: z.boolean().optional(),
+      since: z.string().optional()
+    }),
+    outputSchema: z.object({
+      success: z.boolean(),
+      data: z.object({
+        commits: z.array(z.object({
+          hash: z.string(),
+          author: z.string(),
+          date: z.string(),
+          subject: z.string()
+        })),
+        total: z.number()
+      }).optional(),
+      error: z.string().optional()
+    }),
+    requiresConfirmation: false,
+    category: 'git',
 
-    async execute(params, context) {
+    async execute(params: unknown, context) {
       try {
-        const { limit, oneline, since } = params;
+        const typedParams = params as { limit?: number; oneline?: boolean; since?: string };
+        const { limit, oneline, since } = typedParams;
         
         let cmd = 'git log --pretty=format:"%H|%an|%ad|%s"';
         if (limit) cmd += ` -${limit}`;
