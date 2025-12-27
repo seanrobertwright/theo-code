@@ -338,19 +338,23 @@ export class RequestQueue<T = any, R = any> {
    */
   clear(): void {
     // Reject all pending requests
-    for (const request of this.queue) {
-      request.reject(new Error('Request queue cleared'));
-    }
+    const pendingRequests = [...this.queue];
     this.queue.length = 0;
 
+    for (const request of pendingRequests) {
+      request.reject(new Error('Request queue cleared'));
+    }
+
     // Clear active batches
-    for (const batch of this.activeBatches.values()) {
+    const activeBatches = [...this.activeBatches.values()];
+    this.activeBatches.clear();
+
+    for (const batch of activeBatches) {
       clearTimeout(batch.timeoutId);
       for (const request of batch.requests) {
         request.reject(new Error('Request queue cleared'));
       }
     }
-    this.activeBatches.clear();
 
     logger.info('[RequestQueue] Cleared all pending requests');
   }
@@ -455,10 +459,10 @@ export class RequestQueue<T = any, R = any> {
 
     // Handle batchable requests
     if (request.batchable && this.config.enableBatching && this.batchProcessor) {
-      await this.handleBatchableRequest(request);
+      await this.handleBatchableRequest(request).catch(() => {});
     } else if (this.requestProcessor) {
       // Handle individual request
-      await this.handleIndividualRequest(request);
+      await this.handleIndividualRequest(request).catch(() => {});
     }
 
     // Continue processing if there are more requests

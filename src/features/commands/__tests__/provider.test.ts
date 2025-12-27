@@ -18,6 +18,9 @@ vi.mock('../../../config/index.js', () => ({
   getProviderConfig: vi.fn(),
   getAvailableProviders: vi.fn(),
   getApiKey: vi.fn(),
+  getAuthenticationConfig: vi.fn(),
+  isOAuthEnabled: vi.fn(),
+  getPreferredAuthMethod: vi.fn(),
 }));
 
 // Import mocked functions
@@ -26,7 +29,8 @@ import {
   validateProviderConfig, 
   getProviderConfig, 
   getAvailableProviders,
-  getApiKey 
+  getApiKey,
+  getAuthenticationConfig
 } from '../../../config/index.js';
 
 // =============================================================================
@@ -88,7 +92,7 @@ describe('Provider Command Handler', () => {
   // LIST COMMAND TESTS
   // =============================================================================
 
-  describe('List Command', () => {
+    describe('List Command', () => {
     beforeEach(() => {
       vi.mocked(loadConfig).mockReturnValue({
         global: {
@@ -117,6 +121,14 @@ describe('Provider Command Handler', () => {
 
       vi.mocked(getApiKey).mockImplementation((provider) => {
         return provider === 'openai' ? 'sk-test-key' : undefined;
+      });
+
+      vi.mocked(getAuthenticationConfig).mockReturnValue({
+        hasApiKey: true,
+        hasOAuth: false,
+        preferredMethod: 'api_key',
+        oauthEnabled: false,
+        autoRefresh: false,
       });
     });
 
@@ -199,6 +211,14 @@ describe('Provider Command Handler', () => {
       });
 
       vi.mocked(getApiKey).mockReturnValue('sk-test-key');
+
+      vi.mocked(getAuthenticationConfig).mockReturnValue({
+        hasApiKey: true,
+        hasOAuth: false,
+        preferredMethod: 'api_key',
+        oauthEnabled: false,
+        autoRefresh: false,
+      });
     });
 
     it('should show status for specific provider', async () => {
@@ -336,6 +356,13 @@ describe('Provider Command Handler', () => {
         priority: 100,
       } as any);
       vi.mocked(getApiKey).mockReturnValue('sk-test-key');
+      vi.mocked(getAuthenticationConfig).mockReturnValue({
+        hasApiKey: true,
+        hasOAuth: false,
+        preferredMethod: 'api_key',
+        oauthEnabled: false,
+        autoRefresh: false,
+      });
     });
 
     it('should validate provider configuration', async () => {

@@ -392,7 +392,7 @@ describe('Provider Setup Integration Tests', () => {
   });
 
   describe('Provider Registration and Discovery', () => {
-    it('should register all documented providers successfully', () => {
+    it('should register all documented providers successfully', async () => {
       const providers = [
         'openai',
         'anthropic', 
@@ -416,7 +416,8 @@ describe('Provider Setup Integration Tests', () => {
         providerManager.registerProvider(config);
       });
 
-      const availableProviders = providerManager.getAvailableProviders();
+      // Verify registration
+      const availableProviders = await providerManager.getAvailableProviders();
       expect(availableProviders.length).toBeGreaterThan(0);
       
       // Check that providers were registered

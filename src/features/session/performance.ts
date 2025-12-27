@@ -103,12 +103,12 @@ interface BackgroundTaskConfig {
 /**
  * Performance metrics for monitoring.
  */
-interface PerformanceMetrics {
+export interface PerformanceMetrics {
   /** Cache performance */
   cache: CacheStats;
   
   /** Average operation times in milliseconds */
-  operationTimes: {
+  operationTimes: Record<string, number> & {
     listSessions: number;
     searchSessions: number;
     loadSession: number;
@@ -937,10 +937,11 @@ export class PerformanceMonitor {
     return {
       cache: cacheStats,
       operationTimes: {
-        listSessions: operationTimes['listSessions'] || 0,
-        searchSessions: operationTimes['searchSessions'] || 0,
-        loadSession: operationTimes['loadSession'] || 0,
-        saveSession: operationTimes['saveSession'] || 0,
+        listSessions: 0,
+        searchSessions: 0,
+        loadSession: 0,
+        saveSession: 0,
+        ...operationTimes,
       },
       memory: {
         totalUsage: currentMemory,

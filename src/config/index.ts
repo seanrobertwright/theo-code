@@ -11,6 +11,7 @@ export {
   MergedConfigSchema,
   ProviderConfigSchema,
   MultiProviderConfigSchema,
+  OAuthSerializationSettingsSchema,
   // Types
   type GlobalConfig,
   type ProjectConfig,
@@ -18,6 +19,7 @@ export {
   type MergedConfig,
   type ProviderConfig,
   type MultiProviderConfig,
+  type OAuthSerializationSettings,
 } from './schemas.js';
 
 export {
@@ -40,6 +42,12 @@ export {
   validateProviderConfig,
   getProviderConfig,
   getAvailableProviders,
+  getOAuthSerializationSettings,
+  // OAuth utilities
+  getOAuthConfig,
+  isOAuthEnabled,
+  getPreferredAuthMethod,
+  getAuthenticationConfig,
   // Initialization
   ensureConfigDir,
   createDefaultConfig,

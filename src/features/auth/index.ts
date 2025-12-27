@@ -44,6 +44,37 @@ export {
   getPlaceholderOAuthProviders,
 } from './providers/index.js';
 
+// Error handling and recovery
+export { 
+  OAuthErrorRecoveryManager, 
+  createOAuthErrorRecoveryManager,
+  type RecoveryStrategy,
+  type RecoveryResult,
+  type RecoveryContext,
+} from './error-recovery.js';
+
+// Resource cleanup
+export { 
+  OAuthResourceCleanupManager, 
+  globalResourceCleanupManager,
+  createOAuthResourceCleanupManager,
+  type CleanupResourceType,
+  type CleanupResult,
+  type CleanupContext,
+  type ManagedResource,
+} from './resource-cleanup.js';
+
+// User guidance
+export { 
+  OAuthUserGuidanceManager, 
+  globalUserGuidanceManager,
+  createOAuthUserGuidanceManager,
+  type GuidanceCategory,
+  type GuidanceSeverity,
+  type GuidanceItem,
+  type ProviderGuidanceConfig,
+} from './user-guidance.js';
+
 // Types and interfaces
 export type {
   IOAuthManager,

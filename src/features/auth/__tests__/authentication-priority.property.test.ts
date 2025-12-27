@@ -114,6 +114,10 @@ class MockOAuthManager implements IOAuthManager {
     return this.supportedProviders.has(provider);
   }
 
+  getSupportedProviders(): ModelProvider[] {
+    return Array.from(this.supportedProviders);
+  }
+
   async ensureValidTokens(provider: ModelProvider): Promise<TokenSet> {
     const tokens = this.authenticatedProviders.get(provider);
     if (!tokens) {
@@ -144,8 +148,8 @@ class MockOAuthManager implements IOAuthManager {
   setAuthenticationStatus(provider: ModelProvider, authenticated: boolean) {
     if (authenticated) {
       this.authenticatedProviders.set(provider, {
-        accessToken: `mock_token_${provider}`,
-        refreshToken: `mock_refresh_${provider}`,
+        accessToken: `oauth_token_${provider}_${Date.now()}`,
+        refreshToken: `oauth_refresh_${provider}_${Date.now()}`,
         expiresAt: new Date(Date.now() + 3600000),
         tokenType: 'Bearer',
         scope: 'api:read',
@@ -169,6 +173,13 @@ class MockOAuthManager implements IOAuthManager {
 
   removeSupportedProvider(provider: ModelProvider) {
     this.supportedProviders.delete(provider);
+  }
+
+  // Reset all authentication state
+  reset() {
+    this.authenticatedProviders.clear();
+    this.shouldFailAuth = false;
+    this.shouldFailRefresh = false;
   }
 }
 
@@ -245,14 +256,10 @@ const apiKeyPreferredConfigArb = fc.record({
 // =============================================================================
 
 describe('Authentication Priority Property Tests', () => {
-  let authManager: AuthenticationManager;
-  let mockOAuthManager: MockOAuthManager;
-
+  // Shared setup for non-property tests if any, but here we move them inside properties
+  
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    mockOAuthManager = new MockOAuthManager();
-    authManager = new AuthenticationManager(mockOAuthManager);
   });
 
   afterEach(() => {
@@ -272,11 +279,17 @@ describe('Authentication Priority Property Tests', () => {
         oauthProviderArb,
         oauthPreferredConfigArb,
         async (provider, config) => {
+          // Setup isolated environment for each run
+          const mockOAuthManager = new MockOAuthManager();
+          const authManager = new AuthenticationManager(mockOAuthManager);
+          
           // Configure provider with OAuth preference
           authManager.configureProvider(provider as ModelProvider, config);
           
-          // Set OAuth as authenticated
-          mockOAuthManager.setAuthenticationStatus(provider as ModelProvider, true);
+          // Set OAuth as authenticated only if OAuth is enabled
+          if (config.oauthEnabled) {
+            mockOAuthManager.setAuthenticationStatus(provider as ModelProvider, true);
+          }
 
           // Authenticate - should prefer OAuth
           const result = await authManager.authenticate(provider as ModelProvider);
@@ -309,11 +322,15 @@ describe('Authentication Priority Property Tests', () => {
         allProviderArb,
         apiKeyPreferredConfigArb,
         async (provider, config) => {
+          // Setup isolated environment for each run
+          const mockOAuthManager = new MockOAuthManager();
+          const authManager = new AuthenticationManager(mockOAuthManager);
+          
           // Configure provider with API key preference
           authManager.configureProvider(provider as ModelProvider, config);
 
           // Set OAuth as available but not preferred
-          if (mockOAuthManager.supportsOAuth(provider as ModelProvider)) {
+          if (mockOAuthManager.supportsOAuth(provider as ModelProvider) && config.oauthEnabled) {
             mockOAuthManager.setAuthenticationStatus(provider as ModelProvider, true);
           }
 
@@ -348,6 +365,10 @@ describe('Authentication Priority Property Tests', () => {
         oauthProviderArb,
         dualAuthConfigArb.filter(config => config.enableFallback),
         async (provider, config) => {
+          // Setup isolated environment for each run
+          const mockOAuthManager = new MockOAuthManager();
+          const authManager = new AuthenticationManager(mockOAuthManager);
+          
           // Configure provider with both methods and fallback enabled
           authManager.configureProvider(provider as ModelProvider, config);
 
@@ -377,9 +398,6 @@ describe('Authentication Priority Property Tests', () => {
             expect(result.credential).toMatch(/oauth_token_/);
             expect(result.usedFallback).toBe(true);
           }
-
-          // Reset mock state
-          mockOAuthManager.setShouldFailAuth(false);
         }
       ),
       { numRuns: 15 }
@@ -398,6 +416,10 @@ describe('Authentication Priority Property Tests', () => {
         oauthProviderArb,
         dualAuthConfigArb.filter(config => !config.enableFallback),
         async (provider, config) => {
+          // Setup isolated environment for each run
+          const mockOAuthManager = new MockOAuthManager();
+          const authManager = new AuthenticationManager(mockOAuthManager);
+          
           // Configure provider with fallback disabled
           authManager.configureProvider(provider as ModelProvider, config);
 
@@ -422,9 +444,6 @@ describe('Authentication Priority Property Tests', () => {
             expect(result.success).toBe(false);
             expect(result.usedFallback).toBe(false);
           }
-
-          // Reset mock state
-          mockOAuthManager.setShouldFailAuth(false);
         }
       ),
       { numRuns: 15 }
@@ -443,6 +462,10 @@ describe('Authentication Priority Property Tests', () => {
         allProviderArb,
         authConfigArb,
         (provider, config) => {
+          // Setup isolated environment for each run
+          const mockOAuthManager = new MockOAuthManager();
+          const authManager = new AuthenticationManager(mockOAuthManager);
+          
           authManager.configureProvider(provider as ModelProvider, config);
 
           const availableMethods = authManager.getAvailableAuthMethods(provider as ModelProvider);
@@ -485,6 +508,10 @@ describe('Authentication Priority Property Tests', () => {
         allProviderArb,
         authConfigArb,
         async (provider, config) => {
+          // Setup isolated environment for each run
+          const mockOAuthManager = new MockOAuthManager();
+          const authManager = new AuthenticationManager(mockOAuthManager);
+          
           authManager.configureProvider(provider as ModelProvider, config);
 
           // Set up OAuth authentication if supported
@@ -532,6 +559,10 @@ describe('Authentication Priority Property Tests', () => {
         oauthProviderArb,
         dualAuthConfigArb,
         async (provider, config) => {
+          // Setup isolated environment for each run
+          const mockOAuthManager = new MockOAuthManager();
+          const authManager = new AuthenticationManager(mockOAuthManager);
+          
           authManager.configureProvider(provider as ModelProvider, config);
 
           // Set up initial authentication

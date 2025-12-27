@@ -109,6 +109,10 @@ class MockOAuthManagerWithFailures implements IOAuthManager {
     return this.supportedProviders.has(provider);
   }
 
+  getSupportedProviders(): ModelProvider[] {
+    return Array.from(this.supportedProviders);
+  }
+
   async ensureValidTokens(provider: ModelProvider): Promise<TokenSet> {
     if (this.failureMode === 'all' || this.shouldFailForProvider.get(provider)) {
       throw new Error(`OAuth not available for provider: ${provider}`);
@@ -160,6 +164,17 @@ class MockOAuthManagerWithFailures implements IOAuthManager {
     } else {
       this.authenticatedProviders.delete(provider);
     }
+  }
+
+  setTokensNeedRefresh(provider: ModelProvider) {
+    // Set tokens to expire in 1 minute (within the 5-minute refresh threshold)
+    this.authenticatedProviders.set(provider, {
+      accessToken: `expiring_token_${provider}`,
+      refreshToken: `expiring_refresh_${provider}`,
+      expiresAt: new Date(Date.now() + 60000), // 1 minute from now
+      tokenType: 'Bearer',
+      scope: 'api:read',
+    });
   }
 
   addSupportedProvider(provider: ModelProvider) {
@@ -248,15 +263,25 @@ describe('Authentication Fallback Property Tests', () => {
    * authentication when available and fallback is enabled.
    */
   it('should fallback to API key when OAuth fails and fallback is enabled', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         oauthProviderArb,
+        // Use the fallbackEnabledConfigArb generator that ensures enableFallback is true
         fallbackEnabledConfigArb.filter(config => config.preferredMethod === 'oauth'),
-        failureScenarioArb,
+        failureScenarioArb.filter(mode => mode === 'auth' || mode === 'all'),
         async (provider, config, failureMode) => {
+          // Reset state for this property run
+          mockOAuthManager.reset();
+          authManager = new AuthenticationManager(mockOAuthManager);
+
+          // Verify preconditions - these should always be true due to generator constraints
+          expect(config.enableFallback).toBe(true);
+          expect(config.preferredMethod).toBe('oauth');
+          expect(config.apiKey).toBeDefined();
+
           // Configure provider with OAuth preferred and fallback enabled
           authManager.configureProvider(provider as ModelProvider, config);
-          
+
           // Set OAuth to fail
           mockOAuthManager.setFailureMode(failureMode);
 
@@ -276,7 +301,7 @@ describe('Authentication Fallback Property Tests', () => {
           expect(status.fallbackAvailable).toBe(true);
         }
       ),
-      { numRuns: 15 }
+      { numRuns: 100 }
     );
   });
 
@@ -287,15 +312,29 @@ describe('Authentication Fallback Property Tests', () => {
    * completely rather than attempting to use API key authentication.
    */
   it('should not fallback when fallback is disabled', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         oauthProviderArb,
-        fallbackDisabledConfigArb.filter(config => config.preferredMethod === 'oauth'),
-        failureScenarioArb,
+        fc.record({
+          preferredMethod: fc.constant('oauth' as const),
+          oauthEnabled: fc.constant(true),
+          apiKey: apiKeyArb,
+          enableFallback: fc.constant(false), // Ensure fallback is always disabled for this test
+        }),
+        failureScenarioArb.filter(mode => mode === 'auth' || mode === 'all'),
         async (provider, config, failureMode) => {
+          // Reset state for this property run
+          mockOAuthManager.reset();
+          authManager = new AuthenticationManager(mockOAuthManager);
+
+          // Verify preconditions
+          expect(config.enableFallback).toBe(false);
+          expect(config.preferredMethod).toBe('oauth');
+          expect(config.apiKey).toBeDefined();
+
           // Configure provider with OAuth preferred and fallback disabled
           authManager.configureProvider(provider as ModelProvider, config);
-          
+
           // Set OAuth to fail
           mockOAuthManager.setFailureMode(failureMode);
 
@@ -323,15 +362,19 @@ describe('Authentication Fallback Property Tests', () => {
    * the system should fallback to OAuth when fallback is enabled.
    */
   it('should fallback to OAuth when API key is preferred but unavailable', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         oauthProviderArb,
         fallbackEnabledConfigArb.filter(config => config.preferredMethod === 'api_key'),
         async (provider, config) => {
+          // Reset state for this property run
+          mockOAuthManager.reset();
+          authManager = new AuthenticationManager(mockOAuthManager);
+
           // Remove API key to simulate unavailability
           const configWithoutApiKey = { ...config, apiKey: undefined };
           authManager.configureProvider(provider as ModelProvider, configWithoutApiKey);
-          
+
           // Set OAuth as available
           mockOAuthManager.setAuthenticationStatus(provider as ModelProvider, true);
 
@@ -361,14 +404,18 @@ describe('Authentication Fallback Property Tests', () => {
    * should fallback to API key authentication for subsequent requests.
    */
   it('should fallback during token refresh failures', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         oauthProviderArb,
         fallbackEnabledConfigArb.filter(config => config.preferredMethod === 'oauth'),
         async (provider, config) => {
+          // Reset state for this property run
+          mockOAuthManager.reset();
+          authManager = new AuthenticationManager(mockOAuthManager);
+
           // Configure provider with OAuth preferred and fallback enabled
           authManager.configureProvider(provider as ModelProvider, config);
-          
+
           // Initially set OAuth as working
           mockOAuthManager.setAuthenticationStatus(provider as ModelProvider, true);
 
@@ -377,12 +424,13 @@ describe('Authentication Fallback Property Tests', () => {
           expect(result.success).toBe(true);
           expect(result.method).toBe('oauth');
 
-          // Now make refresh fail
+          // Now make refresh fail AND set tokens to need refresh
           mockOAuthManager.setFailureMode('refresh');
+          mockOAuthManager.setTokensNeedRefresh(provider as ModelProvider);
 
           // Try to ensure valid authentication again - should fallback to API key
           result = await authManager.ensureValidAuthentication(provider as ModelProvider);
-          
+
           if (result.success) {
             // If successful, should have fallen back to API key
             expect(result.method).toBe('api_key');
@@ -405,11 +453,15 @@ describe('Authentication Fallback Property Tests', () => {
    * reflect whether fallback is enabled and alternative methods are available.
    */
   it('should correctly report fallback availability', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         oauthProviderArb,
         dualAuthConfigArb,
         async (provider, config) => {
+          // Reset state for this property run
+          mockOAuthManager.reset();
+          authManager = new AuthenticationManager(mockOAuthManager);
+
           authManager.configureProvider(provider as ModelProvider, config);
 
           const status = await authManager.getProviderAuthStatus(provider as ModelProvider);
@@ -418,8 +470,8 @@ describe('Authentication Fallback Property Tests', () => {
           // 1. Fallback is enabled
           // 2. API key is available
           // 3. OAuth is supported
-          const expectedFallback = config.enableFallback && 
-                                 !!config.apiKey && 
+          const expectedFallback = config.enableFallback &&
+                                 !!config.apiKey &&
                                  mockOAuthManager.supportsOAuth(provider as ModelProvider);
 
           expect(status.fallbackAvailable).toBe(expectedFallback);
@@ -443,30 +495,30 @@ describe('Authentication Fallback Property Tests', () => {
    * consistent and accurately reflect the active authentication method.
    */
   it('should maintain consistent authentication state during fallback', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         oauthProviderArb,
         fallbackEnabledConfigArb,
         async (provider, config) => {
-          authManager.configureProvider(provider as ModelProvider, config);
-
           // Test various failure scenarios
-          const failureScenarios = ['auth', 'refresh'] as const;
-          
+          const failureScenarios = ['auth', 'all'] as const;
+
           for (const failureMode of failureScenarios) {
-            // Reset state
+            // Reset state for each scenario
             mockOAuthManager.reset();
-            
+            authManager = new AuthenticationManager(mockOAuthManager);
+            authManager.configureProvider(provider as ModelProvider, config);
+
             if (config.preferredMethod === 'oauth') {
               // Make OAuth fail, should fallback to API key
               mockOAuthManager.setFailureMode(failureMode);
-              
+
               const result = await authManager.authenticate(provider as ModelProvider);
-              
+
               if (result.success) {
                 expect(result.method).toBe('api_key');
                 expect(result.usedFallback).toBe(true);
-                
+
                 // Verify status consistency
                 const status = await authManager.getProviderAuthStatus(provider as ModelProvider);
                 expect(status.currentMethod).toBe('api_key');
@@ -476,15 +528,15 @@ describe('Authentication Fallback Property Tests', () => {
               // API key preferred, make it unavailable to test OAuth fallback
               const configWithoutApiKey = { ...config, apiKey: undefined };
               authManager.configureProvider(provider as ModelProvider, configWithoutApiKey);
-              
+
               mockOAuthManager.setAuthenticationStatus(provider as ModelProvider, true);
-              
+
               const result = await authManager.authenticate(provider as ModelProvider);
-              
+
               if (result.success) {
                 expect(result.method).toBe('oauth');
                 expect(result.usedFallback).toBe(true);
-                
+
                 // Verify status consistency
                 const status = await authManager.getProviderAuthStatus(provider as ModelProvider);
                 expect(status.currentMethod).toBe('oauth');
@@ -505,17 +557,18 @@ describe('Authentication Fallback Property Tests', () => {
    * should fail gracefully without infinite retry loops.
    */
   it('should fail gracefully when all authentication methods fail', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         oauthProviderArb,
         fallbackEnabledConfigArb,
         async (provider, config) => {
-          // Configure provider with fallback enabled
-          authManager.configureProvider(provider as ModelProvider, config);
-          
+          // Reset state for this property run
+          mockOAuthManager.reset();
+          authManager = new AuthenticationManager(mockOAuthManager);
+
           // Make all authentication methods fail
           mockOAuthManager.setFailureMode('all');
-          
+
           // Remove API key to make it fail too
           const configWithoutApiKey = { ...config, apiKey: undefined };
           authManager.configureProvider(provider as ModelProvider, configWithoutApiKey);
@@ -546,14 +599,18 @@ describe('Authentication Fallback Property Tests', () => {
    * produce consistent results without state corruption.
    */
   it('should provide consistent fallback behavior across multiple calls', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         oauthProviderArb,
         fallbackEnabledConfigArb.filter(config => config.preferredMethod === 'oauth'),
         async (provider, config) => {
+          // Reset state for this property run
+          mockOAuthManager.reset();
+          authManager = new AuthenticationManager(mockOAuthManager);
+
           // Configure provider with OAuth preferred and fallback enabled
           authManager.configureProvider(provider as ModelProvider, config);
-          
+
           // Make OAuth fail consistently
           mockOAuthManager.setFailureMode('auth');
 

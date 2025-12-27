@@ -87,6 +87,11 @@ export class PKCEGenerator implements IPKCEGenerator {
         throw new Error(`Code verifier length must be between 43-128 characters, got: ${verifier.length}`);
       }
       
+      // Validate character set (RFC 7636: unreserved characters only)
+      if (!/^[A-Za-z0-9\-._~]+$/.test(verifier)) {
+        throw new Error('Code verifier contains invalid characters. Only A-Z, a-z, 0-9, -, ., _, ~ are allowed');
+      }
+      
       // Create SHA256 hash of the verifier
       const hash = createHash('sha256');
       hash.update(verifier, 'ascii');

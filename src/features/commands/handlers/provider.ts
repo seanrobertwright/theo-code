@@ -9,7 +9,10 @@ import {
   validateProviderConfig, 
   getProviderConfig, 
   getAvailableProviders,
-  getApiKey 
+  getApiKey,
+  getAuthenticationConfig,
+  isOAuthEnabled,
+  getPreferredAuthMethod
 } from '../../../config/index.js';
 import { useAppStore } from '../../../shared/store/index.js';
 
@@ -109,12 +112,38 @@ async function handleListProviders(args: string[], context: CommandContext): Pro
       const status = provider.enabled ? '✅' : '❌';
       const priority = provider.priority || 0;
       const hasApiKey = getApiKey(String(provider.name), config) ? '🔑' : '❌';
+      const authConfig = getAuthenticationConfig(String(provider.name), config);
       
-      message += `${status} **${provider.name}** (priority: ${priority}) ${hasApiKey}\n`;
+      // OAuth status indicator
+      let oauthStatus = '';
+      if (authConfig.hasOAuth) {
+        oauthStatus = authConfig.oauthEnabled ? ' 🔐' : ' 🔐❌';
+      }
+      
+      // Preferred method indicator
+      const preferredMethod = authConfig.preferredMethod === 'oauth' ? ' (OAuth preferred)' : '';
+      
+      message += `${status} **${provider.name}** (priority: ${priority}) ${hasApiKey}${oauthStatus}${preferredMethod}\n`;
       
       if (showDetails) {
         if (provider.baseUrl) {
           message += `  • Base URL: ${provider.baseUrl}\n`;
+        }
+        
+        // Authentication details
+        message += `  • Authentication:\n`;
+        if (authConfig.hasApiKey) {
+          message += `    - API Key: Available\n`;
+        }
+        if (authConfig.hasOAuth) {
+          message += `    - OAuth: ${authConfig.oauthEnabled ? 'Enabled' : 'Disabled'}`;
+          if (authConfig.oauthEnabled) {
+            message += ` (${authConfig.preferredMethod} preferred, auto-refresh: ${authConfig.autoRefresh ? 'on' : 'off'})`;
+          }
+          message += '\n';
+        }
+        if (!authConfig.hasApiKey && !authConfig.hasOAuth) {
+          message += `    - None required (local/open source)\n`;
         }
         
         if (provider.rateLimit && typeof provider.rateLimit === 'object') {
@@ -133,6 +162,7 @@ async function handleListProviders(args: string[], context: CommandContext): Pro
     if (!showDetails) {
       message += '\n💡 Use `--details` to see more information\n';
       message += '🔑 = API key configured, ❌ = missing API key\n';
+      message += '🔐 = OAuth configured, 🔐❌ = OAuth disabled\n';
     }
     
     message += '\n**Current Provider:** ' + config.global.defaultProvider;
@@ -442,6 +472,7 @@ async function showSingleProviderStatus(
   
   const validation = validateProviderConfig(provider, config);
   const hasApiKey = getApiKey(provider, config);
+  const authConfig = getAuthenticationConfig(provider, config);
   
   let message = `**Status for "${provider}":**\n\n`;
   
@@ -453,7 +484,28 @@ async function showSingleProviderStatus(
   message += '**Configuration:**\n';
   message += `• Enabled: ${providerConfig.enabled ? 'Yes' : 'No'}\n`;
   message += `• Priority: ${providerConfig.priority || 0}\n`;
-  message += `• API Key: ${hasApiKey ? 'Configured ✅' : 'Missing ❌'}\n`;
+  
+  // Authentication details
+  message += '**Authentication:**\n';
+  if (authConfig.hasApiKey) {
+    message += `• API Key: Configured ✅\n`;
+  } else {
+    message += `• API Key: Missing ❌\n`;
+  }
+  
+  if (authConfig.hasOAuth) {
+    message += `• OAuth: ${authConfig.oauthEnabled ? 'Enabled ✅' : 'Disabled ❌'}\n`;
+    if (authConfig.oauthEnabled) {
+      message += `  - Preferred Method: ${authConfig.preferredMethod}\n`;
+      message += `  - Auto Refresh: ${authConfig.autoRefresh ? 'Enabled' : 'Disabled'}\n`;
+    }
+  } else {
+    message += `• OAuth: Not configured\n`;
+  }
+  
+  if (!authConfig.hasApiKey && !authConfig.hasOAuth) {
+    message += `• Authentication: None required (local/open source)\n`;
+  }
   
   if (providerConfig.baseUrl) {
     message += `• Base URL: ${providerConfig.baseUrl}\n`;
@@ -503,12 +555,22 @@ async function showAllProvidersStatus(config: any, context: CommandContext): Pro
   for (const provider of providers) {
     const validation = validateProviderConfig(String(provider.name), config);
     const hasApiKey = getApiKey(String(provider.name), config);
-    const isReady = validation.valid && provider.enabled && (String(provider.name) === 'ollama' || hasApiKey);
+    const authConfig = getAuthenticationConfig(String(provider.name), config);
+    
+    // Provider is ready if it's valid, enabled, and has some form of authentication (or doesn't need it)
+    const hasAuth = authConfig.hasApiKey || authConfig.hasOAuth || String(provider.name) === 'ollama';
+    const isReady = validation.valid && provider.enabled && hasAuth;
     
     const statusIcon = isReady ? '✅' : '❌';
     const currentIcon = config.global.defaultProvider === String(provider.name) ? ' 🎯' : '';
     
-    message += `${statusIcon} **${provider.name}**${currentIcon}\n`;
+    // OAuth status indicator
+    let oauthStatus = '';
+    if (authConfig.hasOAuth) {
+      oauthStatus = authConfig.oauthEnabled ? ' 🔐' : ' 🔐❌';
+    }
+    
+    message += `${statusIcon} **${provider.name}**${currentIcon}${oauthStatus}\n`;
     
     if (isReady) {
       readyProviders.push(String(provider.name));
@@ -519,7 +581,7 @@ async function showAllProvidersStatus(config: any, context: CommandContext): Pro
       const issues: string[] = [];
       if (!provider.enabled) issues.push('disabled');
       if (!validation.valid) issues.push('config errors');
-      if (String(provider.name) !== 'ollama' && !hasApiKey) issues.push('missing API key');
+      if (String(provider.name) !== 'ollama' && !hasAuth) issues.push('missing authentication');
       
       if (issues.length > 0) {
         message += `  Issues: ${issues.join(', ')}\n`;

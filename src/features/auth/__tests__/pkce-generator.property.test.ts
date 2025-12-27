@@ -230,13 +230,17 @@ describe('PKCE Generator Property Tests', () => {
         
         // Modified challenge should fail
         if (correctChallenge.length > 1) {
-          const modifiedChallenge = correctChallenge.slice(0, -1) + 'X';
+          const lastChar = correctChallenge[correctChallenge.length - 1];
+          const replacement = lastChar === 'X' ? 'Y' : 'X';
+          const modifiedChallenge = correctChallenge.slice(0, -1) + replacement;
           expect(pkceGenerator.validateCodeVerifier(verifier, modifiedChallenge)).toBe(false);
         }
         
         // Modified verifier should fail
         if (verifier.length > 1) {
-          const modifiedVerifier = verifier.slice(0, -1) + 'X';
+          const lastChar = verifier[verifier.length - 1];
+          const replacement = lastChar === 'X' ? 'Y' : 'X';
+          const modifiedVerifier = verifier.slice(0, -1) + replacement;
           expect(pkceGenerator.validateCodeVerifier(modifiedVerifier, correctChallenge)).toBe(false);
         }
       }),

@@ -7,6 +7,7 @@ import type { CommandDefinition, CommandHandler, CommandContext } from './types.
 import { resumeCommandHandler } from './handlers/resume.js';
 import { sessionsCommandHandler } from './handlers/sessions.js';
 import { providerCommandHandler } from './handlers/provider.js';
+import { authCommandHandler } from './handlers/auth.js';
 
 // =============================================================================
 // COMMAND REGISTRY
@@ -108,7 +109,8 @@ export class CommandRegistry {
       cmd.name.startsWith('resume') || cmd.name.startsWith('sessions')
     );
     const otherCommands = commands.filter(cmd => 
-      !cmd.name.startsWith('resume') && !cmd.name.startsWith('sessions') && !cmd.name.startsWith('provider')
+      !cmd.name.startsWith('resume') && !cmd.name.startsWith('sessions') && 
+      !cmd.name.startsWith('provider') && !cmd.name.startsWith('auth')
     );
     
     if (sessionCommands.length > 0) {
@@ -130,6 +132,22 @@ export class CommandRegistry {
     if (providerCommands.length > 0) {
       help += `**Provider Management:**\n`;
       for (const cmd of providerCommands) {
+        help += `• \`/${cmd.name}\` - ${cmd.description}\n`;
+        if (cmd.aliases && cmd.aliases.length > 0) {
+          help += `  Aliases: ${cmd.aliases.map(a => `\`/${a}\``).join(', ')}\n`;
+        }
+      }
+      help += '\n';
+    }
+    
+    // Authentication commands
+    const authCommands = commands.filter(cmd => 
+      cmd.name.startsWith('auth')
+    );
+    
+    if (authCommands.length > 0) {
+      help += `**Authentication:**\n`;
+      for (const cmd of authCommands) {
         help += `• \`/${cmd.name}\` - ${cmd.description}\n`;
         if (cmd.aliases && cmd.aliases.length > 0) {
           help += `  Aliases: ${cmd.aliases.map(a => `\`/${a}\``).join(', ')}\n`;
@@ -193,6 +211,14 @@ export function createDefaultCommandRegistry(): CommandRegistry {
     usage: '/provider [subcommand] [options]',
     handler: providerCommandHandler,
     aliases: ['providers', 'prov'],
+  });
+  
+  registry.register({
+    name: 'auth',
+    description: 'Manage OAuth authentication',
+    usage: '/auth [subcommand] [options]',
+    handler: authCommandHandler,
+    aliases: ['authenticate', 'login'],
   });
   
   return registry;

@@ -558,7 +558,7 @@ export function getRecoveryAction(
   }
 
   // For context length errors, try truncation first
-  if (error instanceof ExtendedAdapterError && error.code === 'CONTEXT_OVERFLOW') {
+  if (error instanceof ExtendedAdapterError && error.code === 'CONTEXT_LENGTH_EXCEEDED') {
     return 'truncate';
   }
 

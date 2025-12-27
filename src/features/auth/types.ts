@@ -224,6 +224,11 @@ export interface IOAuthManager {
   supportsOAuth(provider: ModelProvider): boolean;
   
   /**
+   * Get list of providers that support OAuth authentication.
+   */
+  getSupportedProviders(): ModelProvider[];
+  
+  /**
    * Ensure tokens are valid and refresh if needed.
    * Should be called before making API calls.
    */

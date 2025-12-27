@@ -28,27 +28,24 @@ export const OAuthProviderSettingsSchema = z.object({
 });
 export type OAuthProviderSettings = z.infer<typeof OAuthProviderSettingsSchema>;
 
+/**
+ * OAuth configuration serialization settings.
+ */
+export const OAuthSerializationSettingsSchema = z.object({
+  /** Whether to include OAuth configuration in serialization */
+  includeInSerialization: z.boolean().default(true),
+  
+  /** Whether to mask sensitive data in serialization */
+  maskSensitiveData: z.boolean().default(true),
+  
+  /** Custom masking patterns for sensitive keys */
+  customSensitivePatterns: z.array(z.string()).optional(),
+});
+export type OAuthSerializationSettings = z.infer<typeof OAuthSerializationSettingsSchema>;
+
 // =============================================================================
 // PROVIDER CONFIGURATION SCHEMAS
 // =============================================================================
-
-/**
- * OAuth provider settings schema.
- */
-export const OAuthProviderSettingsSchema = z.object({
-  /** Whether OAuth is enabled for this provider */
-  enabled: z.boolean().default(false),
-  
-  /** OAuth client ID */
-  clientId: z.string().optional(),
-  
-  /** Preferred authentication method */
-  preferredMethod: z.enum(['oauth', 'api_key']).default('oauth'),
-  
-  /** Whether to automatically refresh tokens */
-  autoRefresh: z.boolean().default(true),
-});
-export type OAuthProviderSettings = z.infer<typeof OAuthProviderSettingsSchema>;
 
 /**
  * Individual provider configuration.
@@ -162,6 +159,9 @@ export const GlobalConfigSchema = z.object({
 
   /** Provider configurations */
   providers: MultiProviderConfigSchema.optional(),
+
+  /** OAuth serialization settings */
+  oauthSerialization: OAuthSerializationSettingsSchema.optional(),
 
   /** Session settings */
   session: z

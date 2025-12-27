@@ -20,8 +20,16 @@ describe('RequestQueue', () => {
     });
   });
 
-  afterEach(() => {
-    queue.destroy();
+  afterEach(async () => {
+    // Wait for any pending processing to complete before destroying
+    await new Promise(resolve => setTimeout(resolve, 10));
+    try {
+      queue.destroy();
+    } catch {
+      // Ignore cleanup errors
+    }
+    // Give time for any rejected promises to be handled
+    await new Promise(resolve => setTimeout(resolve, 10));
   });
 
   describe('Basic Queue Operations', () => {
@@ -66,8 +74,8 @@ describe('RequestQueue', () => {
         smallQueue.setRequestProcessor(mockProcessor);
 
         // Fill the queue
-        const promise1 = smallQueue.enqueue('openai', { id: 1 });
-        const promise2 = smallQueue.enqueue('openai', { id: 2 });
+        const promise1 = smallQueue.enqueue('openai', { id: 1 }).catch(() => {});
+        const promise2 = smallQueue.enqueue('openai', { id: 2 }).catch(() => {});
 
         // This should fail due to queue size limit
         await expect(smallQueue.enqueue('openai', { id: 3 }))

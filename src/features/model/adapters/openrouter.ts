@@ -21,7 +21,7 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
-import type { AuthenticationManager } from '../auth/authentication-manager.js';
+import type { AuthenticationManager } from '../../auth/authentication-manager.js';
 import { logger } from '../../../shared/utils/index.js';
 
 // =============================================================================

@@ -113,25 +113,25 @@ This implementation plan breaks down the OAuth authentication feature into discr
     - **Property 6: Authentication Fallback**
     - **Validates: Requirements 2.6, 7.3**
 
-- [ ] 7. Integrate OAuth with existing provider adapters
-  - [ ] 7.1 Modify existing provider adapters to support OAuth tokens
+- [x] 7. Integrate OAuth with existing provider adapters
+  - [x] 7.1 Modify existing provider adapters to support OAuth tokens
     - Update Anthropic adapter to use OAuth tokens when available
     - Update Google adapter to use OAuth tokens when available
     - Update OpenRouter adapter to use OAuth tokens when available
     - _Requirements: 2.4, 4.4, 5.4_
 
-  - [ ] 7.2 Update provider manager to handle OAuth authentication
+  - [x] 7.2 Update provider manager to handle OAuth authentication
     - Integrate OAuth manager with existing provider manager
     - Add OAuth status checking to provider health monitoring
     - Update provider selection logic to consider authentication method
     - _Requirements: 7.1, 7.5_
 
-  - [ ] 7.3 Write property test for token security
+  - [x] 7.3 Write property test for token security
     - **Property 7: Token Security**
     - **Validates: Requirements 6.6**
 
-- [ ] 8. Implement OAuth command interface
-  - [ ] 8.1 Create authentication commands
+- [x] 8. Implement OAuth command interface
+  - [x] 8.1 Create authentication commands
     - Add `/auth login <provider>` command
     - Add `/auth logout <provider>` command
     - Add `/auth status` command
@@ -139,59 +139,59 @@ This implementation plan breaks down the OAuth authentication feature into discr
     - Add `/auth list` command
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-  - [ ] 8.2 Add command feedback and error handling
+  - [x] 8.2 Add command feedback and error handling
     - Implement clear success/error messages
     - Add progress indicators for OAuth flows
     - Create user-friendly error explanations
     - _Requirements: 8.6, 9.1, 9.4_
 
-  - [ ] 8.3 Write unit tests for OAuth commands
+  - [x] 8.3 Write unit tests for OAuth commands
     - Test each command with various scenarios
     - Test error handling and user feedback
     - Test command integration with OAuth manager
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 9. Implement configuration serialization and display
-  - [ ] 9.1 Add OAuth configuration serialization
+- [x] 9. Implement configuration serialization and display
+  - [x] 9.1 Add OAuth configuration serialization
     - Extend existing configuration schemas for OAuth
     - Implement secure configuration serialization (mask sensitive data)
     - Add OAuth configuration validation
     - _Requirements: 10.1, 10.2, 10.3_
 
-  - [ ] 9.2 Create secure token and configuration display utilities
+  - [x] 9.2 Create secure token and configuration display utilities
     - Implement token information formatting with masking
     - Add authentication status display formatting
     - Create configuration display with security considerations
     - _Requirements: 11.3, 10.3_
 
-  - [ ] 9.3 Write property test for token response normalization
+  - [x] 9.3 Write property test for token response normalization
     - **Property 9: Token Response Normalization**
     - **Validates: Requirements 11.2**
 
-  - [ ] 9.4 Write property test for secure display formatting
+  - [x] 9.4 Write property test for secure display formatting
     - **Property 10: Secure Display Formatting**
     - **Validates: Requirements 10.3, 11.3**
 
-- [ ] 10. Final integration and testing
-  - [ ] 10.1 Wire OAuth system with existing configuration management
+- [x] 10. Final integration and testing
+  - [x] 10.1 Wire OAuth system with existing configuration management
     - Integrate OAuth configuration with global and project configs
     - Add OAuth provider status to existing status displays
     - Update configuration loading to handle OAuth settings
     - _Requirements: 7.4, 7.6_
 
-  - [ ] 10.2 Add comprehensive error handling and recovery
+  - [x] 10.2 Add comprehensive error handling and recovery
     - Implement error recovery strategies
     - Add resource cleanup for failed OAuth flows
     - Create user guidance for common OAuth issues
     - _Requirements: 1.6, 9.4_
 
-  - [ ] 10.3 Write integration tests for OAuth system
+  - [x] 10.3 Write integration tests for OAuth system
     - Test OAuth integration with existing provider system
     - Test configuration management integration
     - Test command interface integration
     - _Requirements: 7.1, 7.4, 8.6_
 
-- [ ] 11. Final checkpoint - Ensure all tests pass
+- [x] 11. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

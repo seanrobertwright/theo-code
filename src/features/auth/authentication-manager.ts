@@ -95,6 +95,7 @@ export interface ProviderAuthStatus {
 export class AuthenticationManager {
   private readonly oauthManager: IOAuthManager;
   private readonly authConfigs = new Map<ModelProvider, AuthConfig>();
+  private readonly currentAuthMethods = new Map<ModelProvider, AuthMethod>();
 
   constructor(oauthManager: IOAuthManager) {
     this.oauthManager = oauthManager;
@@ -163,6 +164,10 @@ export class AuthenticationManager {
         if (result.success) {
           const usedFallback = method !== config.preferredMethod;
           logger.info(`[AuthManager] Authentication successful for ${provider} using ${method}${usedFallback ? ' (fallback)' : ''}`);
+          
+          // Track the current authentication method
+          this.currentAuthMethods.set(provider, method);
+          
           return {
             ...result,
             usedFallback,
@@ -175,6 +180,7 @@ export class AuthenticationManager {
     }
 
     logger.error(`[AuthManager] All authentication methods failed for provider: ${provider}`);
+    this.currentAuthMethods.set(provider, 'none');
     return {
       success: false,
       method: 'none',
@@ -220,6 +226,7 @@ export class AuthenticationManager {
         // If refresh fails and fallback is enabled, try API key
         if (config.enableFallback && config.apiKey) {
           logger.info(`[AuthManager] Falling back to API key for provider: ${provider}`);
+          this.currentAuthMethods.set(provider, 'api_key');
           return {
             success: true,
             method: 'api_key',
@@ -228,6 +235,7 @@ export class AuthenticationManager {
           };
         }
         
+        this.currentAuthMethods.set(provider, 'none');
         return {
           success: false,
           method: 'oauth',
@@ -239,9 +247,29 @@ export class AuthenticationManager {
 
     // If already authenticated and valid, return current credentials
     if (status.authenticated) {
-      const credential = status.currentMethod === 'oauth' 
-        ? (await this.oauthManager.ensureValidTokens(provider)).accessToken
-        : config.apiKey;
+      let credential: string | undefined;
+      
+      if (status.currentMethod === 'oauth') {
+        try {
+          const tokens = await this.oauthManager.ensureValidTokens(provider);
+          credential = tokens.accessToken;
+        } catch (error) {
+          // If OAuth tokens are not available, fall back to API key if enabled
+          if (config.enableFallback && config.apiKey) {
+            credential = config.apiKey;
+            this.currentAuthMethods.set(provider, 'api_key');
+            return {
+              success: true,
+              method: 'api_key',
+              credential,
+              usedFallback: true,
+            };
+          }
+          throw error;
+        }
+      } else {
+        credential = config.apiKey;
+      }
         
       const result: AuthResult = {
         success: true,
@@ -272,7 +300,7 @@ export class AuthenticationManager {
     const supportsOAuth = this.oauthManager.supportsOAuth(provider);
     
     let oauthStatus: AuthStatus | undefined;
-    if (supportsOAuth) {
+    if (supportsOAuth && config?.oauthEnabled) {
       try {
         oauthStatus = await this.oauthManager.getAuthStatus(provider);
       } catch (error) {
@@ -280,19 +308,38 @@ export class AuthenticationManager {
       }
     }
 
-    // Determine current authentication method
-    let currentMethod: AuthMethod = 'none';
+    // Determine current authentication method based on what's actually being used
+    const trackedMethod = this.currentAuthMethods.get(provider) || 'none';
+    let currentMethod: AuthMethod = trackedMethod;
     let authenticated = false;
     let needsRefresh = false;
 
     if (config) {
-      if (oauthStatus?.authenticated) {
+      if (trackedMethod === 'oauth' && config.oauthEnabled && oauthStatus?.authenticated) {
         currentMethod = 'oauth';
         authenticated = true;
         needsRefresh = oauthStatus.needsRefresh;
-      } else if (config.apiKey) {
+      } else if (trackedMethod === 'api_key' && config.apiKey) {
         currentMethod = 'api_key';
         authenticated = true;
+      } else if (trackedMethod === 'none') {
+        // No current method tracked, determine based on availability and preference
+        const methods = this.getAuthMethodPriority(provider, config);
+        
+              for (const method of methods) {
+                if (method === 'oauth' && config.oauthEnabled && oauthStatus) {
+                  const hasTokens = !!oauthStatus.expiresAt;
+                  if (hasTokens) {
+                    currentMethod = 'oauth';
+                    authenticated = oauthStatus.authenticated;
+                    needsRefresh = oauthStatus.needsRefresh;
+                    break;
+                  }
+                } else if (method === 'api_key' && config.apiKey) {            currentMethod = 'api_key';
+            authenticated = true;
+            break;
+          }
+        }
       }
     }
 
@@ -398,12 +445,21 @@ export class AuthenticationManager {
         };
       }
 
-      // Not authenticated - this would require user interaction
-      // In a real implementation, this would trigger the OAuth flow
+      // Not authenticated - trigger OAuth flow
+      const result = await this.oauthManager.initiateFlow(provider);
+      if (result.success && result.tokens) {
+        return {
+          success: true,
+          method: 'oauth',
+          credential: result.tokens.accessToken,
+          usedFallback: false,
+        };
+      }
+
       return {
         success: false,
         method: 'oauth',
-        error: `OAuth authentication required for provider: ${provider}. Please run authentication flow.`,
+        error: result.error || `OAuth authentication failed for provider: ${provider}`,
         usedFallback: false,
       };
     } catch (error) {
@@ -492,6 +548,9 @@ export class AuthenticationManager {
       }
     }
 
+    // Clear tracked authentication method
+    this.currentAuthMethods.delete(provider);
+
     // Remove from configuration (but keep the config structure)
     const config = this.authConfigs.get(provider);
     if (config) {
@@ -509,6 +568,7 @@ export class AuthenticationManager {
    */
   destroy(): void {
     this.authConfigs.clear();
+    this.currentAuthMethods.clear();
     logger.info('[AuthManager] Destroyed');
   }
 }

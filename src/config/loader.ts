@@ -20,12 +20,14 @@ import {
   MergedConfigSchema,
   ProviderConfigSchema,
   MultiProviderConfigSchema,
+  OAuthSerializationSettingsSchema,
   type GlobalConfig,
   type ProjectConfig,
   type SecurityPolicy,
   type MergedConfig,
   type ProviderConfig,
   type MultiProviderConfig,
+  type OAuthSerializationSettings,
 } from './schemas.js';
 
 // =============================================================================
@@ -544,6 +546,25 @@ editor:
 }
 
 /**
+ * Gets OAuth serialization settings from configuration.
+ *
+ * @param config - Merged configuration
+ * @returns OAuth serialization settings with defaults
+ */
+export function getOAuthSerializationSettings(config: MergedConfig): OAuthSerializationSettings {
+  const settings = config.global.oauthSerialization;
+  if (!settings) {
+    // Return default settings
+    return {
+      includeInSerialization: true,
+      maskSensitiveData: true,
+      customSensitivePatterns: undefined,
+    };
+  }
+  return settings;
+}
+
+/**
  * Gets the effective API key for a provider.
  *
  * Checks in order: environment variable, keychain (TODO), config file.
@@ -579,4 +600,71 @@ export function getApiKey(provider: string, config: MergedConfig): string | unde
   }
 
   return undefined;
+}
+
+/**
+ * Gets OAuth configuration for a provider.
+ *
+ * @param provider - The provider name
+ * @param config - Merged configuration
+ * @returns OAuth configuration or undefined
+ */
+export function getOAuthConfig(provider: string, config: MergedConfig): OAuthProviderSettings | undefined {
+  const providers = config.global.providers?.providers;
+  if (providers && Array.isArray(providers)) {
+    const providerConfig = providers.find((p: any) => p.name === provider);
+    return providerConfig?.oauth;
+  }
+  return undefined;
+}
+
+/**
+ * Checks if OAuth is enabled for a provider.
+ *
+ * @param provider - The provider name
+ * @param config - Merged configuration
+ * @returns True if OAuth is enabled
+ */
+export function isOAuthEnabled(provider: string, config: MergedConfig): boolean {
+  const oauthConfig = getOAuthConfig(provider, config);
+  return oauthConfig?.enabled ?? false;
+}
+
+/**
+ * Gets the preferred authentication method for a provider.
+ *
+ * @param provider - The provider name
+ * @param config - Merged configuration
+ * @returns Preferred authentication method
+ */
+export function getPreferredAuthMethod(provider: string, config: MergedConfig): 'oauth' | 'api_key' {
+  const oauthConfig = getOAuthConfig(provider, config);
+  return oauthConfig?.preferredMethod ?? 'api_key';
+}
+
+/**
+ * Gets comprehensive authentication configuration for a provider.
+ *
+ * @param provider - The provider name
+ * @param config - Merged configuration
+ * @returns Authentication configuration
+ */
+export function getAuthenticationConfig(provider: string, config: MergedConfig): {
+  hasApiKey: boolean;
+  hasOAuth: boolean;
+  preferredMethod: 'oauth' | 'api_key';
+  oauthEnabled: boolean;
+  autoRefresh: boolean;
+} {
+  const hasApiKey = !!getApiKey(provider, config);
+  const oauthConfig = getOAuthConfig(provider, config);
+  const hasOAuth = !!(oauthConfig?.enabled && oauthConfig?.clientId);
+  
+  return {
+    hasApiKey,
+    hasOAuth,
+    preferredMethod: oauthConfig?.preferredMethod ?? 'api_key',
+    oauthEnabled: oauthConfig?.enabled ?? false,
+    autoRefresh: oauthConfig?.autoRefresh ?? true,
+  };
 }

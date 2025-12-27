@@ -34,6 +34,10 @@ export {
 } from './handlers/provider.js';
 
 export {
+  authCommandHandler,
+} from './handlers/auth.js';
+
+export {
   formatSessionList,
   formatSingleSession,
   formatSessionPreview,

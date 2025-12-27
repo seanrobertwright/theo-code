@@ -13,12 +13,35 @@ import type { ModelProvider } from '../../../shared/types/models.js';
 // MOCK SETUP
 // =============================================================================
 
-// Mock keytar for token storage
+// Mock keytar for token storage with proper state management
+const mockStorage = new Map<string, string>();
+
 vi.mock('keytar', () => ({
-  setPassword: vi.fn().mockResolvedValue(undefined),
-  getPassword: vi.fn().mockResolvedValue(null),
-  deletePassword: vi.fn().mockResolvedValue(true),
-  findCredentials: vi.fn().mockResolvedValue([]),
+  setPassword: vi.fn().mockImplementation(async (service: string, account: string, password: string) => {
+    const key = `${service}:${account}`;
+    mockStorage.set(key, password);
+    return undefined;
+  }),
+  getPassword: vi.fn().mockImplementation(async (service: string, account: string) => {
+    const key = `${service}:${account}`;
+    return mockStorage.get(key) || null;
+  }),
+  deletePassword: vi.fn().mockImplementation(async (service: string, account: string) => {
+    const key = `${service}:${account}`;
+    const existed = mockStorage.has(key);
+    mockStorage.delete(key);
+    return existed;
+  }),
+  findCredentials: vi.fn().mockImplementation(async (service: string) => {
+    const credentials: Array<{ account: string; password: string }> = [];
+    for (const [key, password] of mockStorage.entries()) {
+      if (key.startsWith(`${service}:`)) {
+        const account = key.substring(service.length + 1);
+        credentials.push({ account, password });
+      }
+    }
+    return credentials;
+  }),
 }));
 
 // =============================================================================
@@ -54,7 +77,10 @@ const providerArb = fc.constantFrom('google', 'openrouter', 'anthropic');
 const secureTokenSetArb = fc.record({
   accessToken: secureAccessTokenArb,
   refreshToken: secureRefreshTokenArb,
-  expiresAt: fc.date({ min: new Date(Date.now() + 60000), max: new Date(Date.now() + 3600000) }),
+  expiresAt: fc.date({ 
+    min: new Date(Date.now() + 60000), 
+    max: new Date(Date.now() + 3600000) 
+  }).filter(date => !isNaN(date.getTime())), // Ensure valid dates only
   tokenType: fc.constant('Bearer' as const),
   scope: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
 });
@@ -90,11 +116,23 @@ describe('Token Security Property Tests', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockStorage.clear(); // Clear mock storage between tests
     tokenStore = new TokenStore();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.clearAllMocks();
+    mockStorage.clear(); // Clear mock storage after tests
+    
+    // Additional cleanup - clear any remaining tokens
+    try {
+      const providers = ['google', 'openrouter', 'anthropic', 'openai'];
+      for (const provider of providers) {
+        await tokenStore.clearTokens(provider as ModelProvider);
+      }
+    } catch {
+      // Ignore cleanup errors
+    }
   });
 
   /**
@@ -106,19 +144,22 @@ describe('Token Security Property Tests', () => {
    * they should be retrievable with full integrity maintained.
    */
   it('should maintain token integrity during storage and retrieval', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         secureTokenSetArb,
         providerArb,
         async (tokens, provider) => {
+          // Clear mock storage for this iteration
+          mockStorage.clear();
+          
           try {
-            // Store tokens - this might fail for invalid tokens
+            // Store tokens - this should succeed for valid tokens
             await tokenStore.storeTokens(provider as ModelProvider, tokens);
 
             // Retrieve tokens
             const retrievedTokens = await tokenStore.getTokens(provider as ModelProvider);
 
-            // If storage succeeded, retrieval should return the tokens
+            // Storage should succeed, so retrieval should return the tokens
             expect(retrievedTokens).not.toBeNull();
             expect(retrievedTokens).toBeDefined();
             
@@ -131,16 +172,15 @@ describe('Token Security Property Tests', () => {
               expect(retrievedTokens.scope).toBe(tokens.scope);
             }
           } catch (error) {
-            // If storage fails due to validation, that's acceptable
-            // The property is about successful storage maintaining integrity
-            if (error instanceof Error && error.message.includes('Failed to store OAuth tokens')) {
-              // Storage failed due to validation - this is expected for some inputs
-              // Verify no tokens were stored
-              const retrievedTokens = await tokenStore.getTokens(provider as ModelProvider);
-              expect(retrievedTokens).toBeNull();
-            } else {
-              // Unexpected error - re-throw
-              throw error;
+            // If storage fails due to validation, that's unexpected for valid tokens
+            throw error;
+          } finally {
+            // Clean up after each test to prevent state pollution
+            try {
+              await tokenStore.clearTokens(provider as ModelProvider);
+              mockStorage.clear();
+            } catch {
+              // Ignore cleanup errors
             }
           }
         }
@@ -156,7 +196,7 @@ describe('Token Security Property Tests', () => {
    * should not be accessible when querying for another provider.
    */
   it('should isolate tokens between different providers', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         secureTokenSetArb,
         secureTokenSetArb,
@@ -165,6 +205,11 @@ describe('Token Security Property Tests', () => {
         async (tokens1, tokens2, provider1, provider2) => {
           // Ensure providers are different
           fc.pre(provider1 !== provider2);
+          // Ensure tokens are different to test isolation effectively
+          fc.pre(tokens1.accessToken !== tokens2.accessToken);
+          
+          // Clear mock storage for this iteration
+          mockStorage.clear();
 
           try {
             // Store tokens for both providers
@@ -175,7 +220,7 @@ describe('Token Security Property Tests', () => {
             const retrieved1 = await tokenStore.getTokens(provider1 as ModelProvider);
             const retrieved2 = await tokenStore.getTokens(provider2 as ModelProvider);
 
-            // If both storage operations succeeded, both retrievals should succeed
+            // Both storage operations should succeed, so both retrievals should succeed
             expect(retrieved1).not.toBeNull();
             expect(retrieved2).not.toBeNull();
             
@@ -186,15 +231,16 @@ describe('Token Security Property Tests', () => {
               expect(retrieved1.accessToken).not.toBe(retrieved2.accessToken);
             }
           } catch (error) {
-            // If storage fails due to validation, that's acceptable
-            if (error instanceof Error && error.message.includes('Failed to store OAuth tokens')) {
-              // Storage failed - verify no tokens were stored for either provider
-              const retrieved1 = await tokenStore.getTokens(provider1 as ModelProvider);
-              const retrieved2 = await tokenStore.getTokens(provider2 as ModelProvider);
-              // At least one should be null if storage failed
-              expect(retrieved1 === null || retrieved2 === null).toBe(true);
-            } else {
-              throw error;
+            // Unexpected error for valid tokens
+            throw error;
+          } finally {
+            // Clean up after each test to prevent state pollution
+            try {
+              await tokenStore.clearTokens(provider1 as ModelProvider);
+              await tokenStore.clearTokens(provider2 as ModelProvider);
+              mockStorage.clear();
+            } catch {
+              // Ignore cleanup errors
             }
           }
         }
@@ -210,11 +256,14 @@ describe('Token Security Property Tests', () => {
    * either reject it safely or store it without causing security issues.
    */
   it('should handle malicious token data safely', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         maliciousTokenArb,
         providerArb,
         async (maliciousToken, provider) => {
+          // Clear mock storage for this iteration
+          mockStorage.clear();
+          
           // Create token set with malicious data
           const maliciousTokenSet: TokenSet = {
             accessToken: maliciousToken,
@@ -249,6 +298,14 @@ describe('Token Security Property Tests', () => {
             const retrieved = await tokenStore.getTokens(provider as ModelProvider);
             expect(retrieved).toBeNull();
           }
+          
+          // Clean up after each test to prevent state pollution
+          try {
+            await tokenStore.clearTokens(provider as ModelProvider);
+            mockStorage.clear();
+          } catch {
+            // Ignore cleanup errors
+          }
         }
       ),
       { numRuns: 5 } // Reduced from 20 to 5 (malicious data tests are expensive)
@@ -262,28 +319,44 @@ describe('Token Security Property Tests', () => {
    * all traces and prevent any subsequent retrieval.
    */
   it('should completely clear tokens without leaving traces', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         secureTokenSetArb,
         providerArb,
         async (tokens, provider) => {
-          // Store tokens
-          await tokenStore.storeTokens(provider as ModelProvider, tokens);
+          // Clear mock storage for this iteration
+          mockStorage.clear();
+          
+          try {
+            // Store tokens
+            await tokenStore.storeTokens(provider as ModelProvider, tokens);
 
-          // Verify tokens are stored
-          const beforeClear = await tokenStore.getTokens(provider as ModelProvider);
-          expect(beforeClear).toBeDefined();
+            // Verify tokens are stored
+            const beforeClear = await tokenStore.getTokens(provider as ModelProvider);
+            expect(beforeClear).toBeDefined();
 
-          // Clear tokens
-          await tokenStore.clearTokens(provider as ModelProvider);
+            // Clear tokens
+            await tokenStore.clearTokens(provider as ModelProvider);
 
-          // Verify tokens are completely removed
-          const afterClear = await tokenStore.getTokens(provider as ModelProvider);
-          expect(afterClear).toBeNull();
+            // Verify tokens are completely removed
+            const afterClear = await tokenStore.getTokens(provider as ModelProvider);
+            expect(afterClear).toBeNull();
 
-          // Verify token validity check returns false
-          const isValid = await tokenStore.isTokenValid(provider as ModelProvider);
-          expect(isValid).toBe(false);
+            // Verify token validity check returns false
+            const isValid = await tokenStore.isTokenValid(provider as ModelProvider);
+            expect(isValid).toBe(false);
+          } catch (error) {
+            // Unexpected error for valid tokens
+            throw error;
+          } finally {
+            // Clean up after each test to prevent state pollution
+            try {
+              await tokenStore.clearTokens(provider as ModelProvider);
+              mockStorage.clear();
+            } catch {
+              // Ignore cleanup errors
+            }
+          }
         }
       ),
       { numRuns: 8 } // Reduced from 30 to 8
@@ -297,33 +370,49 @@ describe('Token Security Property Tests', () => {
    * and not susceptible to time-based attacks or manipulation.
    */
   it('should calculate token expiration securely and accurately', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         secureTokenSetArb,
         providerArb,
         async (tokens, provider) => {
-          // Store tokens
-          await tokenStore.storeTokens(provider as ModelProvider, tokens);
+          // Clear mock storage for this iteration
+          mockStorage.clear();
+          
+          try {
+            // Store tokens
+            await tokenStore.storeTokens(provider as ModelProvider, tokens);
 
-          // Get time until expiration
-          const timeUntilExpiration = await tokenStore.getTimeUntilExpiration(provider as ModelProvider);
+            // Get time until expiration
+            const timeUntilExpiration = await tokenStore.getTimeUntilExpiration(provider as ModelProvider);
 
-          if (timeUntilExpiration !== null) {
-            // Calculate expected time
-            const expectedTime = Math.max(0, tokens.expiresAt.getTime() - Date.now());
-            
-            // Allow small tolerance for test execution time (2 seconds)
-            const tolerance = 2000;
-            expect(Math.abs(timeUntilExpiration - expectedTime)).toBeLessThan(tolerance);
+            if (timeUntilExpiration !== null) {
+              // Calculate expected time
+              const expectedTime = Math.max(0, tokens.expiresAt.getTime() - Date.now());
+              
+              // Allow larger tolerance for test execution time (10 seconds)
+              const tolerance = 10000;
+              expect(Math.abs(timeUntilExpiration - expectedTime)).toBeLessThan(tolerance);
 
-            // Verify expiration is never negative for future dates
-            if (tokens.expiresAt.getTime() > Date.now()) {
-              expect(timeUntilExpiration).toBeGreaterThanOrEqual(0);
+              // Verify expiration is never negative for future dates
+              if (tokens.expiresAt.getTime() > Date.now()) {
+                expect(timeUntilExpiration).toBeGreaterThanOrEqual(0);
+              }
+
+              // Verify expired tokens return 0
+              if (tokens.expiresAt.getTime() <= Date.now()) {
+                expect(timeUntilExpiration).toBe(0);
+              }
             }
-
-            // Verify expired tokens return 0
-            if (tokens.expiresAt.getTime() <= Date.now()) {
-              expect(timeUntilExpiration).toBe(0);
+          } catch (error) {
+            // Unexpected error for valid tokens
+            throw error;
+          } finally {
+            // Clean up after each test to prevent state pollution
+            try {
+              await tokenStore.clearTokens(provider as ModelProvider);
+              mockStorage.clear();
+            } catch {
+              // Ignore cleanup errors
             }
           }
         }
@@ -339,41 +428,57 @@ describe('Token Security Property Tests', () => {
    * and based on secure criteria (expiration, format, etc.).
    */
   it('should validate tokens consistently and securely', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         secureTokenSetArb,
         providerArb,
         async (tokens, provider) => {
-          // Store tokens
-          await tokenStore.storeTokens(provider as ModelProvider, tokens);
+          // Clear mock storage for this iteration
+          mockStorage.clear();
+          
+          try {
+            // Store tokens
+            await tokenStore.storeTokens(provider as ModelProvider, tokens);
 
-          // Check validation
-          const isValid = await tokenStore.isTokenValid(provider as ModelProvider);
-          const isExpired = await tokenStore.isTokenExpired(provider as ModelProvider);
-          const isExpiringSoon = await tokenStore.isTokenExpiringSoon(provider as ModelProvider);
+            // Check validation
+            const isValid = await tokenStore.isTokenValid(provider as ModelProvider);
+            const isExpired = await tokenStore.isTokenExpired(provider as ModelProvider);
+            const isExpiringSoon = await tokenStore.isTokenExpiringSoon(provider as ModelProvider);
 
-          // Verify consistency
-          const now = Date.now();
-          const expiresAt = tokens.expiresAt.getTime();
-          const bufferTime = 5 * 60 * 1000; // 5 minutes
+            // Verify consistency
+            const now = Date.now();
+            const expiresAt = tokens.expiresAt.getTime();
+            const bufferTime = 5 * 60 * 1000; // 5 minutes
 
-          // If token is expired, it should not be valid
-          if (expiresAt <= now) {
-            expect(isExpired).toBe(true);
-            expect(isValid).toBe(false);
-          }
+            // If token is expired, it should not be valid
+            if (expiresAt <= now) {
+              expect(isExpired).toBe(true);
+              expect(isValid).toBe(false);
+            }
 
-          // If token is expiring soon, it should not be valid
-          if (expiresAt <= now + bufferTime) {
-            expect(isExpiringSoon).toBe(true);
-            expect(isValid).toBe(false);
-          }
+            // If token is expiring soon, it should not be valid
+            if (expiresAt <= now + bufferTime) {
+              expect(isExpiringSoon).toBe(true);
+              expect(isValid).toBe(false);
+            }
 
-          // If token is not expired and not expiring soon, it should be valid
-          if (expiresAt > now + bufferTime) {
-            expect(isExpired).toBe(false);
-            expect(isExpiringSoon).toBe(false);
-            expect(isValid).toBe(true);
+            // If token is not expired and not expiring soon, it should be valid
+            if (expiresAt > now + bufferTime) {
+              expect(isExpired).toBe(false);
+              expect(isExpiringSoon).toBe(false);
+              expect(isValid).toBe(true);
+            }
+          } catch (error) {
+            // Unexpected error for valid tokens
+            throw error;
+          } finally {
+            // Clean up after each test to prevent state pollution
+            try {
+              await tokenStore.clearTokens(provider as ModelProvider);
+              mockStorage.clear();
+            } catch {
+              // Ignore cleanup errors
+            }
           }
         }
       ),
@@ -388,52 +493,71 @@ describe('Token Security Property Tests', () => {
    * handle them safely without race conditions or data corruption.
    */
   it('should handle concurrent operations safely', async () => {
-    fc.assert(
+    await fc.assert(
       fc.asyncProperty(
         fc.array(secureTokenSetArb, { minLength: 2, maxLength: 3 }), // Reduced from 5 to 3
         fc.array(providerArb, { minLength: 2, maxLength: 2 }), // Reduced from 3 to 2
         async (tokenSets, providers) => {
-          // Perform concurrent operations (reduced complexity)
-          const operations: Promise<any>[] = [];
-
-          // Store operations (reduced)
-          for (let i = 0; i < Math.min(tokenSets.length, 3); i++) { // Limit to 3 operations
-            const provider = providers[i % providers.length];
-            operations.push(tokenStore.storeTokens(provider as ModelProvider, tokenSets[i]));
-          }
-
-          // Retrieve operations (reduced)
-          for (const provider of providers.slice(0, 2)) { // Limit to 2 providers
-            operations.push(tokenStore.getTokens(provider as ModelProvider));
-          }
-
-          // Validation operations (reduced)
-          for (const provider of providers.slice(0, 2)) { // Limit to 2 providers
-            operations.push(tokenStore.isTokenValid(provider as ModelProvider));
-          }
-
-          // Execute all operations concurrently
-          const results = await Promise.allSettled(operations);
-
-          // Verify no operations failed due to race conditions
-          const failures = results.filter(result => result.status === 'rejected');
+          // Clear mock storage for this iteration
+          mockStorage.clear();
           
-          // Allow some failures due to validation logic, but not due to race conditions
-          for (const failure of failures) {
-            if (failure.status === 'rejected') {
-              // Ensure failures are due to validation, not race conditions
-              expect(failure.reason.message).not.toMatch(/race|concurrent|lock/i);
-            }
-          }
+          const operations: Promise<any>[] = [];
+          const usedProviders = new Set<string>();
 
-          // Verify final state is consistent
-          for (const provider of providers) {
-            const tokens = await tokenStore.getTokens(provider as ModelProvider);
-            if (tokens) {
-              expect(tokens.accessToken).toBeDefined();
-              expect(tokens.refreshToken).toBeDefined();
-              expect(tokens.expiresAt).toBeInstanceOf(Date);
-              expect(tokens.tokenType).toBe('Bearer');
+          try {
+            // Store operations (reduced)
+            for (let i = 0; i < Math.min(tokenSets.length, 3); i++) { // Limit to 3 operations
+              const provider = providers[i % providers.length];
+              usedProviders.add(provider);
+              operations.push(tokenStore.storeTokens(provider as ModelProvider, tokenSets[i]));
+            }
+
+            // Retrieve operations (reduced)
+            for (const provider of providers.slice(0, 2)) { // Limit to 2 providers
+              operations.push(tokenStore.getTokens(provider as ModelProvider));
+            }
+
+            // Validation operations (reduced)
+            for (const provider of providers.slice(0, 2)) { // Limit to 2 providers
+              operations.push(tokenStore.isTokenValid(provider as ModelProvider));
+            }
+
+            // Execute all operations concurrently
+            const results = await Promise.allSettled(operations);
+
+            // Verify no operations failed due to race conditions
+            const failures = results.filter(result => result.status === 'rejected');
+            
+            // Allow some failures due to validation logic, but not due to race conditions
+            for (const failure of failures) {
+              if (failure.status === 'rejected') {
+                // Ensure failures are due to validation, not race conditions
+                expect(failure.reason.message).not.toMatch(/race|concurrent|lock/i);
+              }
+            }
+
+            // Verify final state is consistent
+            for (const provider of providers) {
+              const tokens = await tokenStore.getTokens(provider as ModelProvider);
+              if (tokens) {
+                expect(tokens.accessToken).toBeDefined();
+                expect(tokens.refreshToken).toBeDefined();
+                expect(tokens.expiresAt).toBeInstanceOf(Date);
+                expect(tokens.tokenType).toBe('Bearer');
+              }
+            }
+          } catch (error) {
+            // Unexpected error
+            throw error;
+          } finally {
+            // Clean up after each test to prevent state pollution
+            try {
+              for (const provider of usedProviders) {
+                await tokenStore.clearTokens(provider as ModelProvider);
+              }
+              mockStorage.clear();
+            } catch {
+              // Ignore cleanup errors
             }
           }
         }

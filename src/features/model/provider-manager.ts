@@ -10,6 +10,7 @@ import type { ModelConfig, ModelProvider, RateLimitConfig } from '../../shared/t
 import type { IModelAdapter, AdapterFactory } from './adapters/types.js';
 import { AdapterError, adapterFactories, createAdapter } from './adapters/types.js';
 import type { AuthenticationManager } from '../auth/authentication-manager.js';
+import { loadConfig, getAuthenticationConfig, isOAuthEnabled } from '../../config/index.js';
 import { logger } from '../../shared/utils/index.js';
 
 // =============================================================================
@@ -73,6 +74,7 @@ export interface ProviderManagerConfig {
   defaultRateLimit?: RateLimitConfig;
   enableHealthChecking?: boolean;
   authManager?: AuthenticationManager;
+  workspaceRoot?: string; // For OAuth configuration loading
 }
 
 // =============================================================================
@@ -114,6 +116,11 @@ export class ProviderManager {
     if (this.config.enableHealthChecking && this.config.healthCheckInterval && this.config.healthCheckInterval > 0) {
       this.startHealthChecking();
     }
+
+    // Initialize OAuth configurations from global config if workspace root is provided
+    if (config.workspaceRoot && this.authManager) {
+      this.initializeOAuthFromConfig(config.workspaceRoot);
+    }
   }
 
   // =============================================================================
@@ -130,6 +137,11 @@ export class ProviderManager {
     }
 
     this.providerConfigs.set(config.provider, config);
+    
+    // Initialize OAuth configuration if available
+    if (this.authManager && this.config.workspaceRoot) {
+      this.updateProviderOAuthConfig(config.provider, this.config.workspaceRoot);
+    }
     
     // Initialize rate limit state
     if (config.rateLimit) {
@@ -168,8 +180,9 @@ export class ProviderManager {
       if (this.authManager) {
         try {
           const status = await this.authManager.getProviderAuthStatus(provider);
+          const config = this.authManager.getProviderConfig(provider);
           authStatus = {
-            method: status.currentMethod,
+            method: status.currentMethod !== 'none' ? status.currentMethod : (config?.preferredMethod || 'none'),
             authenticated: status.authenticated,
             needsRefresh: status.needsRefresh,
             expiresAt: status.expiresAt,
@@ -227,14 +240,38 @@ export class ProviderManager {
           continue;
         }
 
-        // Check authentication status if auth manager is available
+        // Enhanced authentication status check with OAuth priority
         if (this.authManager) {
           try {
             const authStatus = await this.authManager.getProviderAuthStatus(provider);
-            if (!authStatus.authenticated && !authStatus.hasApiKey) {
-              logger.warn(`[ProviderManager] Provider not authenticated and no API key: ${provider}`);
+            const supportsOAuth = this.supportsOAuth(provider);
+            
+            // If no authentication available and no way to authenticate, skip
+            if (!authStatus.authenticated && !authStatus.hasApiKey && !supportsOAuth) {
+              logger.warn(`[ProviderManager] No authentication method available for provider: ${provider}`);
               continue;
             }
+            
+            // If OAuth tokens need refresh, try to refresh them
+            if (authStatus.needsRefresh && authStatus.currentMethod === 'oauth') {
+              try {
+                logger.debug(`[ProviderManager] Refreshing OAuth tokens for provider: ${provider}`);
+                await this.authManager.ensureValidAuthentication(provider);
+              } catch (refreshError) {
+                logger.warn(`[ProviderManager] OAuth refresh failed for ${provider}, checking fallback:`, refreshError);
+                
+                // If refresh fails but API key is available, continue with API key
+                if (!authStatus.hasApiKey) {
+                  logger.warn(`[ProviderManager] No fallback authentication available for ${provider}`);
+                  continue;
+                }
+              }
+            }
+            
+            // Log authentication method being used
+            const finalAuthStatus = await this.authManager.getProviderAuthStatus(provider);
+            logger.debug(`[ProviderManager] Using ${finalAuthStatus.currentMethod} authentication for provider: ${provider}`);
+            
           } catch (error) {
             logger.warn(`[ProviderManager] Authentication check failed for ${provider}:`, error);
             continue;
@@ -282,10 +319,31 @@ export class ProviderManager {
       if (this.authManager) {
         try {
           const authStatus = await this.authManager.getProviderAuthStatus(provider);
-          if (!authStatus.authenticated && !authStatus.hasApiKey) {
+          
+          // If OAuth tokens need refresh, try to refresh them
+          if (authStatus.needsRefresh && authStatus.currentMethod === 'oauth') {
+            try {
+              await this.authManager.ensureValidAuthentication(provider);
+              logger.debug(`[ProviderManager] OAuth tokens refreshed for provider: ${provider}`);
+            } catch (refreshError) {
+              logger.warn(`[ProviderManager] OAuth refresh failed for ${provider}:`, refreshError);
+              
+              // If refresh fails but API key is available, that's still valid
+              if (!authStatus.hasApiKey) {
+                this.updateProviderHealth(provider, false, 'OAuth refresh failed and no API key fallback');
+                return false;
+              }
+            }
+          }
+          
+          // Check if any authentication is available or possible
+          const finalAuthStatus = await this.authManager.getProviderAuthStatus(provider);
+          const supportsOAuth = this.supportsOAuth(provider);
+          if (!finalAuthStatus.authenticated && !finalAuthStatus.hasApiKey && !supportsOAuth) {
             this.updateProviderHealth(provider, false, 'No authentication available');
             return false;
           }
+          
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Authentication check failed';
           this.updateProviderHealth(provider, false, errorMessage);
@@ -293,7 +351,7 @@ export class ProviderManager {
         }
       }
 
-      // Create adapter with authentication manager
+      // Create adapter with authentication manager to test configuration
       const adapter = createAdapter(config, this.authManager);
       adapter.validateConfig();
       
@@ -502,8 +560,55 @@ export class ProviderManager {
     
     logger.debug(`[ProviderManager] Performing health checks for ${providers.length} providers`);
     
-    const healthChecks = providers.map(provider => this.validateProvider(provider));
+    const healthChecks = providers.map(provider => this.performProviderHealthCheck(provider));
     await Promise.allSettled(healthChecks);
+  }
+
+  /**
+   * Perform comprehensive health check including OAuth status.
+   */
+  private async performProviderHealthCheck(provider: ModelProvider): Promise<void> {
+    try {
+      // Check basic provider validation
+      const isValid = await this.validateProvider(provider);
+      
+      // Check OAuth authentication status if auth manager is available
+      if (this.authManager && isValid) {
+        try {
+          const authStatus = await this.authManager.getProviderAuthStatus(provider);
+          
+          // If OAuth tokens are expiring soon, try to refresh them
+          if (authStatus.needsRefresh && authStatus.currentMethod === 'oauth') {
+            logger.info(`[ProviderManager] Refreshing OAuth tokens for provider: ${provider}`);
+            await this.authManager.ensureValidAuthentication(provider);
+          }
+          
+          // Update health status based on authentication
+          if (!authStatus.authenticated && !authStatus.hasApiKey) {
+            this.updateProviderHealth(provider, false, 'No valid authentication available');
+            return;
+          }
+          
+          // If we reach here, provider is healthy with valid authentication
+          this.updateProviderHealth(provider, true, null);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'OAuth health check failed';
+          logger.warn(`[ProviderManager] OAuth health check failed for ${provider}:`, error);
+          
+          // Don't mark as unhealthy if API key fallback is available
+          const config = this.providerConfigs.get(provider);
+          if (config?.apiKey) {
+            logger.debug(`[ProviderManager] OAuth failed but API key available for ${provider}`);
+            this.updateProviderHealth(provider, true, null);
+          } else {
+            this.updateProviderHealth(provider, false, errorMessage);
+          }
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Health check failed';
+      this.updateProviderHealth(provider, false, errorMessage);
+    }
   }
 
   /**
@@ -523,6 +628,13 @@ export class ProviderManager {
   setAuthenticationManager(authManager: AuthenticationManager): void {
     (this as any).authManager = authManager;
     logger.info('[ProviderManager] Authentication manager configured');
+  }
+
+  /**
+   * Get the current authentication manager.
+   */
+  getAuthenticationManager(): AuthenticationManager | undefined {
+    return this.authManager;
   }
 
   /**
@@ -601,6 +713,138 @@ export class ProviderManager {
     return availableMethods.includes('oauth');
   }
 
+  /**
+   * Get OAuth support status for all registered providers.
+   */
+  getOAuthSupportStatus(): Array<{
+    provider: ModelProvider;
+    supportsOAuth: boolean;
+    hasApiKeyFallback: boolean;
+    preferredMethod: 'oauth' | 'api_key' | 'none';
+  }> {
+    if (!this.authManager) {
+      return Array.from(this.providerConfigs.keys()).map(provider => ({
+        provider,
+        supportsOAuth: false,
+        hasApiKeyFallback: false,
+        preferredMethod: 'none' as const,
+      }));
+    }
+
+    return Array.from(this.providerConfigs.keys()).map(provider => {
+      const availableMethods = this.authManager!.getAvailableAuthMethods(provider);
+      const config = this.authManager!.getProviderConfig(provider);
+      
+      return {
+        provider,
+        supportsOAuth: availableMethods.includes('oauth'),
+        hasApiKeyFallback: availableMethods.includes('api_key'),
+        preferredMethod: config?.preferredMethod || 'none',
+      };
+    });
+  }
+
+  // =============================================================================
+  // OAUTH CONFIGURATION INTEGRATION
+  // =============================================================================
+
+  /**
+   * Initialize OAuth configurations from global config.
+   */
+  initializeOAuthFromConfig(workspaceRoot: string): void {
+    if (!this.authManager) {
+      logger.warn('[ProviderManager] No authentication manager available for OAuth initialization');
+      return;
+    }
+
+    try {
+      const config = loadConfig(workspaceRoot);
+      const providersInConfig = config.global.providers?.providers || [];
+
+      for (const p of providersInConfig) {
+        const provider = p.name as ModelProvider;
+        const authConfig = getAuthenticationConfig(provider, config);
+        
+        if (authConfig.hasOAuth || authConfig.hasApiKey) {
+          // Configure authentication manager with provider settings
+          this.authManager.configureProvider(provider, {
+            preferredMethod: authConfig.preferredMethod,
+            oauthEnabled: authConfig.oauthEnabled,
+            apiKey: authConfig.hasApiKey ? 'configured' : undefined, // Don't expose actual key
+            enableFallback: authConfig.hasApiKey && authConfig.hasOAuth, // Enable fallback if both are available
+          });
+
+          logger.info(`[ProviderManager] Configured authentication for ${provider}: OAuth=${authConfig.oauthEnabled}, API Key=${authConfig.hasApiKey}, Preferred=${authConfig.preferredMethod}`);
+        }
+      }
+    } catch (error) {
+      logger.error('[ProviderManager] Failed to initialize OAuth from config:', error);
+    }
+  }
+
+  /**
+   * Update OAuth configuration for a specific provider.
+   */
+  updateProviderOAuthConfig(provider: ModelProvider, workspaceRoot: string): void {
+    if (!this.authManager) {
+      logger.warn(`[ProviderManager] No authentication manager available for ${provider} OAuth update`);
+      return;
+    }
+
+    try {
+      const config = loadConfig(workspaceRoot);
+      const authConfig = getAuthenticationConfig(provider, config);
+      
+      if (authConfig.hasOAuth || authConfig.hasApiKey) {
+        this.authManager.configureProvider(provider, {
+          preferredMethod: authConfig.preferredMethod,
+          oauthEnabled: authConfig.oauthEnabled,
+          apiKey: authConfig.hasApiKey ? 'configured' : undefined,
+          enableFallback: authConfig.hasApiKey && authConfig.hasOAuth,
+        });
+
+        logger.info(`[ProviderManager] Updated authentication config for ${provider}`);
+      } else {
+        // Remove configuration if no authentication is available
+        this.authManager.removeProviderConfig(provider);
+        logger.info(`[ProviderManager] Removed authentication config for ${provider} (no auth methods available)`);
+      }
+    } catch (error) {
+      logger.error(`[ProviderManager] Failed to update OAuth config for ${provider}:`, error);
+    }
+  }
+
+  /**
+   * Get OAuth configuration status for all providers.
+   */
+  getOAuthConfigurationStatus(workspaceRoot: string): Array<{
+    provider: ModelProvider;
+    oauthEnabled: boolean;
+    hasApiKey: boolean;
+    preferredMethod: 'oauth' | 'api_key';
+    configurationValid: boolean;
+  }> {
+    try {
+      const config = loadConfig(workspaceRoot);
+      const providers = Array.from(this.providerConfigs.keys());
+
+      return providers.map(provider => {
+        const authConfig = getAuthenticationConfig(provider, config);
+        
+        return {
+          provider,
+          oauthEnabled: authConfig.oauthEnabled,
+          hasApiKey: authConfig.hasApiKey,
+          preferredMethod: authConfig.preferredMethod,
+          configurationValid: authConfig.hasApiKey || authConfig.oauthEnabled,
+        };
+      });
+    } catch (error) {
+      logger.error('[ProviderManager] Failed to get OAuth configuration status:', error);
+      return [];
+    }
+  }
+
   // =============================================================================
   // CLEANUP
   // =============================================================================
@@ -631,6 +875,21 @@ export class ProviderManager {
  */
 export function createProviderManager(config?: ProviderManagerConfig): ProviderManager {
   return new ProviderManager(config);
+}
+
+/**
+ * Create a provider manager with OAuth integration.
+ */
+export function createProviderManagerWithOAuth(
+  authManager: AuthenticationManager,
+  workspaceRoot: string,
+  config?: Omit<ProviderManagerConfig, 'authManager' | 'workspaceRoot'>
+): ProviderManager {
+  return new ProviderManager({
+    ...config,
+    authManager,
+    workspaceRoot,
+  });
 }
 
 /**
