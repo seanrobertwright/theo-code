@@ -815,18 +815,26 @@ function parseToolCallArguments(args: any): any {
   
   if (typeof args === 'string') {
     try {
-      return JSON.parse(args);
+      const parsed = JSON.parse(args);
+      // Ensure we always return an object, not primitives
+      if (typeof parsed === 'object' && parsed !== null) {
+        return parsed;
+      } else {
+        return { value: parsed };
+      }
     } catch (error) {
       logger.warn('[ResponseFormat] Failed to parse tool call arguments as JSON:', error);
+      // Preserve the original string as raw_input, even if it's whitespace
       return { raw_input: args };
     }
   }
   
-  if (typeof args === 'object') {
+  if (typeof args === 'object' && args !== null) {
     return args;
   }
   
-  return { raw_input: String(args) };
+  // For primitives, wrap them in an object
+  return { value: args };
 }
 
 // =============================================================================

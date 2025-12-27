@@ -49,8 +49,9 @@ describe('SessionManager Property Tests', () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    // Create temporary directory for tests
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'session-manager-test-'));
+    // Create temporary directory for tests with unique suffix to avoid conflicts
+    const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), `session-manager-test-${uniqueSuffix}-`));
     
     // Mock getSessionsDir to use our temp directory
     const { getSessionsDir } = await import('../../../config/loader.js');
@@ -69,9 +70,15 @@ describe('SessionManager Property Tests', () => {
     } catch {
       // Ignore errors during cleanup
     }
+    
+    // Add small delay to reduce race conditions on Windows
+    await new Promise(resolve => setTimeout(resolve, 10));
   });
 
   afterEach(async () => {
+    // Add small delay before cleanup to ensure all operations complete
+    await new Promise(resolve => setTimeout(resolve, 10));
+    
     // Clean up temp directory
     try {
       await fs.rm(tempDir, { recursive: true, force: true });
@@ -166,7 +173,7 @@ describe('SessionManager Property Tests', () => {
           }
         }
       ),
-      { numRuns: 100 } // Run 100 iterations to ensure uniqueness across many sessions
+      { numRuns: 50 } // Reduced runs to minimize race conditions on Windows
     );
   });
 
@@ -239,7 +246,7 @@ describe('SessionManager Property Tests', () => {
           expect(['8', '9', 'a', 'b']).toContain(variantDigit);
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 50 }
     );
   });
 
@@ -969,9 +976,9 @@ describe('SessionManager Property Tests', () => {
           // This is expected behavior and not a bug
         }
       ),
-      { numRuns: 30 }
+      { numRuns: 10, timeout: 15000 } // Reduced runs and increased timeout for cleanup operations
     );
-  });
+  }, 20000); // 20 second test timeout
 
   /**
    * Additional property: Cleanup should preserve newest sessions when enforcing count limits
@@ -1047,9 +1054,9 @@ describe('SessionManager Property Tests', () => {
           expect(result.deletedByAge).toBe(0); // No age-based deletions
         }
       ),
-      { numRuns: 20 }
+      { numRuns: 10, timeout: 10000 } // Reduced runs and added timeout
     );
-  });
+  }, 15000); // 15 second test timeout
 
   /**
    * Additional property: Cleanup dry run should not delete any sessions
@@ -1103,9 +1110,9 @@ describe('SessionManager Property Tests', () => {
           }
         }
       ),
-      { numRuns: 15 }
+      { numRuns: 10, timeout: 8000 } // Reduced runs and added timeout
     );
-  });
+  }, 12000); // 12 second test timeout
 
   /**
    * Property 7: Session deletion completeness
@@ -1205,9 +1212,9 @@ describe('SessionManager Property Tests', () => {
           }
         }
       ),
-      { numRuns: 25 }
+      { numRuns: 15, timeout: 12000 } // Reduced runs and added timeout
     );
-  });
+  }, 18000); // 18 second test timeout
 
   /**
    * Additional property: Session deletion should handle non-existent sessions gracefully

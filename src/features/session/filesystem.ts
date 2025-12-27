@@ -95,28 +95,55 @@ export async function atomicWriteFile(
   options: {
     createBackup?: boolean;
     encoding?: BufferEncoding;
+    maxRetries?: number;
+    retryDelayMs?: number;
   } = {}
 ): Promise<void> {
-  const { createBackup = true, encoding = 'utf8' } = options;
+  const { createBackup = true, encoding = 'utf8', maxRetries = 5, retryDelayMs = 50 } = options;
   
-  try {
-    // Ensure parent directory exists
-    const parentDir = path.dirname(filePath);
-    await fs.mkdir(parentDir, { recursive: true, mode: SESSION_DIR_MODE });
-    
-    // Create backup if file exists and backup is requested
-    if (createBackup && await fileExists(filePath)) {
-      const backupPath = `${filePath}${BACKUP_EXTENSION}`;
-      await fs.copyFile(filePath, backupPath);
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // Ensure parent directory exists
+      const parentDir = path.dirname(filePath);
+      await fs.mkdir(parentDir, { recursive: true, mode: SESSION_DIR_MODE });
+      
+      // Create backup if file exists and backup is requested
+      if (createBackup && await fileExists(filePath)) {
+        const backupPath = `${filePath}${BACKUP_EXTENSION}`;
+        await fs.copyFile(filePath, backupPath);
+      }
+      
+      // For simplicity in tests, write directly to the target file
+      // In production, this would use a proper atomic write with temp files
+      await fs.writeFile(filePath, data, { encoding, mode: SESSION_FILE_MODE });
+      
+      // Success - exit retry loop
+      return;
+      
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if this is a Windows file locking error that we should retry
+      const isRetryableError = error.code === 'EBUSY' || 
+                              error.code === 'ENOENT' || 
+                              error.code === 'EPERM' ||
+                              (error.message && error.message.includes('resource busy or locked'));
+      
+      if (isRetryableError && attempt < maxRetries) {
+        // Wait before retrying, with exponential backoff
+        const delay = retryDelayMs * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      // Not retryable or max retries exceeded
+      break;
     }
-    
-    // For simplicity in tests, write directly to the target file
-    // In production, this would use a proper atomic write with temp files
-    await fs.writeFile(filePath, data, { encoding, mode: SESSION_FILE_MODE });
-    
-  } catch (error: any) {
-    throw new Error(`Atomic write failed for ${filePath}: ${error.message}`);
   }
+  
+  throw new Error(`Atomic write failed for ${filePath} after ${maxRetries + 1} attempts: ${lastError?.message}`);
 }
 
 /**
@@ -132,35 +159,60 @@ export async function safeReadFile(
   options: {
     encoding?: BufferEncoding;
     maxSize?: number;
+    maxRetries?: number;
+    retryDelayMs?: number;
   } = {}
 ): Promise<string> {
-  const { encoding = 'utf8', maxSize = 10 * 1024 * 1024 } = options; // 10MB default limit
+  const { encoding = 'utf8', maxSize = 10 * 1024 * 1024, maxRetries = 3, retryDelayMs = 25 } = options; // 10MB default limit
   
-  try {
-    // Check file exists and get stats
-    const stats = await fs.stat(filePath);
-    
-    if (!stats.isFile()) {
-      throw new Error(`Path is not a file: ${filePath}`);
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // Check file exists and get stats
+      const stats = await fs.stat(filePath);
+      
+      if (!stats.isFile()) {
+        throw new Error(`Path is not a file: ${filePath}`);
+      }
+      
+      if (stats.size > maxSize) {
+        throw new Error(`File too large: ${stats.size} bytes (max: ${maxSize})`);
+      }
+      
+      // Validate permissions
+      await validateFilePermissions(filePath);
+      
+      // Read file
+      const data = await fs.readFile(filePath, encoding);
+      
+      return data;
+      
+    } catch (error: any) {
+      lastError = error;
+      
+      if (error.code === 'ENOENT') {
+        throw new Error(`File not found: ${filePath}`);
+      }
+      
+      // Check if this is a Windows file locking error that we should retry
+      const isRetryableError = error.code === 'EBUSY' || 
+                              error.code === 'EPERM' ||
+                              (error.message && error.message.includes('resource busy or locked'));
+      
+      if (isRetryableError && attempt < maxRetries) {
+        // Wait before retrying
+        const delay = retryDelayMs * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      // Not retryable or max retries exceeded
+      break;
     }
-    
-    if (stats.size > maxSize) {
-      throw new Error(`File too large: ${stats.size} bytes (max: ${maxSize})`);
-    }
-    
-    // Validate permissions
-    await validateFilePermissions(filePath);
-    
-    // Read file
-    const data = await fs.readFile(filePath, encoding);
-    
-    return data;
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      throw new Error(`File not found: ${filePath}`);
-    }
-    throw new Error(`Failed to read file ${filePath}: ${error.message}`);
   }
+  
+  throw new Error(`Failed to read file ${filePath} after ${maxRetries + 1} attempts: ${lastError?.message}`);
 }
 
 /**

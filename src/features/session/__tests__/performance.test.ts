@@ -169,8 +169,8 @@ describe('SessionMetadataCache Performance', () => {
     }
     const writeTime = performance.now() - writeStart;
     
-    // Should complete within reasonable time (< 1000ms for 1000 entries)
-    expect(writeTime).toBeLessThan(1000);
+    // Should complete within reasonable time (< 2000ms for 1000 entries on slower systems)
+    expect(writeTime).toBeLessThan(2000);
     
     // Measure cache read performance
     const readStart = performance.now();

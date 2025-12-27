@@ -28,7 +28,7 @@ describe('AST-Grep Tools', () => {
       const tool = createAstGrepTool();
       
       expect(tool.definition.name).toBe('ast_grep');
-      expect(tool.definition.description).toContain('AST pattern');
+      expect(tool.definition.description).toContain('Abstract Syntax Tree patterns');
       expect(tool.definition.parameters.required).toEqual(['pattern', 'language']);
     });
 

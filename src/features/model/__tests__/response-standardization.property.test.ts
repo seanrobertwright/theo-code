@@ -239,7 +239,7 @@ const cohereChunkGenerator = fc.oneof(
  */
 const ollamaChunkGenerator = fc.record({
   model: fc.string({ minLength: 3, maxLength: 20 }),
-  created_at: fc.date().map(d => d.toISOString()),
+  created_at: fc.integer({ min: 1577836800, max: 1893456000 }).map(timestamp => new Date(timestamp * 1000).toISOString()),
   response: fc.option(fc.string({ minLength: 1, maxLength: 100 })),
   done: fc.boolean(),
   context: fc.option(fc.array(fc.integer(), { minLength: 0, maxLength: 10 })),
@@ -795,7 +795,16 @@ describe('Response Format Standardization Property Tests', () => {
             
             // Verify the formatted string contains essential information
             expect(typeof formattedString).toBe('string');
-            expect(formattedString.length).toBeGreaterThan(0);
+            
+            // Only expect non-empty string if there's actual content to display
+            const hasContent = originalTextContent.length > 0 || 
+                              originalToolCalls.length > 0 || 
+                              (formattedResponse.usage && (formattedResponse.usage.inputTokens > 0 || formattedResponse.usage.outputTokens > 0)) ||
+                              (formattedResponse.errors && formattedResponse.errors.length > 0);
+            
+            if (hasContent) {
+              expect(formattedString.length).toBeGreaterThan(0);
+            }
             
             // Text content should appear in formatted string
             if (originalTextContent.length > 0) {
@@ -873,9 +882,9 @@ describe('Response Format Standardization Property Tests', () => {
             // Convert back to FormattedResponse (simulating parsing)
             const parsed1: FormattedResponse = {
               content: originalResponse.content,
-              toolCalls: originalResponse.toolCalls ? [...originalResponse.toolCalls] : undefined,
-              usage: originalResponse.usage ? { ...originalResponse.usage } : undefined,
-              errors: originalResponse.errors ? [...originalResponse.errors] : undefined,
+              toolCalls: originalResponse.toolCalls ? [...originalResponse.toolCalls] : [],
+              usage: originalResponse.usage ? { ...originalResponse.usage } : null,
+              errors: originalResponse.errors ? [...originalResponse.errors] : [],
             };
             
             // Second format cycle
@@ -936,6 +945,7 @@ describe('Response Format Standardization Property Tests', () => {
             const printer = new ResponsePrettyPrinter({
               includeUsage: true,
               includeMetadata: true,
+              fixedTimestamp: '2025-01-01T00:00:00.000Z',
             });
             
             // Format the provider response

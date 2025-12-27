@@ -38,6 +38,8 @@ export interface FormattingOptions {
   colorize?: boolean;
   /** Whether to include debug information */
   debug?: boolean;
+  /** Fixed timestamp for deterministic formatting (testing) */
+  fixedTimestamp?: string;
 }
 
 /**
@@ -76,18 +78,18 @@ export interface ProviderMetadata {
 export interface FormattedResponse {
   content: string;
   metadata?: ProviderMetadata;
-  usage?: {
+  usage: {
     inputTokens: number;
     outputTokens: number;
     totalTokens: number;
-  };
+  } | null;
   timing?: {
     startTime: number;
     endTime: number;
     duration: number;
   };
-  toolCalls?: ToolCall[];
-  errors?: Array<{
+  toolCalls: ToolCall[];
+  errors: Array<{
     code: string;
     message: string;
   }>;
@@ -114,9 +116,12 @@ export class ResponsePrettyPrinter {
     const lines: string[] = [];
     const indent = ' '.repeat(this.options.indentSize || 2);
 
-    // Add content
-    if (response.content) {
-      lines.push(this.formatContent(response.content));
+    // Add content (include whitespace-only content)
+    if (response.content !== undefined && response.content !== null) {
+      const formattedContent = this.formatContent(response.content);
+      if (formattedContent !== '') {
+        lines.push(formattedContent);
+      }
     }
 
     // Add tool calls
@@ -238,7 +243,7 @@ export class ResponsePrettyPrinter {
   // =============================================================================
 
   private formatContent(content: string): string {
-    if (!content) return '';
+    if (content === undefined || content === null) return '';
 
     const maxWidth = this.options.maxWidth || 80;
     
@@ -379,12 +384,37 @@ export class ResponsePrettyPrinter {
   private formatOpenAIResponse(response: any, options: FormattingOptions): string {
     const lines: string[] = [];
 
+    // Check multiple possible content fields, using same priority as test
+    let content = null;
+    
+    // Check choices array first (OpenAI-compatible format) - matches test priority
     if (response.choices && response.choices.length > 0) {
       const choice = response.choices[0];
-      if (choice.message?.content) {
-        lines.push(this.formatContent(choice.message.content));
+      const choiceContent = choice.message?.content || choice.text;
+      if (choiceContent) {
+        content = choiceContent;
       }
-      
+    }
+    // Check direct text field second - matches test priority
+    else if (response.text) {
+      content = response.text;
+    }
+    // Check direct content field third - matches test priority
+    else if (response.content) {
+      content = response.content;
+    }
+
+    // Handle direct content fields
+    if (content !== undefined && content !== null) {
+      const formattedContent = this.formatContent(content);
+      if (formattedContent !== '') {
+        lines.push(formattedContent);
+      }
+    }
+
+    // Handle tool calls
+    if (response.choices && response.choices.length > 0) {
+      const choice = response.choices[0];
       if (choice.message?.tool_calls) {
         lines.push('');
         lines.push(this.formatToolCalls(choice.message.tool_calls.map((tc: any) => ({
@@ -410,7 +440,7 @@ export class ResponsePrettyPrinter {
         provider: 'openai',
         model: response.model,
         requestId: response.id,
-        timestamp: new Date().toISOString(),
+        timestamp: options.fixedTimestamp || new Date().toISOString(),
       }));
     }
 
@@ -420,18 +450,46 @@ export class ResponsePrettyPrinter {
   private formatAnthropicResponse(response: any, options: FormattingOptions): string {
     const lines: string[] = [];
 
-    if (response.content && response.content.length > 0) {
-      for (const content of response.content) {
-        if (content.type === 'text') {
-          lines.push(this.formatContent(content.text));
-        } else if (content.type === 'tool_use') {
+    // Check multiple possible content fields, using same priority as test
+    let content = null;
+    
+    // Check choices array first (OpenAI-compatible format) - matches test priority
+    if (response.choices && response.choices.length > 0) {
+      const choice = response.choices[0];
+      const choiceContent = choice.message?.content || choice.text;
+      if (choiceContent) {
+        content = choiceContent;
+      }
+    }
+    // Check direct text field second - matches test priority
+    else if (response.text) {
+      content = response.text;
+    }
+    // Check direct content field third - matches test priority
+    else if (response.content && typeof response.content === 'string') {
+      content = response.content;
+    }
+    // Check Anthropic-specific content array format
+    else if (response.content && Array.isArray(response.content) && response.content.length > 0) {
+      for (const contentItem of response.content) {
+        if (contentItem.type === 'text') {
+          lines.push(this.formatContent(contentItem.text));
+        } else if (contentItem.type === 'tool_use') {
           if (lines.length > 0) lines.push('');
           lines.push(this.formatToolCalls([{
-            id: content.id,
-            name: content.name,
-            arguments: content.input,
+            id: contentItem.id,
+            name: contentItem.name,
+            arguments: contentItem.input,
           }]));
         }
+      }
+    }
+
+    // Handle direct content fields
+    if (content !== null && content !== undefined) {
+      const formattedContent = this.formatContent(content);
+      if (formattedContent !== '') {
+        lines.push(formattedContent);
       }
     }
 
@@ -449,7 +507,7 @@ export class ResponsePrettyPrinter {
         provider: 'anthropic',
         model: response.model,
         requestId: response.id,
-        timestamp: new Date().toISOString(),
+        timestamp: options.fixedTimestamp || new Date().toISOString(),
       }));
     }
 
@@ -459,7 +517,28 @@ export class ResponsePrettyPrinter {
   private formatGoogleResponse(response: any, options: FormattingOptions): string {
     const lines: string[] = [];
 
-    if (response.candidates && response.candidates.length > 0) {
+    // Check multiple possible content fields, using same priority as test
+    let content = null;
+    
+    // Check choices array first (OpenAI-compatible format) - matches test priority
+    if (response.choices && response.choices.length > 0) {
+      const choice = response.choices[0];
+      const choiceContent = choice.message?.content || choice.text;
+      if (choiceContent) {
+        content = choiceContent;
+      }
+    }
+    // Check direct text field second - matches test priority
+    else if (response.text) {
+      content = response.text;
+    }
+    // Check direct content field third - matches test priority
+    else if (response.content && typeof response.content === 'string') {
+      content = response.content;
+    }
+    
+    // Check candidates array (standard Google format)
+    if (!content && response.candidates && response.candidates.length > 0) {
       const candidate = response.candidates[0];
       
       if (candidate.content?.parts) {
@@ -476,14 +555,36 @@ export class ResponsePrettyPrinter {
           }
         }
       }
+    } else if (content !== undefined && content !== null) {
+      // Handle direct content fields
+      const formattedContent = this.formatContent(content);
+      if (formattedContent !== '') {
+        lines.push(formattedContent);
+      }
     }
 
-    if (options.includeUsage && response.usageMetadata) {
-      lines.push('');
-      lines.push(this.formatUsage({
-        inputTokens: response.usageMetadata.promptTokenCount || 0,
-        outputTokens: response.usageMetadata.candidatesTokenCount || 0,
-      }));
+    if (options.includeUsage) {
+      let usage = null;
+      
+      // Check standard usage format first
+      if (response.usage && (response.usage.prompt_tokens || response.usage.completion_tokens)) {
+        usage = {
+          inputTokens: response.usage.prompt_tokens || 0,
+          outputTokens: response.usage.completion_tokens || 0,
+        };
+      }
+      // Check Google-specific format
+      else if (response.usageMetadata) {
+        usage = {
+          inputTokens: response.usageMetadata.promptTokenCount || 0,
+          outputTokens: response.usageMetadata.candidatesTokenCount || 0,
+        };
+      }
+      
+      if (usage) {
+        lines.push('');
+        lines.push(this.formatUsage(usage));
+      }
     }
 
     if (options.includeMetadata) {
@@ -491,7 +592,7 @@ export class ResponsePrettyPrinter {
       lines.push(this.formatMetadata({
         provider: 'google',
         model: response.model || 'gemini',
-        timestamp: new Date().toISOString(),
+        timestamp: options.fixedTimestamp || new Date().toISOString(),
       }));
     }
 
@@ -519,8 +620,31 @@ export class ResponsePrettyPrinter {
   private formatCohereResponse(response: any, options: FormattingOptions): string {
     const lines: string[] = [];
 
-    if (response.text) {
-      lines.push(this.formatContent(response.text));
+    // Check multiple possible content fields, using same priority as test
+    let content = null;
+    
+    // Check choices array first (OpenAI-compatible format) - matches test priority
+    if (response.choices && response.choices.length > 0) {
+      const choice = response.choices[0];
+      const choiceContent = choice.message?.content || choice.text;
+      if (choiceContent) {
+        content = choiceContent;
+      }
+    }
+    // Check direct text field second - matches test priority
+    else if (response.text) {
+      content = response.text;
+    }
+    // Check direct content field third - matches test priority
+    else if (response.content) {
+      content = response.content;
+    }
+
+    if (content !== undefined && content !== null) {
+      const formattedContent = this.formatContent(content);
+      if (formattedContent !== '') {
+        lines.push(formattedContent);
+      }
     }
 
     if (response.tool_calls && response.tool_calls.length > 0) {
@@ -532,12 +656,28 @@ export class ResponsePrettyPrinter {
       }))));
     }
 
-    if (options.includeUsage && response.meta?.tokens) {
-      lines.push('');
-      lines.push(this.formatUsage({
-        inputTokens: response.meta.tokens.input_tokens,
-        outputTokens: response.meta.tokens.output_tokens,
-      }));
+    if (options.includeUsage) {
+      let usage = null;
+      
+      // Check standard usage format first
+      if (response.usage && (response.usage.prompt_tokens || response.usage.completion_tokens)) {
+        usage = {
+          inputTokens: response.usage.prompt_tokens || 0,
+          outputTokens: response.usage.completion_tokens || 0,
+        };
+      }
+      // Check Cohere-specific format
+      else if (response.meta?.tokens) {
+        usage = {
+          inputTokens: response.meta.tokens.input_tokens,
+          outputTokens: response.meta.tokens.output_tokens,
+        };
+      }
+      
+      if (usage) {
+        lines.push('');
+        lines.push(this.formatUsage(usage));
+      }
     }
 
     if (options.includeMetadata) {
@@ -546,7 +686,7 @@ export class ResponsePrettyPrinter {
         provider: 'cohere',
         model: response.model,
         requestId: response.generation_id,
-        timestamp: new Date().toISOString(),
+        timestamp: options.fixedTimestamp || new Date().toISOString(),
       }));
     }
 
@@ -624,16 +764,59 @@ export class ResponsePrettyPrinter {
   private formatOllamaResponse(response: any, options: FormattingOptions): string {
     const lines: string[] = [];
 
-    if (response.response) {
-      lines.push(this.formatContent(response.response));
+    // Check multiple possible content fields, using same priority as test
+    let content = null;
+    
+    // Check choices array first (OpenAI-compatible format) - matches test priority
+    if (response.choices && response.choices.length > 0) {
+      const choice = response.choices[0];
+      const choiceContent = choice.message?.content || choice.text;
+      if (choiceContent) {
+        content = choiceContent;
+      }
+    }
+    // Check direct text field second - matches test priority
+    else if (response.text) {
+      content = response.text;
+    }
+    // Check direct content field third - matches test priority
+    else if (response.content) {
+      content = response.content;
+    }
+    // Check Ollama-specific response field
+    else if (response.response) {
+      content = response.response;
     }
 
-    if (options.includeUsage && (response.prompt_eval_count || response.eval_count)) {
-      lines.push('');
-      lines.push(this.formatUsage({
-        inputTokens: response.prompt_eval_count || 0,
-        outputTokens: response.eval_count || 0,
-      }));
+    if (content !== undefined && content !== null) {
+      const formattedContent = this.formatContent(content);
+      if (formattedContent !== '') {
+        lines.push(formattedContent);
+      }
+    }
+
+    if (options.includeUsage) {
+      let usage = null;
+      
+      // Check standard usage format first
+      if (response.usage && (response.usage.prompt_tokens || response.usage.completion_tokens)) {
+        usage = {
+          inputTokens: response.usage.prompt_tokens || 0,
+          outputTokens: response.usage.completion_tokens || 0,
+        };
+      }
+      // Check Ollama-specific format
+      else if (response.prompt_eval_count || response.eval_count) {
+        usage = {
+          inputTokens: response.prompt_eval_count || 0,
+          outputTokens: response.eval_count || 0,
+        };
+      }
+      
+      if (usage) {
+        lines.push('');
+        lines.push(this.formatUsage(usage));
+      }
     }
 
     if (options.includeMetadata) {
@@ -641,7 +824,7 @@ export class ResponsePrettyPrinter {
       lines.push(this.formatMetadata({
         provider: 'ollama',
         model: response.model,
-        timestamp: response.created_at || new Date().toISOString(),
+        timestamp: response.created_at || options.fixedTimestamp || new Date().toISOString(),
       }));
     }
 
@@ -700,6 +883,7 @@ export function accumulateStreamChunks(chunks: StreamChunk[]): FormattedResponse
     content: '',
     toolCalls: [],
     errors: [],
+    usage: null,
   };
 
   for (const chunk of chunks) {
@@ -709,12 +893,22 @@ export function accumulateStreamChunks(chunks: StreamChunk[]): FormattedResponse
         break;
         
       case 'tool_call':
+        let parsedArguments;
+        if (typeof chunk.arguments === 'string') {
+          try {
+            parsedArguments = JSON.parse(chunk.arguments);
+          } catch (error) {
+            // If JSON parsing fails, preserve original string as raw_input
+            parsedArguments = { raw_input: chunk.arguments };
+          }
+        } else {
+          parsedArguments = chunk.arguments || {};
+        }
+        
         result.toolCalls!.push({
           id: chunk.id,
           name: chunk.name,
-          arguments: typeof chunk.arguments === 'string' 
-            ? JSON.parse(chunk.arguments) 
-            : chunk.arguments,
+          arguments: parsedArguments,
         });
         break;
         

@@ -325,7 +325,7 @@ export const createGitTools = (): Tool[] => [
           data: {
             message: commitMessage,
             output: result.trim(),
-            generated: autoGenerate && !message
+            generated: !message && autoGenerate
           }
         };
 
