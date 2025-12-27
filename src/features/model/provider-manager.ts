@@ -9,6 +9,7 @@
 import type { ModelConfig, ModelProvider, RateLimitConfig } from '../../shared/types/models.js';
 import type { IModelAdapter, AdapterFactory } from './adapters/types.js';
 import { AdapterError, adapterFactories, createAdapter } from './adapters/types.js';
+import type { AuthenticationManager } from '../auth/authentication-manager.js';
 import { logger } from '../../shared/utils/index.js';
 
 // =============================================================================
@@ -32,6 +33,13 @@ export interface ProviderInfo {
     multimodal: boolean;
     imageGeneration: boolean;
     reasoning: boolean;
+  };
+  // OAuth authentication status
+  authStatus?: {
+    method: 'oauth' | 'api_key' | 'none';
+    authenticated: boolean;
+    needsRefresh: boolean;
+    expiresAt?: Date;
   };
 }
 
@@ -64,6 +72,7 @@ export interface ProviderManagerConfig {
   healthCheckInterval?: number;
   defaultRateLimit?: RateLimitConfig;
   enableHealthChecking?: boolean;
+  authManager?: AuthenticationManager;
 }
 
 // =============================================================================
@@ -71,13 +80,14 @@ export interface ProviderManagerConfig {
 // =============================================================================
 
 /**
- * Manages multiple AI providers with fallback, health monitoring, and rate limiting.
+ * Manages multiple AI providers with fallback, health monitoring, rate limiting, and OAuth authentication.
  *
  * @example
  * ```typescript
  * const manager = new ProviderManager({
  *   fallbackChain: ['openai', 'anthropic', 'google'],
  *   healthCheckInterval: 300000, // 5 minutes
+ *   authManager: authenticationManager,
  * });
  *
  * const adapter = await manager.getAdapter(config);
@@ -88,6 +98,7 @@ export class ProviderManager {
   private readonly providerConfigs = new Map<ModelProvider, ModelConfig>();
   private readonly providerHealth = new Map<ModelProvider, ProviderHealth>();
   private readonly rateLimitStates = new Map<ModelProvider, RateLimitState>();
+  private readonly authManager?: AuthenticationManager;
   private healthCheckTimer: NodeJS.Timeout | null = null;
 
   constructor(config: ProviderManagerConfig = {}) {
@@ -97,6 +108,8 @@ export class ProviderManager {
       enableHealthChecking: true,
       ...config,
     };
+
+    this.authManager = config.authManager;
 
     if (this.config.enableHealthChecking && this.config.healthCheckInterval && this.config.healthCheckInterval > 0) {
       this.startHealthChecking();
@@ -144,11 +157,27 @@ export class ProviderManager {
   /**
    * Get all registered providers.
    */
-  getAvailableProviders(): ProviderInfo[] {
+  async getAvailableProviders(): Promise<ProviderInfo[]> {
     const providers: ProviderInfo[] = [];
 
     for (const [provider, config] of this.providerConfigs) {
       const health = this.providerHealth.get(provider);
+      
+      // Get OAuth authentication status if auth manager is available
+      let authStatus;
+      if (this.authManager) {
+        try {
+          const status = await this.authManager.getProviderAuthStatus(provider);
+          authStatus = {
+            method: status.currentMethod,
+            authenticated: status.authenticated,
+            needsRefresh: status.needsRefresh,
+            expiresAt: status.expiresAt,
+          };
+        } catch (error) {
+          logger.warn(`[ProviderManager] Failed to get auth status for ${provider}:`, error);
+        }
+      }
       
       providers.push({
         name: provider,
@@ -165,6 +194,7 @@ export class ProviderManager {
           imageGeneration: false,
           reasoning: false,
         },
+        authStatus,
       });
     }
 
@@ -197,8 +227,22 @@ export class ProviderManager {
           continue;
         }
 
-        // Create adapter
-        const adapter = createAdapter(providerConfig);
+        // Check authentication status if auth manager is available
+        if (this.authManager) {
+          try {
+            const authStatus = await this.authManager.getProviderAuthStatus(provider);
+            if (!authStatus.authenticated && !authStatus.hasApiKey) {
+              logger.warn(`[ProviderManager] Provider not authenticated and no API key: ${provider}`);
+              continue;
+            }
+          } catch (error) {
+            logger.warn(`[ProviderManager] Authentication check failed for ${provider}:`, error);
+            continue;
+          }
+        }
+
+        // Create adapter with authentication manager
+        const adapter = createAdapter(providerConfig, this.authManager);
         adapter.validateConfig();
 
         // Update rate limit state
@@ -234,11 +278,27 @@ export class ProviderManager {
     }
 
     try {
-      const adapter = createAdapter(config);
+      // Check authentication if auth manager is available
+      if (this.authManager) {
+        try {
+          const authStatus = await this.authManager.getProviderAuthStatus(provider);
+          if (!authStatus.authenticated && !authStatus.hasApiKey) {
+            this.updateProviderHealth(provider, false, 'No authentication available');
+            return false;
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Authentication check failed';
+          this.updateProviderHealth(provider, false, errorMessage);
+          return false;
+        }
+      }
+
+      // Create adapter with authentication manager
+      const adapter = createAdapter(config, this.authManager);
       adapter.validateConfig();
       
       // TODO: Add actual connectivity test
-      // For now, just validate configuration
+      // For now, just validate configuration and authentication
       
       this.updateProviderHealth(provider, true, null);
       return true;
@@ -454,6 +514,94 @@ export class ProviderManager {
   }
 
   // =============================================================================
+  // OAUTH AUTHENTICATION INTEGRATION
+  // =============================================================================
+
+  /**
+   * Set the authentication manager for OAuth support.
+   */
+  setAuthenticationManager(authManager: AuthenticationManager): void {
+    (this as any).authManager = authManager;
+    logger.info('[ProviderManager] Authentication manager configured');
+  }
+
+  /**
+   * Get authentication status for all providers.
+   */
+  async getAuthenticationStatus(): Promise<Array<{
+    provider: ModelProvider;
+    method: 'oauth' | 'api_key' | 'none';
+    authenticated: boolean;
+    needsRefresh: boolean;
+    expiresAt?: Date;
+  }>> {
+    if (!this.authManager) {
+      return [];
+    }
+
+    const providers = Array.from(this.providerConfigs.keys());
+    const statusPromises = providers.map(async (provider) => {
+      try {
+        const status = await this.authManager!.getProviderAuthStatus(provider);
+        return {
+          provider,
+          method: status.currentMethod,
+          authenticated: status.authenticated,
+          needsRefresh: status.needsRefresh,
+          expiresAt: status.expiresAt,
+        };
+      } catch (error) {
+        logger.warn(`[ProviderManager] Failed to get auth status for ${provider}:`, error);
+        return {
+          provider,
+          method: 'none' as const,
+          authenticated: false,
+          needsRefresh: false,
+        };
+      }
+    });
+
+    return await Promise.all(statusPromises);
+  }
+
+  /**
+   * Refresh authentication for providers that need it.
+   */
+  async refreshAuthentication(): Promise<void> {
+    if (!this.authManager) {
+      logger.warn('[ProviderManager] No authentication manager available for refresh');
+      return;
+    }
+
+    const providers = Array.from(this.providerConfigs.keys());
+    const refreshPromises = providers.map(async (provider) => {
+      try {
+        const status = await this.authManager!.getProviderAuthStatus(provider);
+        if (status.needsRefresh) {
+          logger.info(`[ProviderManager] Refreshing authentication for provider: ${provider}`);
+          await this.authManager!.ensureValidAuthentication(provider);
+        }
+      } catch (error) {
+        logger.error(`[ProviderManager] Failed to refresh authentication for ${provider}:`, error);
+      }
+    });
+
+    await Promise.allSettled(refreshPromises);
+  }
+
+  /**
+   * Check if OAuth is supported for a provider.
+   */
+  supportsOAuth(provider: ModelProvider): boolean {
+    if (!this.authManager) {
+      return false;
+    }
+
+    const availableMethods = this.authManager.getAvailableAuthMethods(provider);
+    return availableMethods.includes('oauth');
+  }
+
+  // =============================================================================
   // CLEANUP
   // =============================================================================
 
@@ -475,10 +623,18 @@ export class ProviderManager {
 }
 
 // =============================================================================
-// SINGLETON INSTANCE
+// FACTORY FUNCTION
 // =============================================================================
 
 /**
+ * Create a new provider manager instance.
+ */
+export function createProviderManager(config?: ProviderManagerConfig): ProviderManager {
+  return new ProviderManager(config);
+}
+
+/**
  * Global provider manager instance.
+ * Note: Use createProviderManager() for instances with authentication manager.
  */
 export const providerManager = new ProviderManager();

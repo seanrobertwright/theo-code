@@ -21,6 +21,7 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
+import type { AuthenticationManager } from '../auth/authentication-manager.js';
 import { logger } from '../../../shared/utils/index.js';
 
 // =============================================================================
@@ -495,7 +496,7 @@ class OpenRouterClient {
  *   provider: 'openrouter',
  *   model: 'anthropic/claude-3.5-sonnet',
  *   apiKey: process.env.OPENROUTER_API_KEY,
- * });
+ * }, authManager);
  *
  * for await (const chunk of adapter.generateStream(messages, tools)) {
  *   console.log(chunk);
@@ -510,27 +511,30 @@ export class OpenRouterAdapter implements IModelAdapter {
 
   private readonly client: OpenRouterClient;
   private readonly config: ModelConfig;
+  private readonly authManager?: AuthenticationManager;
   private modelInfo: OpenRouterModel | null = null;
 
   /**
    * Creates a new OpenRouter adapter.
    */
-  constructor(config: ModelConfig) {
+  constructor(config: ModelConfig, authManager?: AuthenticationManager) {
     this.config = config;
     this.model = config.model;
     this.contextLimit = config.contextLimit ?? DEFAULT_CONTEXT_LIMIT;
     this.supportsToolCalling = true; // Most OpenRouter models support tools
+    this.authManager = authManager;
 
+    // Get API key from config or environment, but don't require it if auth manager is provided
     const apiKey = config.apiKey ?? process.env['OPENROUTER_API_KEY'];
-    if (apiKey === undefined || apiKey === '') {
+    if (!apiKey && !authManager) {
       throw new AdapterError(
         'INVALID_CONFIG',
         'openrouter',
-        'API key is required. Set OPENROUTER_API_KEY environment variable or provide in config.'
+        'API key is required when no authentication manager is provided. Set OPENROUTER_API_KEY environment variable or provide in config.'
       );
     }
 
-    this.client = new OpenRouterClient(apiKey, config.baseUrl);
+    this.client = new OpenRouterClient(apiKey || 'placeholder', config.baseUrl); // Use placeholder if auth manager will provide credentials
   }
 
   /**
@@ -543,13 +547,62 @@ export class OpenRouterAdapter implements IModelAdapter {
   }
 
   /**
+   * Gets authentication credentials using OAuth or API key fallback.
+   */
+  private async getAuthCredentials(): Promise<string> {
+    if (this.authManager) {
+      try {
+        const authResult = await this.authManager.ensureValidAuthentication('openrouter');
+        if (authResult.success && authResult.credential) {
+          logger.debug(`[OpenRouter] Using ${authResult.method} authentication${authResult.usedFallback ? ' (fallback)' : ''}`);
+          return authResult.credential;
+        } else {
+          throw new AdapterError(
+            'AUTH_FAILED',
+            'openrouter',
+            authResult.error || 'Authentication failed'
+          );
+        }
+      } catch (error) {
+        logger.error('[OpenRouter] Authentication failed:', error);
+        throw new AdapterError(
+          'AUTH_FAILED',
+          'openrouter',
+          error instanceof Error ? error.message : 'Authentication failed'
+        );
+      }
+    }
+
+    // Fallback to config/environment API key
+    const apiKey = this.config.apiKey ?? process.env['OPENROUTER_API_KEY'];
+    if (!apiKey) {
+      throw new AdapterError(
+        'AUTH_FAILED',
+        'openrouter',
+        'No authentication available. Configure OAuth or provide API key.'
+      );
+    }
+
+    return apiKey;
+  }
+
+  /**
+   * Gets an authenticated OpenRouter client.
+   */
+  private async getAuthenticatedClient(): Promise<OpenRouterClient> {
+    const apiKey = await this.getAuthCredentials();
+    return new OpenRouterClient(apiKey, this.config.baseUrl);
+  }
+
+  /**
    * Loads model information from OpenRouter catalog.
    */
   async loadModelInfo(): Promise<void> {
     if (this.modelInfo !== null) return;
 
     try {
-      const models = await this.client.getModels();
+      const authenticatedClient = await this.getAuthenticatedClient();
+      const models = await authenticatedClient.getModels();
       this.modelInfo = models.find(m => m.id === this.model) ?? null;
       
       if (this.modelInfo) {
@@ -588,7 +641,10 @@ export class OpenRouterAdapter implements IModelAdapter {
     const openrouterTools = this.shouldIncludeTools(tools) ? convertTools(tools) : undefined;
 
     try {
-      const stream = await this.createStream(openrouterMessages, openrouterTools, options);
+      // Get authenticated client
+      const authenticatedClient = await this.getAuthenticatedClient();
+      
+      const stream = await this.createStream(authenticatedClient, openrouterMessages, openrouterTools, options);
       yield* this.processStream(stream);
     } catch (error) {
       yield handleApiError(error);
@@ -620,6 +676,7 @@ export class OpenRouterAdapter implements IModelAdapter {
    * Creates the OpenRouter streaming request.
    */
   private async createStream(
+    client: OpenRouterClient,
     messages: OpenRouterChatMessage[],
     tools: OpenRouterTool[] | undefined,
     options?: GenerateOptions
@@ -651,7 +708,7 @@ export class OpenRouterAdapter implements IModelAdapter {
 
     try {
       logger.debug('[OpenRouter] Making API call...');
-      const stream = await this.client.createChatCompletionStream(request);
+      const stream = await client.createChatCompletionStream(request);
       logger.debug('[OpenRouter] Stream created successfully');
       return stream;
     } catch (error) {
@@ -709,8 +766,8 @@ export class OpenRouterAdapter implements IModelAdapter {
 /**
  * Creates an OpenRouter adapter from configuration.
  */
-function createOpenRouterAdapter(config: ModelConfig): IModelAdapter {
-  return new OpenRouterAdapter(config);
+function createOpenRouterAdapter(config: ModelConfig, authManager?: AuthenticationManager): IModelAdapter {
+  return new OpenRouterAdapter(config, authManager);
 }
 
 // Register the OpenRouter adapter factory

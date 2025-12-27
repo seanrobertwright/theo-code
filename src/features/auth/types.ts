@@ -222,6 +222,22 @@ export interface IOAuthManager {
    * Check if a provider supports OAuth.
    */
   supportsOAuth(provider: ModelProvider): boolean;
+  
+  /**
+   * Ensure tokens are valid and refresh if needed.
+   * Should be called before making API calls.
+   */
+  ensureValidTokens(provider: ModelProvider): Promise<TokenSet>;
+  
+  /**
+   * Check if tokens need refresh (expired or expiring soon).
+   */
+  needsTokenRefresh(provider: ModelProvider): Promise<boolean>;
+  
+  /**
+   * Get time until token expiration in milliseconds.
+   */
+  getTimeUntilExpiration(provider: ModelProvider): Promise<number | null>;
 }
 
 /**

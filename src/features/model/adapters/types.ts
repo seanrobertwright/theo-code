@@ -17,6 +17,7 @@ import type {
   GenerateOptions,
   ModelConfig,
 } from '../../../shared/types/models.js';
+import type { AuthenticationManager } from '../auth/authentication-manager.js';
 
 // =============================================================================
 // ADAPTER INTERFACE
@@ -168,7 +169,7 @@ export class AdapterError extends Error {
 /**
  * Factory function type for creating model adapters.
  */
-export type AdapterFactory = (config: ModelConfig) => IModelAdapter;
+export type AdapterFactory = (config: ModelConfig, authManager?: AuthenticationManager) => IModelAdapter;
 
 /**
  * Registry of adapter factories by provider.
@@ -189,10 +190,11 @@ export function registerAdapter(provider: string, factory: AdapterFactory): void
  * Create an adapter for the given configuration.
  *
  * @param config - Model configuration
+ * @param authManager - Optional authentication manager for OAuth support
  * @returns Configured adapter instance
  * @throws {AdapterError} If provider is not supported
  */
-export function createAdapter(config: ModelConfig): IModelAdapter {
+export function createAdapter(config: ModelConfig, authManager?: AuthenticationManager): IModelAdapter {
   const factory = adapterFactories.get(config.provider);
   if (factory === undefined) {
     throw new AdapterError(
@@ -201,7 +203,7 @@ export function createAdapter(config: ModelConfig): IModelAdapter {
       `Unsupported provider: ${config.provider}. Available: ${[...adapterFactories.keys()].join(', ')}`
     );
   }
-  return factory(config);
+  return factory(config, authManager);
 }
 
 // =============================================================================

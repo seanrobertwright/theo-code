@@ -83,6 +83,21 @@ export class OAuthManager implements IOAuthManager {
     return this.providerAdapters.has(provider);
   }
 
+  /**
+   * Get all providers that support OAuth.
+   */
+  getSupportedProviders(): ModelProvider[] {
+    return Array.from(this.providerAdapters.keys());
+  }
+
+  /**
+   * Get OAuth configuration for a provider.
+   */
+  getProviderOAuthConfig(provider: ModelProvider): any | null {
+    const adapter = this.providerAdapters.get(provider);
+    return adapter ? adapter.getOAuthConfig() : null;
+  }
+
   // =============================================================================
   // OAUTH FLOW ORCHESTRATION
   // =============================================================================
@@ -171,7 +186,8 @@ export class OAuthManager implements IOAuthManager {
       throw new Error('No active OAuth flow');
     }
 
-    if (state !== this.activeFlow.state) {
+    // Validate state parameter to prevent CSRF attacks
+    if (!this.validateState(state)) {
       throw new Error('Invalid state parameter - possible CSRF attack');
     }
 
@@ -179,6 +195,8 @@ export class OAuthManager implements IOAuthManager {
     if (!adapter) {
       throw new Error(`No adapter found for provider: ${this.activeFlow.provider}`);
     }
+
+    logger.debug(`[OAuthManager] Processing callback for provider: ${this.activeFlow.provider}`);
 
     // Exchange authorization code for tokens
     const tokens = await adapter.exchangeCodeForTokens(code, this.activeFlow.codeVerifier);
@@ -188,7 +206,102 @@ export class OAuthManager implements IOAuthManager {
       throw new Error('Invalid token format received from provider');
     }
 
+    logger.info(`[OAuthManager] Token exchange completed successfully for provider: ${this.activeFlow.provider}`);
     return tokens;
+  }
+
+  // =============================================================================
+  // AUTOMATIC TOKEN REFRESH
+  // =============================================================================
+
+  /**
+   * Ensure tokens are valid and refresh if needed.
+   * This method should be called before making API calls.
+   */
+  async ensureValidTokens(provider: ModelProvider): Promise<TokenSet> {
+    logger.debug(`[OAuthManager] Ensuring valid tokens for provider: ${provider}`);
+
+    const adapter = this.providerAdapters.get(provider);
+    if (!adapter) {
+      throw new Error(`OAuth not supported for provider: ${provider}`);
+    }
+
+    // Get current tokens
+    const currentTokens = await this.tokenStore.getTokens(provider);
+    if (!currentTokens) {
+      throw new Error(`No tokens available for provider: ${provider}. Please authenticate first.`);
+    }
+
+    // Check if tokens are still valid (not expired and not expiring soon)
+    const isValid = await this.tokenStore.isTokenValid(provider);
+    if (isValid) {
+      logger.debug(`[OAuthManager] Tokens are still valid for provider: ${provider}`);
+      return currentTokens;
+    }
+
+    // Tokens are expired or expiring soon, attempt refresh
+    logger.info(`[OAuthManager] Tokens expired or expiring soon for provider: ${provider}, attempting refresh`);
+    
+    if (!currentTokens.refreshToken) {
+      throw new Error(`No refresh token available for provider: ${provider}. Please re-authenticate.`);
+    }
+
+    try {
+      const refreshedTokens = await this.refreshTokens(provider);
+      logger.info(`[OAuthManager] Tokens refreshed successfully for provider: ${provider}`);
+      return refreshedTokens;
+    } catch (error) {
+      logger.error(`[OAuthManager] Token refresh failed for provider ${provider}:`, error);
+      
+      // Check if this is a refresh token expiration error
+      if (this.isRefreshTokenExpiredError(error)) {
+        // Clear expired tokens and require re-authentication
+        await this.tokenStore.clearTokens(provider);
+        throw new Error(`Refresh token expired for provider: ${provider}. Please re-authenticate.`);
+      }
+      
+      // For other errors (temporary failures), preserve tokens and re-throw
+      throw new Error(`Token refresh failed for provider: ${provider}. Please try again.`);
+    }
+  }
+
+  /**
+   * Check if tokens need refresh (expired or expiring soon).
+   */
+  async needsTokenRefresh(provider: ModelProvider): Promise<boolean> {
+    try {
+      const tokens = await this.tokenStore.getTokens(provider);
+      if (!tokens) {
+        return false; // No tokens to refresh
+      }
+
+      // Check if token is expired or expiring within 5 minutes
+      const now = Date.now();
+      const expiresAt = tokens.expiresAt.getTime();
+      const bufferTime = 5 * 60 * 1000; // 5 minutes in milliseconds
+      
+      return expiresAt <= now + bufferTime;
+    } catch (error) {
+      logger.error(`[OAuthManager] Error checking refresh need for provider ${provider}:`, error);
+      return true; // Assume refresh needed on error
+    }
+  }
+
+  /**
+   * Get time until token expiration in milliseconds.
+   */
+  async getTimeUntilExpiration(provider: ModelProvider): Promise<number | null> {
+    try {
+      const tokens = await this.tokenStore.getTokens(provider);
+      if (!tokens) {
+        return null;
+      }
+
+      return Math.max(0, tokens.expiresAt.getTime() - Date.now());
+    } catch (error) {
+      logger.error(`[OAuthManager] Error getting expiration time for provider ${provider}:`, error);
+      return null;
+    }
   }
 
   // =============================================================================
@@ -211,19 +324,63 @@ export class OAuthManager implements IOAuthManager {
       throw new Error(`No refresh token available for provider: ${provider}`);
     }
 
-    // Refresh tokens with provider
-    const newTokens = await adapter.refreshAccessToken(currentTokens.refreshToken);
-    
-    // Validate new tokens
-    if (!adapter.validateTokens(newTokens)) {
-      throw new Error('Invalid refreshed token format');
+    try {
+      // Refresh tokens with provider
+      const newTokens = await adapter.refreshAccessToken(currentTokens.refreshToken);
+      
+      // Validate new tokens
+      if (!adapter.validateTokens(newTokens)) {
+        throw new Error('Invalid refreshed token format');
+      }
+
+      // If no new refresh token provided, preserve the existing one
+      if (!newTokens.refreshToken && currentTokens.refreshToken) {
+        newTokens.refreshToken = currentTokens.refreshToken;
+        logger.debug(`[OAuthManager] Preserved existing refresh token for provider: ${provider}`);
+      }
+
+      // Store new tokens
+      await this.tokenStore.storeTokens(provider, newTokens);
+
+      logger.info(`[OAuthManager] Tokens refreshed successfully for provider: ${provider}`);
+      return newTokens;
+    } catch (error) {
+      logger.error(`[OAuthManager] Token refresh failed for provider ${provider}:`, error);
+      
+      // Check if this is a refresh token expiration error
+      if (this.isRefreshTokenExpiredError(error)) {
+        logger.warn(`[OAuthManager] Refresh token expired for provider: ${provider}`);
+        // Clear expired tokens to force re-authentication
+        await this.tokenStore.clearTokens(provider);
+        throw new Error(`Refresh token expired for provider: ${provider}. Please re-authenticate.`);
+      }
+      
+      // Re-throw other errors
+      throw error;
     }
+  }
 
-    // Store new tokens
-    await this.tokenStore.storeTokens(provider, newTokens);
-
-    logger.info(`[OAuthManager] Tokens refreshed successfully for provider: ${provider}`);
-    return newTokens;
+  /**
+   * Check if an error indicates refresh token expiration.
+   */
+  private isRefreshTokenExpiredError(error: any): boolean {
+    if (!error) return false;
+    
+    const errorMessage = error.message?.toLowerCase() || '';
+    const errorCode = error.code?.toLowerCase() || '';
+    
+    // Common refresh token expiration indicators
+    const expiredIndicators = [
+      'refresh_token_expired',
+      'invalid_grant',
+      'token_expired',
+      'refresh token expired',
+      'invalid refresh token',
+    ];
+    
+    return expiredIndicators.some(indicator => 
+      errorMessage.includes(indicator) || errorCode.includes(indicator)
+    );
   }
 
   /**
@@ -328,11 +485,34 @@ export class OAuthManager implements IOAuthManager {
   }
 
   /**
-   * Generate secure state parameter.
+   * Generate secure state parameter for OAuth flow.
+   * 
+   * The state parameter is used to prevent CSRF attacks by ensuring
+   * the callback matches the initiated flow.
    */
   private generateState(): string {
-    // Use the same secure random generation as PKCE
-    return this.pkceGenerator.generateCodeVerifier();
+    // Generate cryptographically secure random state
+    // Use the same secure random generation as PKCE for consistency
+    const state = this.pkceGenerator.generateCodeVerifier();
+    logger.debug(`[OAuthManager] Generated state parameter: ${state.substring(0, 8)}...`);
+    return state;
+  }
+
+  /**
+   * Validate state parameter against active flow.
+   */
+  private validateState(receivedState: string): boolean {
+    if (!this.activeFlow) {
+      logger.warn('[OAuthManager] No active flow to validate state against');
+      return false;
+    }
+
+    const isValid = receivedState === this.activeFlow.state;
+    if (!isValid) {
+      logger.error('[OAuthManager] State parameter validation failed - possible CSRF attack');
+    }
+
+    return isValid;
   }
 
   /**

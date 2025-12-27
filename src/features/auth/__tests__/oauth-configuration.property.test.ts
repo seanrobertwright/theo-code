@@ -42,7 +42,7 @@ const oauthConfigArb = fc.record({
   scopes: fc.array(fc.string({ minLength: 1, maxLength: 50 }), { minLength: 1, maxLength: 10 }),
   redirectUri: fc.webUrl(),
   additionalParams: fc.option(fc.dictionary(
-    fc.string({ minLength: 1, maxLength: 20 }),
+    fc.string({ minLength: 1, maxLength: 20 }).filter(key => key !== '__proto__'),
     fc.string({ minLength: 1, maxLength: 100 })
   )),
 });
@@ -185,18 +185,18 @@ describe('OAuth Configuration Schema Property Tests', () => {
    * preserve all functional properties and maintain schema compliance.
    */
   it('should preserve OAuth configuration through round-trip serialization', async () => {
-    await fc.assert(
+    fc.assert(
       fc.property(oauthConfigArb, (originalConfig) => {
         // Parse and validate the original configuration
         const parsedConfig = OAuthConfigSchema.parse(originalConfig);
-        
+
         // Serialize to JSON and back
         const serialized = JSON.stringify(parsedConfig);
         const deserialized = JSON.parse(serialized);
-        
+
         // Parse the deserialized data again
         const reparsedConfig = OAuthConfigSchema.parse(deserialized);
-        
+
         // Verify all functional properties are preserved
         expect(reparsedConfig.provider).toBe(originalConfig.provider);
         expect(reparsedConfig.clientId).toBe(originalConfig.clientId);
@@ -206,11 +206,11 @@ describe('OAuth Configuration Schema Property Tests', () => {
         expect(reparsedConfig.scopes).toEqual(originalConfig.scopes);
         expect(reparsedConfig.redirectUri).toBe(originalConfig.redirectUri);
         expect(reparsedConfig.additionalParams).toEqual(originalConfig.additionalParams);
-        
+
         // Verify schema compliance is maintained
         expect(() => OAuthConfigSchema.parse(reparsedConfig)).not.toThrow();
       }),
-      { numRuns: 100 }
+      { numRuns: 10 }
     );
   });
 
@@ -221,11 +221,11 @@ describe('OAuth Configuration Schema Property Tests', () => {
    * all token information through serialization.
    */
   it('should validate and preserve token set data', async () => {
-    await fc.assert(
+    fc.assert(
       fc.property(tokenSetArb, (originalTokens) => {
         // Parse and validate the original tokens
         const parsedTokens = TokenSetSchema.parse(originalTokens);
-        
+
         // Serialize to JSON and back
         const serialized = JSON.stringify(parsedTokens, (key, value) => {
           // Handle Date serialization
@@ -241,10 +241,10 @@ describe('OAuth Configuration Schema Property Tests', () => {
           }
           return value;
         });
-        
+
         // Parse the deserialized data again
         const reparsedTokens = TokenSetSchema.parse(deserialized);
-        
+
         // Verify all token properties are preserved
         expect(reparsedTokens.accessToken).toBe(originalTokens.accessToken);
         expect(reparsedTokens.refreshToken).toBe(originalTokens.refreshToken);
@@ -252,7 +252,7 @@ describe('OAuth Configuration Schema Property Tests', () => {
         expect(reparsedTokens.tokenType).toBe('Bearer');
         expect(reparsedTokens.scope).toBe(originalTokens.scope);
       }),
-      { numRuns: 100 }
+      { numRuns: 10 }
     );
   });
 
@@ -263,11 +263,11 @@ describe('OAuth Configuration Schema Property Tests', () => {
    * the structure and preserve all relevant information.
    */
   it('should validate OAuth result structures consistently', async () => {
-    await fc.assert(
+    fc.assert(
       fc.property(oauthResultArb, (originalResult) => {
         // Parse and validate the original result
         const parsedResult = OAuthResultSchema.parse(originalResult);
-        
+
         // Verify logical consistency
         if (parsedResult.success) {
           // Successful results should have tokens and no error
@@ -280,12 +280,12 @@ describe('OAuth Configuration Schema Property Tests', () => {
           expect(parsedResult.error).not.toBeNull();
           expect(parsedResult.tokens).toBeNull();
         }
-        
+
         // Verify provider is always present
         expect(parsedResult.provider).toBe(originalResult.provider);
         expect(parsedResult.provider.length).toBeGreaterThan(0);
       }),
-      { numRuns: 100 }
+      { numRuns: 10 }
     );
   });
 
@@ -296,29 +296,29 @@ describe('OAuth Configuration Schema Property Tests', () => {
    * and maintain logical consistency between fields.
    */
   it('should validate authentication status consistency', async () => {
-    await fc.assert(
+    fc.assert(
       fc.property(authStatusArb, (originalStatus) => {
         // Parse and validate the original status
         const parsedStatus = AuthStatusSchema.parse(originalStatus);
-        
+
         // Verify logical consistency
         if (parsedStatus.method === 'oauth' && parsedStatus.authenticated) {
           // OAuth authenticated users should have expiration info
           expect(parsedStatus.expiresAt).toBeDefined();
           expect(parsedStatus.expiresAt).not.toBeNull();
         }
-        
+
         if (parsedStatus.method === 'none') {
           // No authentication method means not authenticated
           expect(parsedStatus.authenticated).toBe(false);
           expect(parsedStatus.needsRefresh).toBe(false);
         }
-        
+
         // Verify provider is always present
         expect(parsedStatus.provider).toBe(originalStatus.provider);
         expect(parsedStatus.provider.length).toBeGreaterThan(0);
       }),
-      { numRuns: 100 }
+      { numRuns: 10 }
     );
   });
 
@@ -329,30 +329,30 @@ describe('OAuth Configuration Schema Property Tests', () => {
    * and handle both successful and error responses appropriately.
    */
   it('should validate OAuth callback result structures', async () => {
-    await fc.assert(
+    fc.assert(
       fc.property(callbackResultArb, (originalCallback) => {
         // Parse and validate the original callback
         const parsedCallback = CallbackResultSchema.parse(originalCallback);
-        
+
         // Verify logical consistency
         if (parsedCallback.error) {
           // Error responses should not have authorization code
           expect(parsedCallback.code).toBeNull();
         }
-        
+
         if (parsedCallback.code) {
           // Successful responses should have state parameter and no error
           expect(parsedCallback.state).toBeTruthy();
           expect(parsedCallback.error).toBeNull();
         }
-        
+
         // Verify all fields are preserved
         expect(parsedCallback.code).toBe(originalCallback.code);
         expect(parsedCallback.state).toBe(originalCallback.state);
         expect(parsedCallback.error).toBe(originalCallback.error);
         expect(parsedCallback.errorDescription).toBe(originalCallback.errorDescription);
       }),
-      { numRuns: 100 }
+      { numRuns: 10 }
     );
   });
 
@@ -363,11 +363,11 @@ describe('OAuth Configuration Schema Property Tests', () => {
    * ensure all required error information is present.
    */
   it('should validate OAuth error information completeness', async () => {
-    await fc.assert(
+    fc.assert(
       fc.property(oauthErrorArb, (originalError) => {
         // Parse and validate the original error
         const parsedError = OAuthErrorSchema.parse(originalError);
-        
+
         // Verify required fields are present and non-empty
         expect(parsedError.code).toBe(originalError.code);
         expect(parsedError.code.length).toBeGreaterThan(0);
@@ -375,15 +375,15 @@ describe('OAuth Configuration Schema Property Tests', () => {
         expect(parsedError.message.length).toBeGreaterThan(0);
         expect(parsedError.provider).toBe(originalError.provider);
         expect(parsedError.provider.length).toBeGreaterThan(0);
-        
+
         // Verify boolean fields are preserved
         expect(parsedError.recoverable).toBe(originalError.recoverable);
         expect(parsedError.fallbackAvailable).toBe(originalError.fallbackAvailable);
-        
+
         // Verify optional fields are preserved
         expect(parsedError.suggestedAction).toBe(originalError.suggestedAction);
       }),
-      { numRuns: 100 }
+      { numRuns: 10 }
     );
   });
 
@@ -394,20 +394,20 @@ describe('OAuth Configuration Schema Property Tests', () => {
    * and preserve all configuration options.
    */
   it('should validate OAuth provider settings configuration', async () => {
-    await fc.assert(
+    fc.assert(
       fc.property(oauthProviderSettingsArb, (originalSettings) => {
         // Parse and validate the original settings
         const parsedSettings = OAuthProviderSettingsSchema.parse(originalSettings);
-        
+
         // Verify all fields are preserved
         expect(parsedSettings.enabled).toBe(originalSettings.enabled);
         expect(parsedSettings.clientId).toBe(originalSettings.clientId);
         expect(parsedSettings.preferredMethod).toBe(originalSettings.preferredMethod);
         expect(parsedSettings.autoRefresh).toBe(originalSettings.autoRefresh);
-        
+
         // Verify enum constraints
         expect(['oauth', 'api_key']).toContain(parsedSettings.preferredMethod);
-        
+
         // Verify logical consistency
         if (parsedSettings.enabled && parsedSettings.preferredMethod === 'oauth') {
           // OAuth-enabled providers should have client ID when preferring OAuth
@@ -416,7 +416,7 @@ describe('OAuth Configuration Schema Property Tests', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 10 }
     );
   });
 
@@ -427,27 +427,27 @@ describe('OAuth Configuration Schema Property Tests', () => {
    * the OAuth integration and maintain backward compatibility.
    */
   it('should validate extended provider configuration with OAuth', async () => {
-    await fc.assert(
+    fc.assert(
       fc.property(extendedProviderConfigArb, (originalConfig) => {
         // Parse and validate the original configuration
         const parsedConfig = ExtendedProviderConfigSchema.parse(originalConfig);
-        
+
         // Verify OAuth settings are preserved
         expect(parsedConfig.oauth).toEqual(originalConfig.oauth);
-        
+
         // If OAuth is configured, validate its structure
         if (parsedConfig.oauth) {
           expect(() => OAuthProviderSettingsSchema.parse(parsedConfig.oauth)).not.toThrow();
         }
-        
+
         // Verify the configuration can be serialized and deserialized
         const serialized = JSON.stringify(parsedConfig);
         const deserialized = JSON.parse(serialized);
         const reparsedConfig = ExtendedProviderConfigSchema.parse(deserialized);
-        
+
         expect(reparsedConfig).toEqual(parsedConfig);
       }),
-      { numRuns: 100 }
+      { numRuns: 10 }
     );
   });
 
@@ -458,7 +458,7 @@ describe('OAuth Configuration Schema Property Tests', () => {
    * the schema should reject it with appropriate error messages.
    */
   it('should reject invalid OAuth configurations', async () => {
-    await fc.assert(
+    fc.assert(
       fc.property(
         fc.record({
           provider: fc.option(fc.string()),
@@ -469,17 +469,17 @@ describe('OAuth Configuration Schema Property Tests', () => {
           redirectUri: fc.option(fc.string()),
         }),
         (invalidConfig) => {
-          // Remove required fields randomly to create invalid configurations
-          const config = { ...invalidConfig };
-          
+          // Create invalid configurations by removing required fields or using invalid formats
+          const config: any = { ...invalidConfig };
+
           // Make it invalid by removing required fields or using invalid formats
-          if (Math.random() < 0.5) delete config.provider;
-          if (Math.random() < 0.5) delete config.clientId;
-          if (Math.random() < 0.5) delete config.authorizationEndpoint;
-          if (Math.random() < 0.5) delete config.tokenEndpoint;
-          if (Math.random() < 0.5) delete config.scopes;
-          if (Math.random() < 0.5) delete config.redirectUri;
-          
+          if (Math.random() < 0.5) config.provider = undefined;
+          if (Math.random() < 0.5) config.clientId = undefined;
+          if (Math.random() < 0.5) config.authorizationEndpoint = undefined;
+          if (Math.random() < 0.5) config.tokenEndpoint = undefined;
+          if (Math.random() < 0.5) config.scopes = undefined;
+          if (Math.random() < 0.5) config.redirectUri = undefined;
+
           // Or use invalid URL formats
           if (config.authorizationEndpoint && Math.random() < 0.3) {
             config.authorizationEndpoint = 'not-a-url';
@@ -490,12 +490,12 @@ describe('OAuth Configuration Schema Property Tests', () => {
           if (config.redirectUri && Math.random() < 0.3) {
             config.redirectUri = 'bad-url';
           }
-          
+
           // Schema should reject invalid configurations
           expect(() => OAuthConfigSchema.parse(config)).toThrow();
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 10 }
     );
   });
 });

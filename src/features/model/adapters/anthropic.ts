@@ -28,6 +28,7 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
+import type { AuthenticationManager } from '../auth/authentication-manager.js';
 import { logger } from '../../../shared/utils/index.js';
 
 // =============================================================================
@@ -317,7 +318,7 @@ async function countTokensWithAPI(_client: Anthropic, messages: Message[], _mode
  *   provider: 'anthropic',
  *   model: 'claude-3-5-sonnet-20241022',
  *   apiKey: process.env.ANTHROPIC_API_KEY,
- * });
+ * }, authManager);
  *
  * for await (const chunk of adapter.generateStream(messages, tools)) {
  *   console.log(chunk);
@@ -332,27 +333,30 @@ export class AnthropicAdapter implements IModelAdapter {
 
   private readonly client: Anthropic;
   private readonly config: ModelConfig;
+  private readonly authManager?: AuthenticationManager;
 
   /**
    * Creates a new Anthropic adapter.
    */
-  constructor(config: ModelConfig) {
+  constructor(config: ModelConfig, authManager?: AuthenticationManager) {
     this.config = config;
     this.model = config.model;
     this.contextLimit = config.contextLimit ?? MODEL_CONTEXT_LIMITS[config.model] ?? 200000;
     this.supportsToolCalling = TOOL_CALLING_MODELS.has(config.model);
+    this.authManager = authManager;
 
+    // Get API key from config or environment, but don't require it if auth manager is provided
     const apiKey = config.apiKey ?? process.env['ANTHROPIC_API_KEY'];
-    if (apiKey === undefined || apiKey === '') {
+    if (!apiKey && !authManager) {
       throw new AdapterError(
         'INVALID_CONFIG',
         'anthropic',
-        'API key is required. Set ANTHROPIC_API_KEY environment variable or provide in config.'
+        'API key is required when no authentication manager is provided. Set ANTHROPIC_API_KEY environment variable or provide in config.'
       );
     }
 
     this.client = new Anthropic({
-      apiKey,
+      apiKey: apiKey || 'placeholder', // Use placeholder if auth manager will provide credentials
       baseURL: config.baseUrl,
     });
   }
@@ -367,6 +371,46 @@ export class AnthropicAdapter implements IModelAdapter {
   }
 
   /**
+   * Gets authentication credentials using OAuth or API key fallback.
+   */
+  private async getAuthCredentials(): Promise<string> {
+    if (this.authManager) {
+      try {
+        const authResult = await this.authManager.ensureValidAuthentication('anthropic');
+        if (authResult.success && authResult.credential) {
+          logger.debug(`[Anthropic] Using ${authResult.method} authentication${authResult.usedFallback ? ' (fallback)' : ''}`);
+          return authResult.credential;
+        } else {
+          throw new AdapterError(
+            'AUTH_FAILED',
+            'anthropic',
+            authResult.error || 'Authentication failed'
+          );
+        }
+      } catch (error) {
+        logger.error('[Anthropic] Authentication failed:', error);
+        throw new AdapterError(
+          'AUTH_FAILED',
+          'anthropic',
+          error instanceof Error ? error.message : 'Authentication failed'
+        );
+      }
+    }
+
+    // Fallback to config/environment API key
+    const apiKey = this.config.apiKey ?? process.env['ANTHROPIC_API_KEY'];
+    if (!apiKey) {
+      throw new AdapterError(
+        'AUTH_FAILED',
+        'anthropic',
+        'No authentication available. Configure OAuth or provide API key.'
+      );
+    }
+
+    return apiKey;
+  }
+
+  /**
    * Generates a streaming response from Anthropic.
    */
   async *generateStream(
@@ -378,7 +422,16 @@ export class AnthropicAdapter implements IModelAdapter {
     const anthropicTools = this.shouldIncludeTools(tools) ? convertTools(tools) : undefined;
 
     try {
-      const stream = await this.createStream(anthropicMessages, system, anthropicTools, options);
+      // Get authentication credentials (OAuth or API key)
+      const apiKey = await this.getAuthCredentials();
+      
+      // Create a new client instance with the current credentials
+      const authenticatedClient = new Anthropic({
+        apiKey,
+        baseURL: this.config.baseUrl,
+      });
+
+      const stream = await this.createStream(authenticatedClient, anthropicMessages, system, anthropicTools, options);
       yield* this.processStream(stream);
     } catch (error) {
       yield handleApiError(error);
@@ -424,6 +477,7 @@ export class AnthropicAdapter implements IModelAdapter {
    * Creates the Anthropic streaming request.
    */
   private async createStream(
+    client: Anthropic,
     messages: MessageParam[],
     system: string | undefined,
     tools: Tool[] | undefined,
@@ -460,7 +514,7 @@ export class AnthropicAdapter implements IModelAdapter {
 
     try {
       logger.debug('[Anthropic] Making API call...');
-      const stream = await this.client.messages.create(requestParams);
+      const stream = await client.messages.create(requestParams);
       logger.debug('[Anthropic] Stream created successfully');
       return stream;
     } catch (error) {
@@ -606,8 +660,8 @@ export class AnthropicAdapter implements IModelAdapter {
 /**
  * Creates an Anthropic adapter from configuration.
  */
-function createAnthropicAdapter(config: ModelConfig): IModelAdapter {
-  return new AnthropicAdapter(config);
+function createAnthropicAdapter(config: ModelConfig, authManager?: AuthenticationManager): IModelAdapter {
+  return new AnthropicAdapter(config, authManager);
 }
 
 // Register the Anthropic adapter factory

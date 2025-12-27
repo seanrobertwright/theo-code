@@ -16,100 +16,100 @@ This implementation plan breaks down the OAuth authentication feature into discr
   - **Property 8: Configuration Round-Trip**
   - **Validates: Requirements 10.4**
 
-- [ ] 2. Implement PKCE generator and security utilities
-  - [ ] 2.1 Create PKCE code verifier and challenge generation
+- [-] 2. Implement PKCE generator and security utilities
+  - [x] 2.1 Create PKCE code verifier and challenge generation
     - Implement cryptographically secure random string generation
     - Add SHA256 hashing for code challenges
     - Add Base64URL encoding utilities
     - _Requirements: 1.2_
 
-  - [ ] 2.2 Write property test for PKCE parameter generation
+  - [x] 2.2 Write property test for PKCE parameter generation
     - **Property 1: PKCE Parameter Inclusion**
     - **Validates: Requirements 1.2**
 
-  - [ ] 2.3 Implement secure token storage using keychain
+  - [x] 2.3 Implement secure token storage using keychain
     - Add keytar dependency for system keychain access
     - Create encrypted token storage and retrieval methods
     - Implement token validation and expiration checking
     - _Requirements: 6.1, 6.6_
 
-  - [ ] 2.4 Write property test for secure token storage
+  - [x] 2.4 Write property test for secure token storage
     - **Property 3: Secure Token Storage**
     - **Validates: Requirements 6.1**
 
-- [ ] 3. Create OAuth callback server infrastructure
-  - [ ] 3.1 Implement temporary HTTP server for OAuth callbacks
+- [x] 3. Create OAuth callback server infrastructure
+  - [x] 3.1 Implement temporary HTTP server for OAuth callbacks
     - Create callback server with automatic port selection
     - Add timeout handling and graceful shutdown
     - Implement success/error page rendering
     - _Requirements: 1.1, 1.6_
 
-  - [ ] 3.2 Add browser launcher utility
+  - [x] 3.2 Add browser launcher utility
     - Implement cross-platform browser launching
     - Add error handling for browser launch failures
     - Create user-friendly fallback instructions
     - _Requirements: 1.3_
 
-  - [ ] 3.3 Write unit tests for callback server lifecycle
+  - [x] 3.3 Write unit tests for callback server lifecycle
     - Test server start/stop functionality
     - Test timeout handling
     - Test callback processing
     - _Requirements: 1.1, 1.6_
 
-- [ ] 4. Implement provider-specific OAuth adapters
-  - [ ] 4.1 Create Google OAuth adapter
+- [x] 4. Implement provider-specific OAuth adapters
+  - [x] 4.1 Create Google OAuth adapter
     - Implement Google OAuth 2.0 configuration
     - Add Google-specific token exchange logic
     - Handle Google API scopes and permissions
     - _Requirements: 4.1, 4.2, 4.3_
 
-  - [ ] 4.2 Create OpenRouter OAuth adapter
+  - [x] 4.2 Create OpenRouter OAuth adapter
     - Implement OpenRouter PKCE-based OAuth flow
     - Add OpenRouter-specific API key generation
     - Handle OpenRouter token format
     - _Requirements: 5.1, 5.2, 5.3_
 
-  - [ ] 4.3 Create placeholder adapters for Anthropic and OpenAI
+  - [x] 4.3 Create placeholder adapters for Anthropic and OpenAI
     - Create adapter structure for future OAuth support
     - Implement fallback to API key authentication
     - Add configuration for when OAuth becomes available
     - _Requirements: 2.1, 3.1_
 
-  - [ ] 4.4 Write property test for token exchange
+  - [x] 4.4 Write property test for token exchange
     - **Property 2: Token Exchange Completeness**
     - **Validates: Requirements 1.4**
 
-- [ ] 5. Checkpoint - Ensure OAuth adapters work independently
+- [x] 5. Checkpoint - Ensure OAuth adapters work independently
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Implement OAuth manager and flow orchestration
-  - [ ] 6.1 Create OAuth manager class
+- [-] 6. Implement OAuth manager and flow orchestration
+  - [x] 6.1 Create OAuth manager class
     - Implement OAuth flow initiation and coordination
     - Add state parameter generation and validation
     - Create provider-agnostic OAuth interface
     - _Requirements: 1.1, 1.4, 1.5_
 
-  - [ ] 6.2 Add automatic token refresh logic
+  - [x] 6.2 Add automatic token refresh logic
     - Implement token expiration checking
     - Add automatic refresh before API calls
     - Handle refresh token expiration scenarios
     - _Requirements: 6.2, 2.5_
 
-  - [ ] 6.3 Write property test for automatic token refresh
+  - [x] 6.3 Write property test for automatic token refresh
     - **Property 5: Automatic Token Refresh**
     - **Validates: Requirements 2.5, 6.2**
 
-  - [ ] 6.4 Implement authentication method priority and fallback
+  - [x] 6.4 Implement authentication method priority and fallback
     - Add OAuth priority over API key authentication
     - Implement fallback to API keys when OAuth fails
     - Create authentication method selection logic
     - _Requirements: 7.2, 7.3, 2.6_
 
-  - [ ] 6.5 Write property test for authentication priority
+  - [x] 6.5 Write property test for authentication priority
     - **Property 4: Authentication Method Priority**
     - **Validates: Requirements 2.4, 7.2**
 
-  - [ ] 6.6 Write property test for authentication fallback
+  - [x] 6.6 Write property test for authentication fallback
     - **Property 6: Authentication Fallback**
     - **Validates: Requirements 2.6, 7.3**
 

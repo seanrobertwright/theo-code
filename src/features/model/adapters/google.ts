@@ -41,6 +41,7 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
+import type { AuthenticationManager } from '../../auth/authentication-manager.js';
 import { logger } from '../../../shared/utils/index.js';
 
 // =============================================================================
@@ -722,7 +723,7 @@ function estimateTokens(messages: Message[]): number {
  *     thinkingLevel: 'high',
  *     thoughtSignatures: true,
  *   },
- * });
+ * }, authManager);
  *
  * for await (const chunk of adapter.generateStream(messages, tools)) {
  *   console.log(chunk);
@@ -739,27 +740,30 @@ export class GoogleAdapter implements IModelAdapter {
   private readonly generativeModel: GenerativeModel;
   private readonly config: GoogleModelConfig;
   private readonly tokenCountCache = new TokenCountCache();
+  private readonly authManager: AuthenticationManager | undefined;
   private thoughtSignature?: ThoughtSignature;
 
   /**
    * Creates a new Google adapter.
    */
-  constructor(config: GoogleModelConfig) {
+  constructor(config: GoogleModelConfig, authManager?: AuthenticationManager) {
     this.config = config;
     this.model = config.model;
     this.contextLimit = config.contextLimit ?? MODEL_CONTEXT_LIMITS[config.model] ?? 1000000;
     this.supportsToolCalling = FUNCTION_CALLING_MODELS.has(config.model);
+    this.authManager = authManager;
 
+    // Get API key from config or environment, but don't require it if auth manager is provided
     const apiKey = config.apiKey ?? process.env['GOOGLE_API_KEY'];
-    if (apiKey === undefined || apiKey === '') {
+    if (!apiKey && !authManager) {
       throw new AdapterError(
         'INVALID_CONFIG',
         'google',
-        'API key is required. Set GOOGLE_API_KEY environment variable or provide in config.'
+        'API key is required when no authentication manager is provided. Set GOOGLE_API_KEY environment variable or provide in config.'
       );
     }
 
-    this.client = new GoogleGenerativeAI(apiKey);
+    this.client = new GoogleGenerativeAI(apiKey || 'placeholder'); // Use placeholder if auth manager will provide credentials
     
     // Configure generation settings
     const generationConfig: GenerationConfig = {
@@ -830,6 +834,97 @@ export class GoogleAdapter implements IModelAdapter {
   }
 
   /**
+   * Gets authentication credentials using OAuth or API key fallback.
+   */
+  private async getAuthCredentials(): Promise<string> {
+    if (this.authManager) {
+      try {
+        const authResult = await this.authManager.ensureValidAuthentication('google');
+        if (authResult.success && authResult.credential) {
+          logger.debug(`[Google] Using ${authResult.method} authentication${authResult.usedFallback ? ' (fallback)' : ''}`);
+          return authResult.credential;
+        } else {
+          throw new AdapterError(
+            'AUTH_FAILED',
+            'google',
+            authResult.error || 'Authentication failed'
+          );
+        }
+      } catch (error) {
+        logger.error('[Google] Authentication failed:', error);
+        throw new AdapterError(
+          'AUTH_FAILED',
+          'google',
+          error instanceof Error ? error.message : 'Authentication failed'
+        );
+      }
+    }
+
+    // Fallback to config/environment API key
+    const apiKey = this.config.apiKey ?? process.env['GOOGLE_API_KEY'];
+    if (!apiKey) {
+      throw new AdapterError(
+        'AUTH_FAILED',
+        'google',
+        'No authentication available. Configure OAuth or provide API key.'
+      );
+    }
+
+    return apiKey;
+  }
+
+  /**
+   * Gets an authenticated generative model instance.
+   */
+  private async getAuthenticatedModel(): Promise<GenerativeModel> {
+    const apiKey = await this.getAuthCredentials();
+    
+    // Create a new client with current credentials
+    const authenticatedClient = new GoogleGenerativeAI(apiKey);
+    
+    // Configure generation settings
+    const generationConfig: GenerationConfig = {
+      temperature: 0.7,
+      maxOutputTokens: this.config.maxOutputTokens ?? 8192,
+    };
+
+    // Add Gemini 3.0 specific configuration
+    if (this.config.gemini?.thinkingLevel && THINKING_MODELS.has(this.config.model)) {
+      (generationConfig as any).thinkingLevel = this.config.gemini.thinkingLevel;
+    }
+
+    if (this.config.gemini?.mediaResolution) {
+      (generationConfig as any).mediaResolution = this.config.gemini.mediaResolution;
+    }
+
+    // Configure safety settings (permissive for coding assistant)
+    const safetySettings: SafetySetting[] = [
+      {
+        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+      },
+    ];
+
+    return authenticatedClient.getGenerativeModel({
+      model: this.config.model,
+      generationConfig,
+      safetySettings,
+    });
+  }
+
+  /**
    * Generates a streaming response from Google Gemini.
    */
   async *generateStream(
@@ -842,8 +937,11 @@ export class GoogleAdapter implements IModelAdapter {
     const geminiTools = this.shouldIncludeTools(tools) ? convertTools(tools) : undefined;
 
     try {
+      // Get authenticated model instance
+      const authenticatedModel = await this.getAuthenticatedModel();
+      
       const request = this.createRequest(geminiContents, geminiTools, options);
-      const stream = await this.generativeModel.generateContentStream(request);
+      const stream = await authenticatedModel.generateContentStream(request);
       yield* this.processStream(stream);
     } catch (error) {
       yield handleApiError(error);
@@ -2177,8 +2275,8 @@ export class GoogleAdapter implements IModelAdapter {
 /**
  * Creates a Google adapter from configuration.
  */
-function createGoogleAdapter(config: ModelConfig): IModelAdapter {
-  return new GoogleAdapter(config as GoogleModelConfig);
+function createGoogleAdapter(config: ModelConfig, authManager?: AuthenticationManager): IModelAdapter {
+  return new GoogleAdapter(config as GoogleModelConfig, authManager);
 }
 
 // Register the Google adapter factory
