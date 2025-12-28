@@ -29,9 +29,11 @@ import { detectAvailableSessions, restoreSessionOnStartup } from './features/ses
 import { createDefaultCommandRegistry } from './features/commands/index.js';
 import type { ModelConfig } from './shared/types/models.js';
 import type { SessionMetadata, SessionId } from './shared/types/index.js';
+import { logger } from './shared/utils/logger.js';
 
 // Import new layout components
 import { FullScreenLayout } from './shared/components/Layout/FullScreenLayout.js';
+import { LayoutErrorBoundary } from './shared/components/Layout/ErrorBoundary.js';
 import { ResponsiveLayoutContent } from './shared/components/Layout/ResponsiveLayoutContent.js';
 import { ConnectedProjectHeader } from './shared/components/Layout/ConnectedProjectHeader.js';
 import { ContextArea } from './shared/components/Layout/ContextArea.js';
@@ -464,21 +466,34 @@ Then restart theo-code.`,
   }
 
   return (
-    <FullScreenLayout
-      terminalWidth={terminalWidth}
-      terminalHeight={terminalHeight}
+    <LayoutErrorBoundary
+      onError={(error, errorInfo) => {
+        logger.error('Layout system error in App component', {
+          error: error.message,
+          stack: error.stack,
+          componentStack: errorInfo.componentStack,
+        });
+        
+        // Set error in store for potential recovery
+        setError(`Layout error: ${error.message}`);
+      }}
     >
-      <ResponsiveLayoutContent
-        messages={messages}
-        streamingText={streamingText}
-        isStreaming={isStreaming}
-        inputValue={inputValue}
-        onInputChange={setInputValue}
-        onInputSubmit={handleSubmit}
-        tasks={archonTasks}
+      <FullScreenLayout
         terminalWidth={terminalWidth}
         terminalHeight={terminalHeight}
-      />
-    </FullScreenLayout>
+      >
+        <ResponsiveLayoutContent
+          messages={messages}
+          streamingText={streamingText}
+          isStreaming={isStreaming}
+          inputValue={inputValue}
+          onInputChange={setInputValue}
+          onInputSubmit={handleSubmit}
+          tasks={archonTasks}
+          terminalWidth={terminalWidth}
+          terminalHeight={terminalHeight}
+        />
+      </FullScreenLayout>
+    </LayoutErrorBoundary>
   );
 };

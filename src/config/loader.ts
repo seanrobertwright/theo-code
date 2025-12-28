@@ -585,7 +585,7 @@ export function getApiKey(_provider: string, _config: MergedConfig): string | un
 
   // 3. Check provider-specific configuration
   const providers = config.global.providers?.providers;
-  if (providers && Array.isArray(providers) {
+  if (providers && Array.isArray(providers)) {
     const providerConfig = providers.find((_p: any) => p.name === provider);
     if (providerConfig?.apiKey) {
       return providerConfig.apiKey;
@@ -612,7 +612,7 @@ export function getApiKey(_provider: string, _config: MergedConfig): string | un
  */
 export function getOAuthConfig(_provider: string, _config: MergedConfig): OAuthProviderSettings | undefined {
   const providers = config.global.providers?.providers;
-  if (providers && Array.isArray(providers) {
+  if (providers && Array.isArray(providers)) {
     const providerConfig = providers.find((_p: any) => p.name === provider);
     return providerConfig?.oauth;
   }

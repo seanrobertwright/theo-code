@@ -1762,7 +1762,7 @@ export class SessionManager implements ISessionManager {
         throw new Error(`Session metadata not found for ${sessionId}`);
       }
       
-      const metadataToExport = metadata;
+      let metadataToExport = metadata;
       if (sanitize) {
         metadataToExport = this.sanitizeSessionMetadata(metadata, preserveWorkspacePaths, customSanitizationPatterns);
         warnings.push('Sensitive data was sanitized from export');

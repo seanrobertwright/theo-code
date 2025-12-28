@@ -275,7 +275,7 @@ export class SessionStorage implements ISessionStorage {
     
     // Verify checksum if present
     if (versionedSession.checksum && this.options.enableChecksum) {
-      if (!verifyChecksum(sessionData, versionedSession.checksum) {
+      if (!verifyChecksum(sessionData, versionedSession.checksum)) {
         throw new Error('Session data checksum verification failed');
       }
     }

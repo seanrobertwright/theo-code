@@ -20,6 +20,10 @@ import {
   calculateSectionDimensions,
   getResponsiveLayout,
 } from '../components/Layout/utils.js';
+import {
+  useDeepMemo,
+  useStableCallback,
+} from '../components/Layout/performance-optimizations.js';
 
 // =============================================================================
 // UI LAYOUT STORE INTERFACE
@@ -224,13 +228,13 @@ export const selectScrollPositions = (state: UILayoutStore) =>
 // =============================================================================
 
 /**
- * Hook for layout dimensions calculation.
+ * Hook for layout dimensions calculation with performance optimization.
  */
 export function useLayoutDimensions(terminalWidth: number, terminalHeight: number) {
   const contextAreaWidth = useUILayoutStore(selectContextAreaWidth);
   const layoutConfig = useUILayoutStore(selectLayoutConfig);
   
-  return React.useMemo(() => {
+  return useDeepMemo(() => {
     return calculateSectionDimensions(
       terminalWidth,
       terminalHeight,
@@ -241,16 +245,53 @@ export function useLayoutDimensions(terminalWidth: number, terminalHeight: numbe
 }
 
 /**
- * Hook for responsive layout information.
+ * Hook for responsive layout information with performance optimization.
  */
 export function useResponsiveLayout(terminalWidth: number, terminalHeight: number) {
   const layoutConfig = useUILayoutStore(selectLayoutConfig);
   
-  return React.useMemo(() => {
+  return useDeepMemo(() => {
     return getResponsiveLayout(
       terminalWidth,
       terminalHeight,
       layoutConfig.responsiveBreakpoints
     );
   }, [terminalWidth, terminalHeight, layoutConfig.responsiveBreakpoints]);
+}
+
+/**
+ * Performance-optimized hook for stable layout actions.
+ */
+export function useLayoutActions() {
+  const setContextAreaWidth = useUILayoutStore((state) => state.setContextAreaWidth);
+  const toggleTaskSidebar = useUILayoutStore((state) => state.toggleTaskSidebar);
+  const setTaskSidebarCollapsed = useUILayoutStore((state) => state.setTaskSidebarCollapsed);
+  const setContextScrollPosition = useUILayoutStore((state) => state.setContextScrollPosition);
+  const setTaskScrollPosition = useUILayoutStore((state) => state.setTaskScrollPosition);
+  const setColorScheme = useUILayoutStore((state) => state.setColorScheme);
+  const setLayoutConfig = useUILayoutStore((state) => state.setLayoutConfig);
+  const resetToDefaults = useUILayoutStore((state) => state.resetToDefaults);
+  const validateConfiguration = useUILayoutStore((state) => state.validateConfiguration);
+  
+  return useDeepMemo(() => ({
+    setContextAreaWidth: useStableCallback(setContextAreaWidth, [setContextAreaWidth]),
+    toggleTaskSidebar: useStableCallback(toggleTaskSidebar, [toggleTaskSidebar]),
+    setTaskSidebarCollapsed: useStableCallback(setTaskSidebarCollapsed, [setTaskSidebarCollapsed]),
+    setContextScrollPosition: useStableCallback(setContextScrollPosition, [setContextScrollPosition]),
+    setTaskScrollPosition: useStableCallback(setTaskScrollPosition, [setTaskScrollPosition]),
+    setColorScheme: useStableCallback(setColorScheme, [setColorScheme]),
+    setLayoutConfig: useStableCallback(setLayoutConfig, [setLayoutConfig]),
+    resetToDefaults: useStableCallback(resetToDefaults, [resetToDefaults]),
+    validateConfiguration: useStableCallback(validateConfiguration, [validateConfiguration]),
+  }), [
+    setContextAreaWidth,
+    toggleTaskSidebar,
+    setTaskSidebarCollapsed,
+    setContextScrollPosition,
+    setTaskScrollPosition,
+    setColorScheme,
+    setLayoutConfig,
+    resetToDefaults,
+    validateConfiguration,
+  ]);
 }

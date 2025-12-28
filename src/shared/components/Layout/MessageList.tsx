@@ -1,5 +1,5 @@
 /**
- * @fileoverview MessageList component - Scrollable message display
+ * @fileoverview MessageList component - Scrollable message display with performance optimizations
  * @module shared/components/Layout/MessageList
  */
 
@@ -8,19 +8,79 @@ import { Box, Text, useInput } from 'ink';
 import type { MessageListProps, ColorScheme } from './types.js';
 import type { Message } from '../../types/index.js';
 import { ColorCodedMessage, createMessageColorScheme, getRoleDisplayInfo } from './MessageColorCoding.js';
+import {
+  useVirtualScrolling,
+  useStableCallback,
+  createMemoComponent,
+  usePerformanceMonitor,
+  useThrottle,
+  useDeepMemo,
+} from './performance-optimizations.js';
 
 /**
- * Scrollable message list component.
+ * Individual message component with memoization for performance.
+ */
+const MessageItem = createMemoComponent<{
+  message: Message;
+  index: number;
+  colorScheme?: ColorScheme;
+}>(({ message, index, colorScheme }) => {
+  // Simple fallback rendering for debugging
+  return (
+    <Box key={message.id} flexDirection="column">
+      <Text bold>You:</Text>
+      <Box paddingLeft={2}>
+        <Text>
+          {typeof message.content === 'string'
+            ? message.content
+            : message.content
+                .filter((block) => block.type === 'text')
+                .map((block) => (block.type === 'text' ? block.text : ''))
+                .join('\n')}
+        </Text>
+      </Box>
+    </Box>
+  );
+});
+
+/**
+ * Streaming message component with memoization.
+ */
+const StreamingMessage = createMemoComponent<{
+  streamingText: string;
+  isStreaming: boolean;
+}>(({ streamingText, isStreaming }) => {
+  if (!isStreaming || !streamingText) {
+    return null;
+  }
+  
+  return (
+    <Box key="streaming" flexDirection="column">
+      <Box>
+        <Text>🤖 Assistant:</Text>
+      </Box>
+      <Box paddingLeft={3}>
+        <Text>{streamingText}</Text>
+        <Text>▊</Text>
+      </Box>
+    </Box>
+  );
+});
+
+/**
+ * Scrollable message list component with performance optimizations.
  * 
  * This component handles:
  * - Message rendering with enhanced color coding
- * - Scroll position management
- * - Keyboard navigation (arrow keys, page up/down)
- * - Content height calculation
+ * - Scroll position management with throttling
+ * - Keyboard navigation (arrow keys, page up/down) with debouncing
+ * - Content height calculation with memoization
  * - Streaming message display
  * - Syntax highlighting for code blocks
+ * - Virtual scrolling for large message lists
+ * - Performance monitoring and optimization
  */
-export const MessageList: React.FC<MessageListProps & {
+const MessageListComponent: React.FC<MessageListProps & {
   onContentHeightChange?: (height: number) => void;
 }> = ({
   messages,
@@ -33,99 +93,112 @@ export const MessageList: React.FC<MessageListProps & {
   onScrollChange,
   onContentHeightChange,
 }) => {
-  // Refs for measuring content
-  const [renderedMessages, setRenderedMessages] = React.useState<React.ReactNode[]>([]);
-  const [totalContentHeight, setTotalContentHeight] = React.useState(0);
+  const { measure } = usePerformanceMonitor('MessageList', process.env.NODE_ENV === 'development');
   
-  // Create enhanced color scheme
-  const messageColorScheme = React.useMemo(() => {
+  // Estimate item height for virtual scrolling
+  const ESTIMATED_MESSAGE_HEIGHT = 4; // ~4 lines per message with enhanced styling
+  
+  // State for content management
+  const [totalContentHeight, setTotalContentHeight] = React.useState(0);
+  const [hasScrollableContent, setHasScrollableContent] = React.useState(false);
+  
+  // Create enhanced color scheme (memoized)
+  const messageColorScheme = useDeepMemo(() => {
     return colorScheme ? createMessageColorScheme(colorScheme) : null;
   }, [colorScheme]);
   
-  // Calculate visible message range based on scroll position
-  const visibleStartLine = Math.floor(scrollPosition);
-  const visibleEndLine = visibleStartLine + height;
-  
-  // Handle keyboard input for scrolling
-  useInput((input, key) => {
-    if (!onScrollChange) {return;}
-    
-    const scrollStep = 1;
-    const pageStep = Math.max(1, height - 2);
-    
-    if (key.upArrow) {
-      const newPosition = Math.max(0, scrollPosition - scrollStep);
-      onScrollChange(newPosition);
-    } else if (key.downArrow) {
-      const maxScroll = Math.max(0, totalContentHeight - height);
-      const newPosition = Math.min(maxScroll, scrollPosition + scrollStep);
-      onScrollChange(newPosition);
-    } else if (key.pageUp) {
-      const newPosition = Math.max(0, scrollPosition - pageStep);
-      onScrollChange(newPosition);
-    } else if (key.pageDown) {
-      const maxScroll = Math.max(0, totalContentHeight - height);
-      const newPosition = Math.min(maxScroll, scrollPosition + pageStep);
-      onScrollChange(newPosition);
+  // Prepare items for virtual scrolling (memoized)
+  const allItems = useDeepMemo(() => {
+    const items = [...messages];
+    if (isStreaming && streamingText) {
+      items.push({
+        id: 'streaming',
+        role: 'assistant',
+        content: streamingText,
+        timestamp: Date.now(),
+      } as Message);
     }
+    return items;
+  }, [messages, isStreaming, streamingText]);
+  
+  // Virtual scrolling for performance with large message lists
+  const virtualScrolling = useVirtualScrolling({
+    items: allItems,
+    itemHeight: ESTIMATED_MESSAGE_HEIGHT,
+    containerHeight: height,
+    overscan: 3, // Render 3 extra items above/below viewport
+    scrollTop: scrollPosition * ESTIMATED_MESSAGE_HEIGHT,
   });
   
-  // Render individual message with enhanced color coding
-  const renderMessage = React.useCallback((message: Message, index: number): React.ReactNode => {
-    // Simple fallback rendering for debugging
-    return (
-      <Box key={message.id} flexDirection="column">
-        <Text bold>You:</Text>
-        <Box paddingLeft={2}>
-          <Text>
-            {typeof message.content === 'string'
-              ? message.content
-              : message.content
-                  .filter((block) => block.type === 'text')
-                  .map((block) => (block.type === 'text' ? block.text : ''))
-                  .join('\n')}
-          </Text>
-        </Box>
-      </Box>
-    );
-  }, []);
+  // Throttled scroll change handler for better performance
+  const throttledScrollChange = useThrottle(
+    useStableCallback((newPosition: number) => {
+      if (onScrollChange && Number.isFinite(newPosition) && newPosition >= 0) {
+        onScrollChange(newPosition);
+      }
+    }, [onScrollChange]),
+    16 // ~60fps throttling
+  );
   
-  // Render streaming message with color coding
-  const renderStreamingMessage = React.useCallback((): React.ReactNode => {
-    if (!isStreaming || !streamingText) {return null;}
-    
-    return (
-      <Box key="streaming" flexDirection="column">
-        <Box>
-          <Text>🤖 Assistant:</Text>
-        </Box>
-        <Box paddingLeft={3}>
-          <Text>{streamingText}</Text>
-          <Text>▊</Text>
-        </Box>
-      </Box>
-    );
-  }, [isStreaming, streamingText]);
+  // Handle keyboard input for scrolling with throttling
+  useInput(
+    useThrottle((input, key) => {
+      if (!onScrollChange) {
+        return;
+      }
+      
+      const scrollStep = 1;
+      const pageStep = Math.max(1, height - 2);
+      
+      if (key.upArrow) {
+        const newPosition = Math.max(0, scrollPosition - scrollStep);
+        throttledScrollChange(newPosition);
+      } else if (key.downArrow) {
+        const maxScroll = Math.max(0, totalContentHeight - height);
+        const newPosition = Math.min(maxScroll, scrollPosition + scrollStep);
+        throttledScrollChange(newPosition);
+      } else if (key.pageUp) {
+        const newPosition = Math.max(0, scrollPosition - pageStep);
+        throttledScrollChange(newPosition);
+      } else if (key.pageDown) {
+        const maxScroll = Math.max(0, totalContentHeight - height);
+        const newPosition = Math.min(maxScroll, scrollPosition + pageStep);
+        throttledScrollChange(newPosition);
+      }
+    }, 50) // 50ms throttling for keyboard input
+  );
   
-  // Calculate rendered messages and content height
-  React.useEffect(() => {
-    const allMessages = [...messages];
-    const rendered = allMessages.map(renderMessage);
-    
-    // Add streaming message if present
-    const streamingNode = renderStreamingMessage();
-    if (streamingNode) {
-      rendered.push(streamingNode);
+  // Render individual message with enhanced color coding (memoized)
+  const renderMessage = useStableCallback((message: Message, index: number): React.ReactNode => {
+    if (message.id === 'streaming') {
+      return (
+        <StreamingMessage
+          key="streaming"
+          streamingText={streamingText}
+          isStreaming={isStreaming}
+        />
+      );
     }
     
-    setRenderedMessages(rendered);
-    
-    // Calculate approximate content height
-    // This is a rough estimate - in a real implementation you'd measure actual rendered height
-    const estimatedHeight = allMessages.length * 4 + (streamingNode ? 4 : 0); // ~4 lines per message with enhanced styling
-    setTotalContentHeight(estimatedHeight);
-    onContentHeightChange?.(estimatedHeight);
-  }, [messages, renderMessage, renderStreamingMessage, onContentHeightChange]);
+    return (
+      <MessageItem
+        key={message.id}
+        message={message}
+        index={index}
+        colorScheme={colorScheme}
+      />
+    );
+  }, [streamingText, isStreaming, colorScheme]);
+  
+  // Calculate content height and update state (memoized with performance measurement)
+  React.useEffect(() => {
+    measure(() => {
+      const estimatedHeight = allItems.length * ESTIMATED_MESSAGE_HEIGHT;
+      setTotalContentHeight(estimatedHeight);
+      setHasScrollableContent(estimatedHeight > height);
+      onContentHeightChange?.(estimatedHeight);
+    });
+  }, [allItems.length, height, onContentHeightChange, measure]);
   
   // Handle empty state
   if (messages.length === 0 && !isStreaming) {
@@ -143,28 +216,60 @@ export const MessageList: React.FC<MessageListProps & {
     );
   }
   
-  // Render visible messages based on scroll position
-  const visibleMessages = renderedMessages.slice(
+  // Use virtual scrolling for performance with large lists
+  const shouldUseVirtualScrolling = allItems.length > 50; // Enable virtual scrolling for 50+ messages
+  
+  if (shouldUseVirtualScrolling) {
+    return (
+      <Box width={width} height={height} flexDirection="column">
+        {/* Virtual scrolling container */}
+        <Box height={virtualScrolling.totalHeight} position="relative">
+          <Box position="absolute" top={virtualScrolling.offsetY}>
+            {virtualScrolling.visibleItems.map((message, index) =>
+              renderMessage(message, virtualScrolling.startIndex + index)
+            )}
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
+  
+  // Regular rendering for smaller lists
+  const visibleMessages = allItems.slice(
     0, // Start from beginning for now
-    Math.min(renderedMessages.length, height) // Show up to height messages
+    Math.min(allItems.length, height) // Show up to height messages
   );
   
   // For debugging: always render messages even if visibleMessages is empty
   if (visibleMessages.length === 0 && messages.length > 0) {
     return (
       <Box width={width} height={height} flexDirection="column">
-        <Text>Debug: {messages.length} messages, {renderedMessages.length} rendered, {visibleMessages.length} visible</Text>
+        <Text>Debug: {messages.length} messages, {allItems.length} total, {visibleMessages.length} visible</Text>
         <Text>Height: {height}, ScrollPos: {scrollPosition}</Text>
-        {renderedMessages.slice(0, 2)} {/* Show first 2 messages for debugging */}
+        {allItems.slice(0, 2).map((message, index) => renderMessage(message, index))}
       </Box>
     );
   }
   
   return (
     <Box width={width} height={height} flexDirection="column">
-      {visibleMessages}
+      {visibleMessages.map((message, index) => renderMessage(message, index))}
     </Box>
   );
 };
+
+// Create memoized version for performance
+export const MessageList = createMemoComponent(MessageListComponent, (prevProps, nextProps) => {
+  // Custom comparison for better performance
+  return (
+    prevProps.messages === nextProps.messages &&
+    prevProps.streamingText === nextProps.streamingText &&
+    prevProps.isStreaming === nextProps.isStreaming &&
+    prevProps.width === nextProps.width &&
+    prevProps.height === nextProps.height &&
+    prevProps.scrollPosition === nextProps.scrollPosition &&
+    prevProps.colorScheme === nextProps.colorScheme
+  );
+});
 
 export type { MessageListProps };

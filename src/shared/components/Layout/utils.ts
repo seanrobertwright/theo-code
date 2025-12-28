@@ -25,13 +25,26 @@ export function calculateSectionDimensions(
   contextWidthPercent: number,
   config: LayoutConfig
 ): SectionDimensions {
+  // Validate inputs to prevent division by zero and other calculation errors
+  if (!Number.isFinite(terminalWidth) || !Number.isFinite(terminalHeight)) {
+    throw new Error(`Invalid terminal dimensions: width=${terminalWidth}, height=${terminalHeight}`);
+  }
+  
+  if (terminalWidth <= 0 || terminalHeight <= 0) {
+    throw new Error(`Terminal dimensions must be positive: width=${terminalWidth}, height=${terminalHeight}`);
+  }
+  
+  if (!Number.isFinite(contextWidthPercent) || contextWidthPercent < 0 || contextWidthPercent > 100) {
+    throw new Error(`Invalid context width percentage: ${contextWidthPercent}`);
+  }
+
   // Determine layout mode based on breakpoints
   const isVerticalLayout = terminalWidth < config.responsiveBreakpoints.narrow;
   const isCompactMode = terminalHeight < config.responsiveBreakpoints.compact;
 
-  // Calculate available space
-  const availableHeight = terminalHeight - config.headerHeight - config.footerHeight;
-  const availableWidth = terminalWidth;
+  // Calculate available space with bounds checking
+  const availableHeight = Math.max(1, terminalHeight - config.headerHeight - config.footerHeight);
+  const availableWidth = Math.max(1, terminalWidth);
 
   // Ensure context width is within bounds
   const clampedContextWidth = Math.max(
@@ -53,24 +66,24 @@ export function calculateSectionDimensions(
     if (isCompactMode) {
       // Prioritize context area in compact mode (80% vs 20%)
       // Requirements: context area prioritization for short terminals
-      contextHeight = Math.floor(availableHeight * 0.8);
-      sidebarHeight = availableHeight - contextHeight;
+      contextHeight = Math.max(1, Math.floor(availableHeight * 0.8));
+      sidebarHeight = Math.max(0, availableHeight - contextHeight);
     } else {
       // Normal vertical split (60% context, 40% sidebar)
-      contextHeight = Math.floor(availableHeight * 0.6);
-      sidebarHeight = availableHeight - contextHeight;
+      contextHeight = Math.max(1, Math.floor(availableHeight * 0.6));
+      sidebarHeight = Math.max(0, availableHeight - contextHeight);
     }
   } else {
     // Horizontal layout for normal terminals
-    contextWidth = Math.floor((availableWidth * clampedContextWidth) / 100);
-    sidebarWidth = availableWidth - contextWidth - 1; // -1 for divider
-    contextHeight = availableHeight;
-    sidebarHeight = availableHeight;
+    contextWidth = Math.max(1, Math.floor((availableWidth * clampedContextWidth) / 100));
+    sidebarWidth = Math.max(0, availableWidth - contextWidth - 1); // -1 for divider
+    contextHeight = Math.max(1, availableHeight);
+    sidebarHeight = Math.max(1, availableHeight);
   }
 
   // Ensure minimum dimensions for graceful degradation
   // Requirements: graceful handling of extreme dimensions
-  return {
+  const result: SectionDimensions = {
     terminal: {
       width: terminalWidth,
       height: terminalHeight,
@@ -84,8 +97,8 @@ export function calculateSectionDimensions(
       height: Math.max(1, contextHeight),
     },
     sidebar: {
-      width: Math.max(1, sidebarWidth),
-      height: Math.max(1, sidebarHeight),
+      width: Math.max(0, sidebarWidth), // Sidebar can be 0 width in extreme cases
+      height: Math.max(0, sidebarHeight), // Sidebar can be 0 height in extreme cases
     },
     footer: {
       width: terminalWidth,
@@ -94,6 +107,13 @@ export function calculateSectionDimensions(
     isVerticalLayout,
     isCompactMode,
   };
+
+  // Validate the result to catch any calculation errors
+  if (result.context.width <= 0 || result.context.height <= 0) {
+    throw new Error(`Invalid context dimensions calculated: ${result.context.width}x${result.context.height}`);
+  }
+
+  return result;
 }
 
 /**
@@ -109,6 +129,15 @@ export function getResponsiveLayout(
   shouldHideSidebar: boolean;
   shouldMinimizeHeader: boolean;
 } {
+  // Validate inputs
+  if (!Number.isFinite(terminalWidth) || !Number.isFinite(terminalHeight)) {
+    throw new Error(`Invalid terminal dimensions for responsive layout: width=${terminalWidth}, height=${terminalHeight}`);
+  }
+  
+  if (terminalWidth <= 0 || terminalHeight <= 0) {
+    throw new Error(`Terminal dimensions must be positive for responsive layout: width=${terminalWidth}, height=${terminalHeight}`);
+  }
+
   // Vertical stacking for narrow terminals (< 80 chars as per requirements)
   const isVertical = terminalWidth < breakpoints.narrow;
   
@@ -139,21 +168,32 @@ export function getResponsiveLayout(
  * Derive project name from workspace root path.
  */
 export function deriveProjectName(workspaceRoot: string): string {
-  if (!workspaceRoot || workspaceRoot === '/') {
+  // Handle invalid or empty paths
+  if (!workspaceRoot || typeof workspaceRoot !== 'string') {
     return 'Unknown Project';
   }
 
-  const basename = path.basename(workspaceRoot);
-  
-  // Handle common cases
-  if (basename === '.' || basename === '') {
-    return 'Current Directory';
+  // Handle root directory
+  if (workspaceRoot === '/' || workspaceRoot === '\\') {
+    return 'Root Directory';
   }
 
-  // Convert kebab-case and snake_case to Title Case
-  return basename
-    .replace(/[-_]/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  try {
+    const basename = path.basename(workspaceRoot);
+    
+    // Handle common cases
+    if (basename === '.' || basename === '') {
+      return 'Current Directory';
+    }
+
+    // Convert kebab-case and snake_case to Title Case
+    return basename
+      .replace(/[-_]/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  } catch (error) {
+    // Handle path parsing errors
+    return 'Unknown Project';
+  }
 }
 
 // =============================================================================
@@ -379,6 +419,15 @@ export function getTaskStatusColor(status: string, colorScheme: ColorScheme): st
  * Clamp value between min and max.
  */
 export function clamp(value: number, min: number, max: number): number {
+  // Handle invalid inputs
+  if (!Number.isFinite(value) || !Number.isFinite(min) || !Number.isFinite(max)) {
+    throw new Error(`Invalid clamp parameters: value=${value}, min=${min}, max=${max}`);
+  }
+  
+  if (min > max) {
+    throw new Error(`Invalid clamp range: min (${min}) must be <= max (${max})`);
+  }
+  
   return Math.max(min, Math.min(max, value));
 }
 
@@ -386,15 +435,32 @@ export function clamp(value: number, min: number, max: number): number {
  * Calculate percentage of total.
  */
 export function percentage(value: number, total: number): number {
+  // Handle invalid inputs
+  if (!Number.isFinite(value) || !Number.isFinite(total)) {
+    return 0;
+  }
+  
   if (total === 0) {
     return 0;
   }
-  return Math.round((value / total) * 100);
+  
+  const result = (value / total) * 100;
+  return Number.isFinite(result) ? Math.round(result) : 0;
 }
 
 /**
  * Convert percentage to absolute value.
  */
 export function fromPercentage(percent: number, total: number): number {
-  return Math.floor((percent / 100) * total);
+  // Handle invalid inputs
+  if (!Number.isFinite(percent) || !Number.isFinite(total)) {
+    return 0;
+  }
+  
+  if (total <= 0) {
+    return 0;
+  }
+  
+  const result = (percent / 100) * total;
+  return Number.isFinite(result) ? Math.floor(result) : 0;
 }

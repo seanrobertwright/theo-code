@@ -49,7 +49,7 @@ class Logger {
    *
    * @param level - The minimum level to log
    */
-  setLevel(_level: LogLevel): void {
+  setLevel(level: LogLevel): void {
     this.level = level;
   }
 
@@ -69,7 +69,7 @@ class Logger {
    * @param message - The message to format
    * @returns Formatted message
    */
-  private format(_level: string, _message: string): string {
+  private format(level: string, message: string): string {
     const timestamp = new Date().toISOString();
     return `[${timestamp}] [${this.prefix}] [${level}] ${message}`;
   }
@@ -80,7 +80,7 @@ class Logger {
    * @param message - The message to log
    * @param args - Additional arguments to log
    */
-  debug(_message: string, ...args: unknown[]): void {
+  debug(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.DEBUG) {
       const formatted = this.format('DEBUG', message);
        
@@ -94,7 +94,7 @@ class Logger {
    * @param message - The message to log
    * @param args - Additional arguments to log
    */
-  info(_message: string, ...args: unknown[]): void {
+  info(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.INFO) {
       const formatted = this.format('INFO', message);
        
@@ -108,7 +108,7 @@ class Logger {
    * @param message - The message to log
    * @param args - Additional arguments to log
    */
-  warn(_message: string, ...args: unknown[]): void {
+  warn(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.WARN) {
       const formatted = this.format('WARN', message);
       console.warn(chalk.yellow(formatted), ...args);
@@ -121,7 +121,7 @@ class Logger {
    * @param message - The message to log
    * @param args - Additional arguments to log
    */
-  error(_message: string, ...args: unknown[]): void {
+  error(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.ERROR) {
       const formatted = this.format('ERROR', message);
       console.error(chalk.red(formatted), ...args);
@@ -134,7 +134,7 @@ class Logger {
    * @param message - The message to log
    * @param args - Additional arguments to log
    */
-  success(_message: string, ...args: unknown[]): void {
+  success(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.INFO) {
       const formatted = this.format('SUCCESS', message);
        
@@ -148,7 +148,7 @@ class Logger {
    * @param childPrefix - Additional prefix for the child logger
    * @returns New logger instance
    */
-  child(_childPrefix: string): Logger {
+  child(childPrefix: string): Logger {
     const childLogger = new Logger(`${this.prefix}:${childPrefix}`);
     childLogger.setLevel(this.level);
     return childLogger;
