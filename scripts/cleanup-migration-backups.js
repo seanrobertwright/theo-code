@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+/* eslint-env node */
+/* eslint-disable no-undef */
 
 /**
  * Cleanup script for migration backup files

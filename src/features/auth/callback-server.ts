@@ -6,6 +6,8 @@
 import { createServer, type Server, type IncomingMessage, type ServerResponse } from 'node:http';
 import { URL } from 'node:url';
 import type { ICallbackServer, CallbackResult } from './types.js';
+import { logger } from '../../shared/utils/logger.js';
+
 // =============================================================================
 // CALLBACK SERVER
 // =============================================================================
@@ -20,7 +22,7 @@ export class CallbackServer implements ICallbackServer {
   private server: Server | null = null;
   private port: number | null = null;
   private callbackPromise: Promise<CallbackResult> | null = null;
-  private callbackResolve: ((_result: CallbackResult) => void) | null = null;
+  private callbackResolve: ((result: CallbackResult) => void) | null = null;
   private timeoutHandle: NodeJS.Timeout | null = null;
   
   // Configuration
@@ -152,7 +154,7 @@ export class CallbackServer implements ICallbackServer {
   /**
    * Start server on a specific port.
    */
-  private async startOnPort(_port: number): Promise<void> {
+  private async startOnPort(port: number): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.server = createServer(this.handleRequest.bind(this));
       
@@ -173,7 +175,7 @@ export class CallbackServer implements ICallbackServer {
   /**
    * Handle incoming HTTP requests.
    */
-  private handleRequest(_req: IncomingMessage, _res: ServerResponse): void {
+  private handleRequest(req: IncomingMessage, res: ServerResponse): void {
     const url = new URL(req.url || '/', `http://localhost:${this.port}`);
     
     logger.debug(`[CallbackServer] Received request: ${req.method} ${url.pathname}`);
@@ -209,7 +211,7 @@ export class CallbackServer implements ICallbackServer {
   /**
    * Handle OAuth callback request.
    */
-  private handleCallback(_url: URL, _res: ServerResponse): void {
+  private handleCallback(url: URL, res: ServerResponse): void {
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
     const error = url.searchParams.get('error');
@@ -256,7 +258,7 @@ export class CallbackServer implements ICallbackServer {
   /**
    * Handle health check request.
    */
-  private handleHealthCheck(_res: ServerResponse): void {
+  private handleHealthCheck(res: ServerResponse): void {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'ok',
@@ -268,7 +270,7 @@ export class CallbackServer implements ICallbackServer {
   /**
    * Handle 404 requests.
    */
-  private handleNotFound(_res: ServerResponse): void {
+  private handleNotFound(res: ServerResponse): void {
     res.writeHead(404, { 'Content-Type': 'text/html' });
     res.end(`
       <!DOCTYPE html>
@@ -296,7 +298,7 @@ export class CallbackServer implements ICallbackServer {
   /**
    * Send success page to browser.
    */
-  private sendSuccessPage(_res: ServerResponse): void {
+  private sendSuccessPage(res: ServerResponse): void {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(`
       <!DOCTYPE html>
@@ -369,7 +371,7 @@ export class CallbackServer implements ICallbackServer {
   /**
    * Send error page to browser.
    */
-  private sendErrorPage(_res: ServerResponse, _error: string, description?: string | null): void {
+  private sendErrorPage(res: ServerResponse, error: string, description?: string | null): void {
     res.writeHead(400, { 'Content-Type': 'text/html' });
     res.end(`
       <!DOCTYPE html>
@@ -448,7 +450,7 @@ export class CallbackServer implements ICallbackServer {
   /**
    * Escape HTML to prevent XSS.
    */
-  private escapeHtml(_text: string): string {
+  private escapeHtml(text: string): string {
     const map: Record<string, string> = {
       '&': '&amp;',
       '<': '&lt;',

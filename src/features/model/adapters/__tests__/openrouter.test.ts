@@ -118,7 +118,7 @@ describe('OpenRouterAdapter', () => {
             },
             top_provider: {
               context_length: 200000,
-              max_completion_tokens: 4096,
+              max_completiontokens: 4096,
             },
           },
         ],

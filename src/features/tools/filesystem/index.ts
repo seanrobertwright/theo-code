@@ -67,25 +67,25 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
   _requiresConfirmation: false,
   category: 'filesystem',
 
-  async validate(_context: ToolContext) {
+  async validate(context: ToolContext) {
     // Basic workspace validation
-    if (!isDirectory(context.workspaceRoot) {
+    if (!isDirectory(context.workspaceRoot)) {
       return {
-        _valid: false,
+        valid: false,
         error: `Workspace root does not exist: ${context.workspaceRoot}`,
         warnings: [],
       };
     }
 
-    return { _valid: true, warnings: [] };
+    return { valid: true, warnings: [] };
   },
 
-  async execute(_input: ReadFileInput, _context: ToolContext): Promise<ReadFileOutput> {
+  async execute(input: ReadFileInput, _context: ToolContext): Promise<ReadFileOutput> {
     const absolutePath = resolve(context.workspaceRoot, input.path);
     
     // Security: Ensure path is within workspace
     const relativePath = relative(context.workspaceRoot, absolutePath);
-    if (relativePath.startsWith('..') {
+    if (relativePath.startsWith('..')) {
       throw new ToolExecutionError(
         'read_file',
         `Path outside workspace not allowed: ${input.path}`
@@ -93,7 +93,7 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
     }
 
     // Check file exists and is readable
-    if (!isFile(absolutePath) {
+    if (!isFile(absolutePath)) {
       throw new ToolExecutionError(
         'read_file',
         `File not found or not readable: ${input.path}`
@@ -101,7 +101,7 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
     }
 
     // Check for binary files
-    if (isBinaryFile(absolutePath) {
+    if (isBinaryFile(absolutePath)) {
       throw new ToolExecutionError(
         'read_file',
         `Cannot read binary file: ${input.path}`
@@ -116,7 +116,7 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
       let finalContent = content;
       
       // Apply line range if specified
-      if (input.lineStart !== undefined ?? input.lineEnd !== undefined) {
+      if (input.lineStart !== undefined || input.lineEnd !== undefined) {
         const start = Math.max(1, input.lineStart ?? 1) - 1; // Convert to 0-indexed
         const end = Math.min(lines.length, input.lineEnd ?? lines.length);
         
@@ -131,11 +131,11 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
       }
 
       return {
-        _content: finalContent,
+        content: finalContent,
         path: input.path,
         size: stats.size,
         lines: lines.length,
-        _encoding: DEFAULT_ENCODING,
+        encoding: DEFAULT_ENCODING,
       };
 
     } catch (error) {
@@ -196,24 +196,24 @@ export const writeFileTool: Tool<WriteFileInput, WriteFileOutput> = {
   _requiresConfirmation: true,
   category: 'filesystem',
 
-  async validate(_context: ToolContext) {
-    if (!isDirectory(context.workspaceRoot) {
+  async validate(context: ToolContext) {
+    if (!isDirectory(context.workspaceRoot)) {
       return {
-        _valid: false,
+        valid: false,
         error: `Workspace root does not exist: ${context.workspaceRoot}`,
         warnings: [],
       };
     }
 
-    return { _valid: true, warnings: [] };
+    return { valid: true, warnings: [] };
   },
 
-  async execute(_input: WriteFileInput, _context: ToolContext): Promise<WriteFileOutput> {
+  async execute(input: WriteFileInput, context: ToolContext): Promise<WriteFileOutput> {
     const absolutePath = resolve(context.workspaceRoot, input.path);
     
     // Security: Ensure path is within workspace
     const relativePath = relative(context.workspaceRoot, absolutePath);
-    if (relativePath.startsWith('..') {
+    if (relativePath.startsWith('..')) {
       throw new ToolExecutionError(
         'write_file',
         `Path outside workspace not allowed: ${input.path}`
@@ -225,8 +225,8 @@ export const writeFileTool: Tool<WriteFileInput, WriteFileOutput> = {
 
     try {
       // Create parent directories if needed
-      if (input.createDirs && !isDirectory(dirPath) {
-        await mkdir(dirPath, { _recursive: true });
+      if (input.createDirs && !isDirectory(dirPath)) {
+        await mkdir(dirPath, { recursive: true });
         logger.debug(`Created directory: ${relative(context.workspaceRoot, dirPath)}`);
       }
 
@@ -314,19 +314,19 @@ export const listFilesTool: Tool<ListFilesInput, ListFilesOutput> = {
   _requiresConfirmation: false,
   category: 'filesystem',
 
-  async execute(_input: ListFilesInput, _context: ToolContext): Promise<ListFilesOutput> {
+  async execute(input: ListFilesInput, context: ToolContext): Promise<ListFilesOutput> {
     const absolutePath = resolve(context.workspaceRoot, input.path);
     
     // Security check
     const relativePath = relative(context.workspaceRoot, absolutePath);
-    if (relativePath.startsWith('..') {
+    if (relativePath.startsWith('..')) {
       throw new ToolExecutionError(
         'list_files',
         `Path outside workspace not allowed: ${input.path}`
       );
     }
 
-    if (!isDirectory(absolutePath) {
+    if (!isDirectory(absolutePath)) {
       throw new ToolExecutionError(
         'list_files',
         `Directory not found: ${input.path}`
@@ -341,7 +341,7 @@ export const listFilesTool: Tool<ListFilesInput, ListFilesOutput> = {
       const globOptions = {
         cwd: context.workspaceRoot,
         dot: input.includeHidden,
-        _absolute: false,
+        absolute: false,
       };
 
       const matches = await glob(searchPattern, globOptions);
@@ -387,13 +387,13 @@ export const listFilesTool: Tool<ListFilesInput, ListFilesOutput> = {
 
 type FileEntry = z.infer<typeof FileEntrySchema>;
 
-async function createFileEntry(_context: ToolContext, _match: string): Promise<FileEntry | null> {
+async function createFileEntry(context: ToolContext, match: string): Promise<FileEntry | null> {
   const fullPath = resolve(context.workspaceRoot, match);
   try {
     const stats = await stat(fullPath);
     return {
       name: match.split('/').pop() ?? match,
-      _path: match,
+      path: match,
       type: stats.isDirectory() ? 'directory' : 'file',
       size: stats.isFile() ? stats.size : undefined,
       modified: stats.mtime.toISOString(),
@@ -475,12 +475,12 @@ export const grepSearchTool: Tool<GrepSearchInput, GrepSearchOutput> = {
   _requiresConfirmation: false,
   category: 'search',
 
-  async execute(_input: GrepSearchInput, _context: ToolContext): Promise<GrepSearchOutput> {
+  async execute(input: GrepSearchInput, context: ToolContext): Promise<GrepSearchOutput> {
     const absolutePath = resolve(context.workspaceRoot, input.path);
     
     // Security check
     const relativePath = relative(context.workspaceRoot, absolutePath);
-    if (relativePath.startsWith('..') {
+    if (relativePath.startsWith('..')) {
       throw new ToolExecutionError(
         'grep_search',
         `Path outside workspace not allowed: ${input.path}`
@@ -500,8 +500,8 @@ export const grepSearchTool: Tool<GrepSearchInput, GrepSearchOutput> = {
 
       const files = await glob(fileGlob, {
         cwd: context.workspaceRoot,
-        _dot: false,
-        _absolute: false,
+        dot: false,
+        absolute: false,
       });
 
       const allMatches: SearchMatch[] = [];
@@ -520,7 +520,7 @@ export const grepSearchTool: Tool<GrepSearchInput, GrepSearchOutput> = {
       }
 
       return {
-        _matches: allMatches,
+        matches: allMatches,
         totalMatches: allMatches.length,
         searchedFiles,
         pattern: input.pattern,
@@ -539,17 +539,15 @@ export const grepSearchTool: Tool<GrepSearchInput, GrepSearchOutput> = {
 type SearchMatch = z.infer<typeof SearchMatchSchema>;
 
 async function searchFile(
-  _file: string,
-  _regex: RegExp,
-  _maxLimit: number,
-  _context: ToolContext
+  file: string,
+  regex: RegExp,
+  maxLimit: number,
+  context: ToolContext
 ): Promise<SearchMatch[]> {
   const fullPath = resolve(context.workspaceRoot, file);
   
   // Skip directories and binary files
-  if (!isFile(fullPath) {
-    || isBinaryFile(fullPath)) {
-  }
+  if (!isFile(fullPath) || isBinaryFile(fullPath)) {
     return [];
   }
 
@@ -571,7 +569,7 @@ async function searchFile(
           file,
           line: i + 1,
           column: match.index + 1,
-          _content: line,
+          content: line,
         });
       }
       

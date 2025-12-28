@@ -134,7 +134,7 @@ export class OAuthResourceCleanupManager {
   /**
    * Unregister a resource (usually after successful completion).
    */
-  unregisterResource(_resourceId: string): boolean {
+  unregisterResource(resourceId: string): boolean {
     const resource = this.managedResources.get(resourceId);
     if (!resource) {
       return false;
@@ -417,7 +417,7 @@ export class OAuthResourceCleanupManager {
   /**
    * Clean up a single resource with timeout.
    */
-  private async cleanupResource(_resource: ManagedResource, _timeoutMs: number): Promise<CleanupResult> {
+  private async cleanupResource(resource: ManagedResource, _timeoutMs: number): Promise<CleanupResult> {
     const startTime = Date.now();
     
     try {
@@ -436,7 +436,7 @@ export class OAuthResourceCleanupManager {
       
       return {
         resourceType: resource.type,
-        _success: true,
+        success: true,
         details: `Cleaned up in ${duration}ms`,
       };
     } catch (error) {
@@ -447,8 +447,8 @@ export class OAuthResourceCleanupManager {
       
       return {
         resourceType: resource.type,
-        _success: false,
-        _error: errorMessage,
+        success: false,
+        error: errorMessage,
         details: `Failed after ${duration}ms`,
       };
     }
@@ -461,7 +461,7 @@ export class OAuthResourceCleanupManager {
   /**
    * Schedule automatic cleanup for a resource.
    */
-  private scheduleAutoCleanup(_resourceId: string, _delayMs: number): void {
+  private scheduleAutoCleanup(resourceId: string, _delayMs: number): void {
     const timeout = setTimeout(async () => {
       const resource = this.managedResources.get(resourceId);
       if (resource) {
@@ -529,7 +529,7 @@ export class OAuthResourceCleanupManager {
   /**
    * Generate a unique resource ID.
    */
-  private generateResourceId(_type: CleanupResourceType, _provider: ModelProvider, _operation: string): string {
+  private generateResourceId(type: CleanupResourceType, _provider: ModelProvider, _operation: string): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
     return `${type}-${provider}-${operation}-${timestamp}-${random}`;
@@ -539,7 +539,7 @@ export class OAuthResourceCleanupManager {
    * Set up process exit handlers for emergency cleanup.
    */
   private setupExitHandlers(): void {
-    const exitHandler = async (_signal: string) => {
+    const exitHandler = async (signal: string) => {
       if (this.isDestroyed) {
     return;
   }

@@ -1,3 +1,5 @@
+/* eslint-env node */
+/* eslint-disable no-undef */
 // Test using the public interface instead of private method
 import { ProviderManager } from './src/features/model/provider-manager.js';
 

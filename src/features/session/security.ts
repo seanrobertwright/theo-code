@@ -836,10 +836,10 @@ export class AuditLogger {
           console.warn(message);
           break;
         case 'info':
-          console.info(message);
+          console.warn(message);
           break;
         case 'debug':
-          console.debug(message);
+          console.warn(message);
           break;
       }
     }

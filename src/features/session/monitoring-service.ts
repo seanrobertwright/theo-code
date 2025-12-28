@@ -71,16 +71,16 @@ interface OperationContext {
  */
 interface MonitoringEvents {
   /** Alert created */
-  'alert:created': (_alert: SystemAlert) => void;
+  'alert:created': (alert: SystemAlert) => void;
   
   /** Health status changed */
-  'health:changed': (_status: SystemHealthStatus) => void;
+  'health:changed': (status: SystemHealthStatus) => void;
   
   /** Performance threshold exceeded */
-  'performance:threshold': (_operation: string, _metrics: SessionOperationMetrics) => void;
+  'performance:threshold': (operation: string, metrics: SessionOperationMetrics) => void;
   
   /** Storage threshold exceeded */
-  'storage:threshold': (_metrics: StorageUsageMetrics) => void;
+  'storage:threshold': (metrics: StorageUsageMetrics) => void;
 }
 
 // =============================================================================
@@ -207,7 +207,7 @@ export class SessionMonitoringService {
    * @param context - Operation context
    * @returns Operation tracking token
    */
-  startOperation(_context: OperationContext): string {
+  startOperation(context: OperationContext): string {
     if (!this.config.enabled) {
       return '';
     }
@@ -239,7 +239,7 @@ export class SessionMonitoringService {
    */
   endOperation(
     _context: OperationContext,
-    _token: string,
+    token: string,
     _success: boolean,
     _startTime: number
   ): void {
@@ -345,7 +345,7 @@ export class SessionMonitoringService {
    * @param operation - Operation name
    * @returns Operation metrics or null if not found
    */
-  getOperationMetrics(_operation: string): SessionOperationMetrics | null {
+  getOperationMetrics(operation: string): SessionOperationMetrics | null {
     return this.metricsCollector.getOperationMetrics(operation);
   }
   
@@ -439,7 +439,7 @@ export class SessionMonitoringService {
    * 
    * @param alertId - Alert ID to acknowledge
    */
-  acknowledgeAlert(_alertId: string): void {
+  acknowledgeAlert(alertId: string): void {
     this.healthMonitor.acknowledgeAlert(alertId);
   }
   
@@ -492,7 +492,7 @@ export class SessionMonitoringService {
    * @param event - Event name
    * @param listener - Event listener function
    */
-  on<K extends keyof MonitoringEvents>(_event: K, listener: MonitoringEvents[K]): void {
+  on<K extends keyof MonitoringEvents>(event: K, listener: MonitoringEvents[K]): void {
     this.eventListeners[event] = listener;
   }
   
@@ -501,7 +501,7 @@ export class SessionMonitoringService {
    * 
    * @param event - Event name
    */
-  off<K extends keyof MonitoringEvents>(_event: K): void {
+  off<K extends keyof MonitoringEvents>(event: K): void {
     delete this.eventListeners[event];
   }
   
@@ -606,7 +606,7 @@ export class SessionMonitoringService {
    * 
    * @param operation - Operation name to check
    */
-  private checkPerformanceAlerts(_operation: string): void {
+  private checkPerformanceAlerts(operation: string): void {
     const now = Date.now();
     
     // Throttle performance checks
@@ -712,7 +712,7 @@ export class SessionMonitoringService {
    * @param session - Session metadata
    * @returns Estimated size in bytes
    */
-  private estimateSessionSize(_session: SessionMetadata): number {
+  private estimateSessionSize(session: SessionMetadata): number {
     let size = 1000; // Base size
     size += session.messageCount * 500;
     size += session.tokenCount.total * 4;

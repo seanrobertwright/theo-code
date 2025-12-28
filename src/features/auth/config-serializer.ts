@@ -130,7 +130,7 @@ const SENSITIVE_KEY_PATTERNS = [
 /**
  * Check if a configuration key contains sensitive data.
  */
-function isSensitiveKey(_key: string): boolean {
+function isSensitiveKey(key: string): boolean {
   return SENSITIVE_KEY_PATTERNS.some(pattern => pattern.test(key));
 }
 
@@ -142,14 +142,14 @@ function filterSensitiveData(obj: any): any {
     return obj;
   }
   
-  if (Array.isArray(obj) {
+  if (Array.isArray(obj)) {
     return obj.map(filterSensitiveData);
   }
   
   if (typeof obj === 'object') {
     const filtered: any = {};
     for (const [key, value] of Object.entries(obj)) {
-      if (!isSensitiveKey(key) {
+      if (!isSensitiveKey(key)) {
         filtered[key] = filterSensitiveData(value);
       } else {
         // Replace sensitive values with placeholder
@@ -173,7 +173,7 @@ export class OAuthConfigSerializer {
   /**
    * Serialize OAuth configuration to YAML format with security masking.
    */
-  static serializeOAuthConfig(_config: OAuthConfig, _settings: OAuthProviderSettings): string {
+  static serializeOAuthConfig(config: OAuthConfig, _settings: OAuthProviderSettings): string {
     const secureConfig: SecureOAuthConfig = {
       provider: config.provider,
       clientId: config.clientId,
@@ -199,7 +199,7 @@ export class OAuthConfigSerializer {
   /**
    * Deserialize OAuth configuration from YAML format.
    */
-  static deserializeOAuthConfig(_yamlContent: string): SecureOAuthConfig {
+  static deserializeOAuthConfig(yamlContent: string): SecureOAuthConfig {
     try {
       const parsed = parseYaml(yamlContent);
       return SecureOAuthConfigSchema.parse(parsed);
@@ -211,7 +211,7 @@ export class OAuthConfigSerializer {
   /**
    * Serialize provider configuration with OAuth support.
    */
-  static serializeProviderConfig(_config: ProviderConfig): string {
+  static serializeProviderConfig(config: ProviderConfig): string {
     // Convert to serializable format, filtering sensitive data
     const serializableConfig: SerializableProviderConfig = {
       name: config.name,
@@ -250,7 +250,7 @@ export class OAuthConfigSerializer {
   /**
    * Deserialize provider configuration from YAML format.
    */
-  static deserializeProviderConfig(_yamlContent: string): SerializableProviderConfig {
+  static deserializeProviderConfig(yamlContent: string): SerializableProviderConfig {
     try {
       const parsed = parseYaml(yamlContent);
       return SerializableProviderConfigSchema.parse(parsed);
@@ -262,7 +262,7 @@ export class OAuthConfigSerializer {
   /**
    * Validate OAuth configuration round-trip consistency.
    */
-  static validateRoundTrip(_originalConfig: OAuthConfig, _settings: OAuthProviderSettings): boolean {
+  static validateRoundTrip(originalConfig: OAuthConfig, _settings: OAuthProviderSettings): boolean {
     try {
       // Serialize then deserialize
       const serialized = this.serializeOAuthConfig(originalConfig, settings);
@@ -297,7 +297,7 @@ export class TokenInfoFormatter {
   /**
    * Create masked token information for display.
    */
-  static createMaskedTokenInfo(_provider: string, tokens: TokenSet | null): MaskedTokenInfo {
+  static createMaskedTokenInfo(provider: string, tokens: TokenSet | null): MaskedTokenInfo {
     if (!tokens) {
       return {
         provider,
@@ -307,7 +307,7 @@ export class TokenInfoFormatter {
         _hasRefreshToken: false,
         tokenType: 'Bearer',
         _isExpired: false,
-        _needsRefresh: false,
+        needsRefresh: false,
       };
     }
     
@@ -330,21 +330,21 @@ export class TokenInfoFormatter {
   /**
    * Mask a token for safe display.
    */
-  static maskToken(_token: string): string {
+  static maskToken(token: string): string {
     if (token.length <= 8) {
       return '***';
     }
     
     // For JWT tokens (starting with eyJ), show less to avoid revealing token type
-    if (token.startsWith('eyJ') {
+    if (token.startsWith('eyJ')) {
       return 'eyJ...';
     }
     
     // For API keys with known prefixes, show only the prefix
-    if (token.startsWith('sk-') {
+    if (token.startsWith('sk-')) {
       return 'sk-...';
     }
-    if (token.startsWith('sk-ant-') {
+    if (token.startsWith('sk-ant-')) {
       return 'sk-ant-...';
     }
     
@@ -355,7 +355,7 @@ export class TokenInfoFormatter {
   /**
    * Format token information for display.
    */
-  static formatTokenInfo(_maskedInfo: MaskedTokenInfo): string {
+  static formatTokenInfo(maskedInfo: MaskedTokenInfo): string {
     if (!maskedInfo.hasTokens) {
       return `${maskedInfo.provider}: No tokens`;
     }
@@ -410,7 +410,7 @@ export class OAuthConfigValidator {
   /**
    * Validate OAuth configuration structure and values.
    */
-  static validateOAuthConfig(_config: unknown): { valid: boolean; errors: string[] } {
+  static validateOAuthConfig(config: unknown): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
     
     try {
@@ -432,7 +432,7 @@ export class OAuthConfigValidator {
   /**
    * Validate provider configuration with OAuth support.
    */
-  static validateProviderConfig(_config: unknown): { valid: boolean; errors: string[] } {
+  static validateProviderConfig(config: unknown): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
     
     try {
@@ -454,20 +454,18 @@ export class OAuthConfigValidator {
   /**
    * Check if configuration contains sensitive data that should be masked.
    */
-  static containsSensitiveData(_config: any): boolean {
+  static containsSensitiveData(config: any): boolean {
     if (config === null ?? config === undefined) {
       return false;
     }
     
-    if (Array.isArray(config) {
+    if (Array.isArray(config)) {
       return config.some(item => this.containsSensitiveData(item));
     }
     
     if (typeof config === 'object') {
       for (const [key, value] of Object.entries(config)) {
-        if (isSensitiveKey(key) {
-    || this.containsSensitiveData(value)) {
-  }
+        if (isSensitiveKey(key) || this.containsSensitiveData(value)) {
           return true;
         }
       }

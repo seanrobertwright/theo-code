@@ -21,7 +21,6 @@ import {
 
 describe('OAuth Configuration Integration', () => {
   const mockWorkspaceRoot = '/test/workspace';
-  const testProvider: ModelProvider = 'google';
 
   let mockConfig: MergedConfig;
 
@@ -135,12 +134,24 @@ describe('OAuth Configuration Integration', () => {
     it('should check if OAuth is enabled for provider', () => {
       expect(isOAuthEnabled('google', mockConfig)).toBe(true);
       expect(isOAuthEnabled('anthropic', mockConfig)).toBe(false);
+      // 'ollama' was added in previous test but beforeEach resets mockConfig
+      mockConfig.global.providers!.providers.push({
+        name: 'ollama',
+        _enabled: true,
+        _priority: 50,
+      } as any);
       expect(isOAuthEnabled('ollama', mockConfig)).toBe(false);
     });
 
     it('should get preferred authentication method', () => {
       expect(getPreferredAuthMethod('google', mockConfig)).toBe('oauth');
       expect(getPreferredAuthMethod('anthropic', mockConfig)).toBe('api_key');
+      
+      mockConfig.global.providers!.providers.push({
+        name: 'ollama',
+        _enabled: true,
+        _priority: 50,
+      } as any);
       expect(getPreferredAuthMethod('ollama', mockConfig)).toBe('api_key'); // Default
     });
 
@@ -182,8 +193,8 @@ describe('OAuth Configuration Integration', () => {
     it('should validate OAuth configuration with client ID', () => {
       const authConfig = getAuthenticationConfig('google', mockConfig);
       
-      expect(authConfig.hasOAuth).toBe(true);
-      expect(authConfig.oauthEnabled).toBe(true);
+      expect(authConfig._hasOAuth).toBe(true);
+      expect(authConfig._oauthEnabled).toBe(true);
     });
 
     it('should handle OAuth configuration without client ID', () => {
@@ -192,12 +203,12 @@ describe('OAuth Configuration Integration', () => {
       
       const authConfig = getAuthenticationConfig('google', mockConfig);
       
-      expect(authConfig.hasOAuth).toBe(false); // No client ID means no OAuth
-      expect(authConfig.oauthEnabled).toBe(true); // Still enabled in config
+      expect(authConfig._hasOAuth).toBe(false); // No client ID means no OAuth
+      expect(authConfig._oauthEnabled).toBe(true); // Still enabled in config
     });
 
     it('should validate mixed authentication configurations', () => {
-      const providers = ['google', 'anthropic', 'openrouter'];
+      const providers: ModelProvider[] = ['google', 'anthropic', 'openrouter'];
       const configs = providers.map(p => getAuthenticationConfig(p, mockConfig));
       
       // Google: Both OAuth and API key
@@ -261,7 +272,7 @@ describe('OAuth Configuration Integration', () => {
       const authConfig = getAuthenticationConfig('google', mockConfig);
       
       // Should still have API key due to environment variable
-      expect(authConfig.hasApiKey).toBe(true);
+      expect(authConfig._hasApiKey).toBe(true);
     });
   });
 
@@ -283,13 +294,10 @@ describe('OAuth Configuration Integration', () => {
             _priority: 100,  // Higher priority than global
           },
         },
-      };
+      } as any;
     });
 
     it('should apply project-level provider overrides', () => {
-      // Note: This test assumes the config loader applies overrides
-      // In the actual implementation, getProviderConfig would handle this
-      
       const config = loadConfig(mockWorkspaceRoot);
       expect(config.project?.providerOverrides).toBeDefined();
       expect(config.project?.providerOverrides?.google).toMatchObject({
@@ -328,7 +336,7 @@ describe('OAuth Configuration Integration', () => {
 
     it('should provide default serialization settings when not configured', () => {
       // Remove OAuth serialization config
-      delete mockConfig.global.oauthSerialization;
+      delete (mockConfig.global as any).oauthSerialization;
       
       const config = loadConfig(mockWorkspaceRoot);
       
@@ -390,16 +398,16 @@ describe('OAuth Configuration Integration', () => {
 
     it('should handle OAuth configuration without enabled flag', () => {
       // Remove enabled flag from OAuth config
-      delete mockConfig.global.providers!.providers[0].oauth!.enabled;
+      delete (mockConfig.global.providers!.providers[0].oauth as any)._enabled;
       
       const authConfig = getAuthenticationConfig('google', mockConfig);
       
-      expect(authConfig.oauthEnabled).toBe(false); // Default to false
+      expect(authConfig._oauthEnabled).toBe(false); // Default to false
     });
 
     it('should handle OAuth configuration without preferred method', () => {
       // Remove preferred method from OAuth config
-      delete mockConfig.global.providers!.providers[0].oauth!.preferredMethod;
+      delete (mockConfig.global.providers!.providers[0].oauth as any).preferredMethod;
       
       const authConfig = getAuthenticationConfig('google', mockConfig);
       
@@ -450,9 +458,9 @@ vi.mock('../../../config/index.js', async () => {
   return {
     ...actual,
     loadConfig: vi.fn(),
-    getAuthenticationConfig: vi.fn().mockImplementation((_provider: string, _config: MergedConfig) => {
+    getAuthenticationConfig: vi.fn().mockImplementation((provider: string, config: MergedConfig) => {
       const providers = config.global.providers?.providers || [];
-      const providerConfig = providers.find((_p: any) => p.name === provider);
+      const providerConfig = providers.find((p: any) => p.name === provider);
       
       if (!providerConfig) {
         return {
@@ -466,41 +474,41 @@ vi.mock('../../../config/index.js', async () => {
 
       const hasApiKey = !!(providerConfig.apiKey || process.env[`${provider.toUpperCase()}_API_KEY`]);
       const oauthConfig = providerConfig.oauth;
-      const hasOAuth = !!(oauthConfig?.enabled && oauthConfig?.clientId);
+      const hasOAuth = !!(oauthConfig?._enabled && oauthConfig?.clientId);
 
       return {
-        hasApiKey,
-        hasOAuth,
+        _hasApiKey: hasApiKey,
+        _hasOAuth: hasOAuth,
         preferredMethod: oauthConfig?.preferredMethod || 'api_key',
-        oauthEnabled: oauthConfig?.enabled || false,
-        autoRefresh: oauthConfig?.autoRefresh ?? true,
+        _oauthEnabled: oauthConfig?._enabled || false,
+        _autoRefresh: oauthConfig?._autoRefresh ?? true,
       };
     }),
-    getOAuthConfig: vi.fn().mockImplementation((_provider: string, _config: MergedConfig) => {
+    getOAuthConfig: vi.fn().mockImplementation((provider: string, config: MergedConfig) => {
       const providers = config.global.providers?.providers || [];
-      const providerConfig = providers.find((_p: any) => p.name === provider);
+      const providerConfig = providers.find((p: any) => p.name === provider);
       return providerConfig?.oauth;
     }),
-    isOAuthEnabled: vi.fn().mockImplementation((_provider: string, _config: MergedConfig) => {
+    isOAuthEnabled: vi.fn().mockImplementation((provider: string, config: MergedConfig) => {
       const providers = config.global.providers?.providers || [];
-      const providerConfig = providers.find((_p: any) => p.name === provider);
-      return providerConfig?.oauth?.enabled || false;
+      const providerConfig = providers.find((p: any) => p.name === provider);
+      return providerConfig?.oauth?._enabled || false;
     }),
-    getPreferredAuthMethod: vi.fn().mockImplementation((_provider: string, _config: MergedConfig) => {
+    getPreferredAuthMethod: vi.fn().mockImplementation((provider: string, config: MergedConfig) => {
       const providers = config.global.providers?.providers || [];
-      const providerConfig = providers.find((_p: any) => p.name === provider);
+      const providerConfig = providers.find((p: any) => p.name === provider);
       return providerConfig?.oauth?.preferredMethod || 'api_key';
     }),
-    getApiKey: vi.fn().mockImplementation((_provider: string, _config: MergedConfig) => {
+    getApiKey: vi.fn().mockImplementation((provider: string, config: MergedConfig) => {
       // Check environment first
       const envKey = process.env[`${provider.toUpperCase()}_API_KEY`];
       if (envKey) {
-    return envKey;
-  }
+        return envKey;
+      }
 
       // Check config
       const providers = config.global.providers?.providers || [];
-      const providerConfig = providers.find((_p: any) => p.name === provider);
+      const providerConfig = providers.find((p: any) => p.name === provider);
       return providerConfig?.apiKey;
     }),
   };

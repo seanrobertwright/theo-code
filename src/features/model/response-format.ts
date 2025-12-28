@@ -38,8 +38,8 @@ export interface OpenAIStreamChunk {
     finish_reason?: string | null;
   }>;
   usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
+    prompttokens: number;
+    completiontokens: number;
   };
 }
 
@@ -61,8 +61,8 @@ export interface AnthropicStreamEvent {
     stop_reason?: string;
   };
   usage?: {
-    input_tokens: number;
-    output_tokens: number;
+    inputtokens: number;
+    outputtokens: number;
   };
   error?: {
     type: string;
@@ -121,8 +121,8 @@ export interface CohereStreamChunk {
     text: string;
     meta?: {
       tokens?: {
-        input_tokens: number;
-        output_tokens: number;
+        inputtokens: number;
+        outputtokens: number;
       };
     };
   };
@@ -147,8 +147,8 @@ export interface MistralStreamChunk {
     finish_reason?: string;
   }>;
   usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
+    prompttokens: number;
+    completiontokens: number;
   };
 }
 
@@ -171,8 +171,8 @@ export interface TogetherStreamChunk {
     finish_reason?: string;
   }>;
   usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
+    prompttokens: number;
+    completiontokens: number;
   };
 }
 
@@ -187,8 +187,8 @@ export interface PerplexityStreamChunk {
     finish_reason?: string;
   }>;
   usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
+    prompttokens: number;
+    completiontokens: number;
   };
 }
 
@@ -752,7 +752,7 @@ export function standardizeToolCall(
   _provider: string
 ): ToolCall {
   // Helper function to ensure we always have a valid ID
-  const ensureValidId = (_id: any, _fallbackName: string): string => {
+  const ensureValidId = (id: any, _fallbackName: string): string => {
     if (id && typeof id === 'string' && id.length > 0) {
       return id;
     }
@@ -818,8 +818,8 @@ export function standardizeToolCall(
 /**
  * Parses tool call arguments from various formats.
  */
-function parseToolCallArguments(_args: any): any {
-  if (args === null ?? args === undefined) {
+function parseToolCallArguments(args: any): any {
+  if (args === null || args === undefined) {
     return {};
   }
   
@@ -854,7 +854,7 @@ function parseToolCallArguments(_args: any): any {
 /**
  * Maps Anthropic error codes to standard error codes.
  */
-function mapAnthropicErrorCode(_errorType: string): string {
+function mapAnthropicErrorCode(errorType: string): string {
   const errorMap: Record<string, string> = {
     'authentication_error': 'AUTH_FAILED',
     'permission_error': 'AUTH_FAILED',
@@ -870,7 +870,7 @@ function mapAnthropicErrorCode(_errorType: string): string {
 /**
  * Maps Google error codes to standard error codes.
  */
-function mapGoogleErrorCode(_status: string): string {
+function mapGoogleErrorCode(status: string): string {
   const errorMap: Record<string, string> = {
     'PERMISSION_DENIED': 'AUTH_FAILED',
     'UNAUTHENTICATED': 'AUTH_FAILED',
@@ -889,7 +889,7 @@ function mapGoogleErrorCode(_status: string): string {
 /**
  * Maps HTTP status codes to standard error codes.
  */
-function mapHttpStatusToErrorCode(_status: number): string {
+function mapHttpStatusToErrorCode(status: number): string {
   const statusMap: Record<number, string> = {
     401: 'AUTH_FAILED',
     403: 'AUTH_FAILED',
@@ -910,7 +910,7 @@ function mapHttpStatusToErrorCode(_status: number): string {
  * Maps provider-specific error to standard error code.
  */
 export function mapProviderError(
-  _error: any,
+  error: any,
   _provider: string
 ): { code: string; _message: string } {
   switch (provider) {

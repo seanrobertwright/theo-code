@@ -60,7 +60,7 @@ const ERROR_CODE_MAP: Record<string, string> = {
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(_message: Message): string {
+function getMessageContent(message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -170,7 +170,7 @@ function convertTools(tools: UniversalToolDefinition[]): Array<{
 /**
  * Validates and parses tool call arguments.
  */
-function parseToolCallArguments(_parameters: any, _toolName: string): any {
+function parseToolCallArguments(parameters: any, _toolName: string): any {
   if (!parameters) {
     return {};
   }
@@ -191,7 +191,7 @@ function parseToolCallArguments(_parameters: any, _toolName: string): any {
 /**
  * Maps Cohere API errors to StreamChunk error format.
  */
-function handleApiError(_error: unknown): StreamChunk {
+function handleApiError(error: unknown): StreamChunk {
   if (error instanceof Error) {
     // Try to extract error code from message
     const errorMessage = error.message.toLowerCase();
@@ -301,14 +301,14 @@ export class CohereAdapter implements IModelAdapter {
   /**
    * Creates a new Cohere adapter.
    */
-  constructor(_config: ModelConfig) {
+  constructor(config: ModelConfig) {
     this.config = config;
     this.model = config.model;
     this.contextLimit = config.contextLimit ?? MODEL_CONTEXT_LIMITS[config.model] ?? 128000;
     this.supportsToolCalling = TOOL_CALLING_MODELS.has(config.model);
 
     const apiKey = config.apiKey ?? process.env['COHERE_API_KEY'];
-    if (apiKey === undefined ?? apiKey === '') {
+    if (apiKey === undefined || apiKey === '') {
       throw new AdapterError(
         'INVALID_CONFIG',
         'cohere',
@@ -317,7 +317,7 @@ export class CohereAdapter implements IModelAdapter {
     }
 
     this.client = new CohereClient({
-      _token: apiKey,
+      token: apiKey,
     });
   }
 
@@ -498,7 +498,7 @@ export class CohereAdapter implements IModelAdapter {
 /**
  * Creates a Cohere adapter from configuration.
  */
-function createCohereAdapter(_config: ModelConfig): IModelAdapter {
+function createCohereAdapter(config: ModelConfig): IModelAdapter {
   return new CohereAdapter(config);
 }
 

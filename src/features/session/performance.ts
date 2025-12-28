@@ -14,6 +14,8 @@ import type {
   SessionMetadata,
   SessionIndex,
 } from '../../shared/types/index.js';
+import { logOperation } from './audit.js';
+
 // =============================================================================
 // INTERFACES
 // =============================================================================
@@ -147,13 +149,13 @@ export class SessionMetadataCache {
     this.maxSize = maxSize;
     this.defaultTtl = defaultTtl;
     this.stats = {
-      _totalEntries: 0,
-      _hits: 0,
-      _misses: 0,
-      _hitRate: 0,
-      _memoryUsage: 0,
-      _evictions: 0,
-      _averageAccessTime: 0,
+      totalEntries: 0,
+      hits: 0,
+      misses: 0,
+      hitRate: 0,
+      memoryUsage: 0,
+      evictions: 0,
+      averageAccessTime: 0,
     };
   }
   
@@ -163,7 +165,7 @@ export class SessionMetadataCache {
    * @param sessionId - Session identifier
    * @returns Cached metadata or null if not found/expired
    */
-  get(_sessionId: SessionId): SessionMetadata | null {
+  get(sessionId: SessionId): SessionMetadata | null {
     const startTime = performance.now();
     
     const entry = this.cache.get(sessionId);
@@ -199,17 +201,17 @@ export class SessionMetadataCache {
    * @param metadata - Session metadata to cache
    * @param ttl - Optional custom TTL
    */
-  set(_sessionId: SessionId, _metadata: SessionMetadata, ttl?: number): void {
+  set(sessionId: SessionId, metadata: SessionMetadata, ttl?: number): void {
     // Evict if at capacity
-    if (this.cache.size >= this.maxSize && !this.cache.has(sessionId) {
+    if (this.cache.size >= this.maxSize && !this.cache.has(sessionId)) {
       this.evictLeastRecentlyUsed();
     }
     
     const entry: CacheEntry<SessionMetadata> = {
-      _data: metadata,
+      data: metadata,
       timestamp: Date.now(),
       ttl: ttl ?? this.defaultTtl,
-      _accessCount: 1,
+      accessCount: 1,
       lastAccessed: Date.now(),
     };
     
@@ -228,8 +230,8 @@ export class SessionMetadataCache {
    * 
    * @param sessionId - Session identifier
    */
-  delete(_sessionId: SessionId): void {
-    if (this.cache.delete(sessionId) {
+  delete(sessionId: SessionId): void {
+    if (this.cache.delete(sessionId)) {
       this.stats.totalEntries--;
       this.updateMemoryUsage();
     }
@@ -266,12 +268,12 @@ export class SessionMetadataCache {
    * @param key - Index cache key
    * @param ttl - Optional custom TTL
    */
-  setIndex(_index: SessionIndex, key: string = 'default', ttl?: number): void {
+  setIndex(index: SessionIndex, key: string = 'default', ttl?: number): void {
     const entry: CacheEntry<SessionIndex> = {
-      _data: index,
+      data: index,
       timestamp: Date.now(),
       ttl: ttl ?? this.defaultTtl,
-      _accessCount: 1,
+      accessCount: 1,
       lastAccessed: Date.now(),
     };
     
@@ -354,10 +356,14 @@ export class SessionMetadataCache {
    * 
    * @param accessTime - Time taken for the access operation
    */
-  private updateStats(_accessTime: number): void {
+  private updateStats(accessTime: number): void {
     const totalAccesses = this.stats.hits + this.stats.misses;
-    this.stats.averageAccessTime = 
-      (this.stats.averageAccessTime * (totalAccesses - 1) + accessTime) / totalAccesses;
+    if (totalAccesses > 0) {
+      this.stats.averageAccessTime = 
+        (this.stats.averageAccessTime * (totalAccesses - 1) + accessTime) / totalAccesses;
+    } else {
+      this.stats.averageAccessTime = accessTime;
+    }
   }
   
   /**
@@ -448,7 +454,7 @@ export class LazyLoadingManager {
    * 
    * @param totalItems - Total number of items available
    */
-  initialize(_totalItems: number): void {
+  initialize(totalItems: number): void {
     this.totalItems = totalItems;
     this.totalPages = Math.ceil(totalItems / this.config.pageSize);
     this.pageCache.clear();
@@ -463,11 +469,11 @@ export class LazyLoadingManager {
    * @returns Promise resolving to page data
    */
   async getPage(
-    _pageNumber: number,
-    loader: (_offset: number, _limit: number) => Promise<SessionMetadata[]>
+    pageNumber: number,
+    loader: (offset: number, limit: number) => Promise<SessionMetadata[]>
   ): Promise<SessionMetadata[]> {
     // Check if page is already cached
-    if (this.pageCache.has(pageNumber) {
+    if (this.pageCache.has(pageNumber)) {
       const page = this.pageCache.get(pageNumber)!;
       
       // Trigger preloading if near threshold
@@ -479,7 +485,7 @@ export class LazyLoadingManager {
     }
     
     // Check if page is currently loading
-    if (this.loadingPages.has(pageNumber) {
+    if (this.loadingPages.has(pageNumber)) {
       // Wait for loading to complete
       return this.waitForPageLoad(pageNumber);
     }
@@ -496,17 +502,15 @@ export class LazyLoadingManager {
    * @param loader - Function to load page data
    */
   async preloadPages(
-    _startPage: number,
-    _count: number,
-    loader: (_offset: number, _limit: number) => Promise<SessionMetadata[]>
+    startPage: number,
+    count: number,
+    loader: (offset: number, limit: number) => Promise<SessionMetadata[]>
   ): Promise<void> {
     const preloadPromises: Promise<void>[] = [];
     
     for (let i = 0; i < count; i++) {
       const pageNumber = startPage + i;
-      if (pageNumber < this.totalPages && !this.pageCache.has(pageNumber) {
-    && !this.loadingPages.has(pageNumber)) {
-  }
+      if (pageNumber < this.totalPages && !this.pageCache.has(pageNumber) && !this.loadingPages.has(pageNumber)) {
         preloadPromises.push(
           this.loadPage(pageNumber, loader).then(() => {
             // Page loaded successfully
@@ -560,8 +564,8 @@ export class LazyLoadingManager {
    * @returns Promise resolving to page data
    */
   private async loadPage(
-    _pageNumber: number,
-    loader: (_offset: number, _limit: number) => Promise<SessionMetadata[]>
+    pageNumber: number,
+    loader: (offset: number, limit: number) => Promise<SessionMetadata[]>
   ): Promise<SessionMetadata[]> {
     this.loadingPages.add(pageNumber);
     
@@ -584,7 +588,7 @@ export class LazyLoadingManager {
    * @param pageNumber - Page number to wait for
    * @returns Promise resolving to page data
    */
-  private async waitForPageLoad(_pageNumber: number): Promise<SessionMetadata[]> {
+  private async waitForPageLoad(pageNumber: number): Promise<SessionMetadata[]> {
     // Simple polling approach (in production, you might use events)
     while (this.loadingPages.has(pageNumber)) {
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -600,7 +604,7 @@ export class LazyLoadingManager {
    * @param pageNumber - Page number
    * @param page - Page data
    */
-  private cachePageWithEviction(_pageNumber: number, page: SessionMetadata[]): void {
+  private cachePageWithEviction(pageNumber: number, page: SessionMetadata[]): void {
     // Evict oldest pages if at capacity
     while (this.pageCache.size >= this.config.maxCachedPages) {
       const oldestPage = this.pageCache.keys().next().value;
@@ -619,17 +623,12 @@ export class LazyLoadingManager {
    * @param loader - Function to load page data
    */
   private maybePreloadNextPage(
-    _currentPage: number,
-    loader: (_offset: number, _limit: number) => Promise<SessionMetadata[]>
+    currentPage: number,
+    loader: (offset: number, limit: number) => Promise<SessionMetadata[]>
   ): void {
     const nextPage = currentPage + 1;
     
-    if (nextPage < this.totalPages {
-    &&
-  }
-        !this.pageCache.has(nextPage) && 
-        !this.loadingPages.has(nextPage)) {
-      
+    if (nextPage < this.totalPages && !this.pageCache.has(nextPage) && !this.loadingPages.has(nextPage)) {
       // Preload in background
       this.loadPage(nextPage, loader).catch((error) => {
         console.warn(`Background preload failed for page ${nextPage}:`, error);
@@ -806,7 +805,7 @@ export class BackgroundTaskManager {
    * 
    * @param task - Task to execute
    */
-  private async executeTask(_task: BackgroundTask): Promise<void> {
+  private async executeTask(task: BackgroundTask): Promise<void> {
     const timeout = task.timeout ?? this.config.timeout;
     const maxRetries = task.retries ?? 2;
     
@@ -834,7 +833,7 @@ export class BackgroundTaskManager {
         // Task succeeded
         return;
         
-      } catch (_error: any) {
+      } catch (error: any) {
         const isLastAttempt = attempt === maxRetries;
         
         if (isLastAttempt) {
@@ -869,7 +868,7 @@ export class BackgroundTaskManager {
  */
 export class PerformanceMonitor {
   private readonly operationTimes = new Map<string, number[]>();
-  private readonly memorySnapshots: Array<{ timestamp: number; _usage: number }> = [];
+  private readonly memorySnapshots: Array<{ timestamp: number; usage: number }> = [];
   private readonly maxSamples = 1000;
   
   /**
@@ -878,8 +877,8 @@ export class PerformanceMonitor {
    * @param operation - Operation name
    * @param duration - Duration in milliseconds
    */
-  recordOperation(_operation: string, _duration: number): void {
-    if (!this.operationTimes.has(operation) {
+  recordOperation(operation: string, duration: number): void {
+    if (!this.operationTimes.has(operation)) {
       this.operationTimes.set(operation, []);
     }
     
@@ -897,7 +896,7 @@ export class PerformanceMonitor {
    * 
    * @param usage - Memory usage in bytes
    */
-  recordMemoryUsage(_usage: number): void {
+  recordMemoryUsage(usage: number): void {
     this.memorySnapshots.push({
       timestamp: Date.now(),
       usage,
@@ -917,8 +916,8 @@ export class PerformanceMonitor {
    * @returns Current performance metrics
    */
   getMetrics(
-    _cache: SessionMetadataCache,
-    _backgroundTasks: BackgroundTaskManager
+    cache: SessionMetadataCache,
+    backgroundTasks: BackgroundTaskManager
   ): PerformanceMetrics {
     const operationTimes: Record<string, number> = {};
     
@@ -937,24 +936,24 @@ export class PerformanceMonitor {
     const taskStatus = backgroundTasks.getStatus();
     
     return {
-      _cache: cacheStats,
+      cache: cacheStats,
       operationTimes: {
-        _listSessions: 0,
-        _searchSessions: 0,
-        _loadSession: 0,
-        _saveSession: 0,
+        listSessions: 0,
+        searchSessions: 0,
+        loadSession: 0,
+        saveSession: 0,
         ...operationTimes,
       },
       memory: {
-        _totalUsage: currentMemory,
+        totalUsage: currentMemory,
         cacheUsage: cacheStats.memoryUsage,
-        _backgroundTasksUsage: 0, // Placeholder
+        backgroundTasksUsage: 0, // Placeholder
       },
       backgroundTasks: {
         queued: taskStatus.queued,
         running: taskStatus.running,
-        _completed: 0, // Would need to track this
-        _failed: 0, // Would need to track this
+        completed: 0, // Would need to track this
+        failed: 0, // Would need to track this
       },
     };
   }

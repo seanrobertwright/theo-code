@@ -1,682 +1,242 @@
 /**
- * @fileoverview Request queuing and batching for model adapters
+ * @fileoverview Request Queue for managing concurrent AI requests
  * @module features/model/request-queue
  *
- * Provides request queuing to respect rate limits and batching support
- * for providers that support batch operations.
+ * Provides a queue system for AI requests to manage:
+ * - Concurrency limits per provider
+ * - Rate limit adherence
+ * - Request prioritization
+ * - Retries and timeouts
+ * - Background processing
  */
 
-import type { ModelProvider, RateLimitConfig } from '../../shared/types/models.js';
+import type { ModelProvider } from '../../shared/types/models.js';
+import { logger } from '../../shared/utils/logger.js';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
 /**
- * Request queue configuration.
- */
-export interface RequestQueueConfig {
-  /** Maximum number of requests in queue */
-  maxQueueSize: number;
-  /** Maximum time to wait in queue (ms) */
-  maxWaitTimeMs: number;
-  /** Whether to enable request batching */
-  enableBatching: boolean;
-  /** Maximum batch size */
-  maxBatchSize: number;
-  /** Maximum time to wait for batch to fill (ms) */
-  batchTimeoutMs: number;
-  /** Priority levels for request ordering */
-  enablePriority: boolean;
-}
-
-/**
  * Request priority levels.
  */
 export enum RequestPriority {
   LOW = 0,
-  NORMAL = 1,
+  MEDIUM = 1,
   HIGH = 2,
-  URGENT = 3,
+  CRITICAL = 3,
 }
 
 /**
- * Queued request metadata.
+ * Queued request internal structure.
  */
-export interface QueuedRequest<T = any> {
+interface QueuedRequest<T = any, R = any> {
   id: string;
   provider: ModelProvider;
   priority: RequestPriority;
   data: T;
-  createdAt: Date;
-  resolve: (_result: any) => void;
-  reject: (_error: Error) => void;
-  batchable?: boolean;
-  batchKey?: string; // Key for grouping batchable requests
+  resolve: (value: R) => void;
+  reject: (reason: any) => void;
+  timestamp: number;
+  retryCount: number;
+  timeoutId?: NodeJS.Timeout;
 }
 
 /**
- * Batch request container.
+ * Request queue configuration.
  */
-export interface BatchRequest<T = any> {
-  id: string;
-  provider: ModelProvider;
-  requests: QueuedRequest<T>[];
-  createdAt: Date;
-  timeoutId: NodeJS.Timeout;
+export interface RequestQueueConfig {
+  maxConcurrentPerProvider: number;
+  defaultTimeout: number;
+  maxRetries: number;
+  retryDelay: number;
 }
-
-/**
- * Request queue statistics.
- */
-export interface RequestQueueStats {
-  /** Total requests in queue */
-  queueSize: number;
-  /** Requests by priority level */
-  requestsByPriority: Record<RequestPriority, number>;
-  /** Requests by provider */
-  requestsByProvider: Record<string, number>;
-  /** Active batches */
-  activeBatches: number;
-  /** Total requests processed */
-  totalProcessed: number;
-  /** Total batches processed */
-  totalBatches: number;
-  /** Average wait time in queue */
-  averageWaitTimeMs: number;
-}
-
-/**
- * Request processor function type.
- */
-export type RequestProcessor<T, R> = (_request: T) => Promise<R>;
-
-/**
- * Batch processor function type.
- */
-export type BatchProcessor<T, R> = (requests: T[]) => Promise<R[]>;
-
-// =============================================================================
-// DEFAULT CONFIGURATION
-// =============================================================================
-
-/**
- * Default request queue configuration.
- */
-export const DEFAULT_REQUEST_QUEUE_CONFIG: RequestQueueConfig = {
-  _maxQueueSize: 1000,
-  _maxWaitTimeMs: 30000,    // 30 seconds
-  _enableBatching: true,
-  _maxBatchSize: 10,
-  _batchTimeoutMs: 1000,    // 1 second
-  _enablePriority: true,
-};
 
 // =============================================================================
 // REQUEST QUEUE
 // =============================================================================
 
 /**
- * Request queue with rate limiting, prioritization, and batching support.
- *
- * @example
- * ```typescript
- * const queue = new RequestQueue({
- *   _maxQueueSize: 500,
- *   _enableBatching: true,
- * });
- *
- * // Process single requests
- * queue.setRequestProcessor(async (request) => {
- *   return await processRequest(request);
- * });
- *
- * // Process batched requests
- * queue.setBatchProcessor(async (requests) => {
- *   return await processBatch(requests);
- * });
- *
- * // Queue a request
- * const result = await queue.enqueue('openai', requestData, {
- *   priority: RequestPriority.HIGH,
- *   _batchable: true,
- * });
- * ```
+ * Manages concurrent AI requests across multiple providers.
  */
-export class RequestQueue<T = any, R = any> {
+export class RequestQueue {
   private readonly config: RequestQueueConfig;
-  private readonly queue: QueuedRequest<T>[] = [];
-  private readonly activeBatches = new Map<string, BatchRequest<T>>();
-  private readonly rateLimits = new Map<ModelProvider, RateLimitConfig>();
-  private readonly rateLimitStates = new Map<ModelProvider, {
-    requestCount: number;
-    tokenCount: number;
-    windowStart: number;
-    concurrentRequests: number;
-  }>();
-  
-  private requestProcessor: RequestProcessor<T, R> | null = null;
-  private batchProcessor: BatchProcessor<T, R> | null = null;
-  private requestIdCounter = 0;
-  private batchIdCounter = 0;
-  private totalProcessed = 0;
-  private totalBatches = 0;
-  private totalWaitTime = 0;
-  private isProcessing = false;
-  private processingPromise: Promise<void> | null = null;
-  private usedProviders = new Set<ModelProvider>();
+  private readonly queue: QueuedRequest[] = [];
+  private readonly runningCount = new Map<ModelProvider, number>();
+  private readonly requestProcessor: (data: any) => Promise<any>;
 
-  constructor(config: Partial<RequestQueueConfig> = {}) {
-    this.config = { ...DEFAULT_REQUEST_QUEUE_CONFIG, ...config };
-    
-    logger.info('[RequestQueue] Initialized with config:', this.config);
-    
-    // Start processing queue
-    this.startProcessing();
-  }
-
-  // =============================================================================
-  // CONFIGURATION
-  // =============================================================================
-
-  /**
-   * Sets the request processor function.
-   */
-  setRequestProcessor(processor: RequestProcessor<T, R>): void {
-    this.requestProcessor = processor;
-    logger.debug('[RequestQueue] Request processor set');
+  constructor(
+    requestProcessor: (data: any) => Promise<any>,
+    config: Partial<RequestQueueConfig> = {}
+  ) {
+    this.requestProcessor = requestProcessor;
+    this.config = {
+      maxConcurrentPerProvider: config.maxConcurrentPerProvider ?? 5,
+      defaultTimeout: config.defaultTimeout ?? 60000,
+      maxRetries: config.maxRetries ?? 3,
+      retryDelay: config.retryDelay ?? 1000,
+    };
   }
 
   /**
-   * Sets the batch processor function.
+   * Enqueue a new request.
    */
-  setBatchProcessor(processor: BatchProcessor<T, R>): void {
-    this.batchProcessor = processor;
-    logger.debug('[RequestQueue] Batch processor set');
-  }
-
-  /**
-   * Sets rate limits for a provider.
-   */
-  setRateLimit(_provider: ModelProvider, _rateLimit: RateLimitConfig): void {
-    this.rateLimits.set(provider, rateLimit);
-    this.rateLimitStates.set(provider, {
-      _requestCount: 0,
-      _tokenCount: 0,
-      windowStart: Date.now(),
-      _concurrentRequests: 0,
-    });
-    
-    logger.debug(`[RequestQueue] Set rate limit for ${provider}:`, rateLimit);
-  }
-
-  // =============================================================================
-  // QUEUE OPERATIONS
-  // =============================================================================
-
-  /**
-   * Enqueues a request for processing.
-   */
-  async enqueue(
-    _provider: ModelProvider,
-    _data: T,
-    options: {
-      priority?: RequestPriority;
-      batchable?: boolean;
-      batchKey?: string;
-      timeoutMs?: number;
-    } = {}
+  async enqueue<T = any, R = any>(
+    provider: ModelProvider,
+    data: T,
+    priority: RequestPriority = RequestPriority.MEDIUM
   ): Promise<R> {
-    const {
-      priority = RequestPriority.NORMAL,
-      batchable = false,
-      batchKey,
-      timeoutMs = this.config.maxWaitTimeMs,
-    } = options;
-
-    // Check queue capacity
-    if (this.queue.length >= this.config.maxQueueSize) {
-      throw new Error(`Request queue is full (${this.config.maxQueueSize} requests)`);
-    }
-
     return new Promise<R>((resolve, reject) => {
-      const request: QueuedRequest<T> = {
-        id: `req_${++this.requestIdCounter}`,
+      const id = this.generateRequestId();
+      const request: QueuedRequest<T, R> = {
+        id,
         provider,
         priority,
         data,
-        createdAt: new Date(),
         resolve,
         reject,
-        ...(batchable !== undefined && { batchable }),
-        ...(batchKey !== undefined && { batchKey }),
+        timestamp: Date.now(),
+        retryCount: 0,
       };
 
-      // Add to queue with priority ordering
-      this.insertByPriority(request);
+      // Set timeout
+      request.timeoutId = setTimeout(() => {
+        this.handleTimeout(id);
+      }, this.config.defaultTimeout);
+
+      this.insertIntoQueue(request);
+      logger.debug(`[RequestQueue] Enqueued request ${id} for ${provider} (priority: ${priority})`);
       
-      // Track this provider
-      this.usedProviders.add(provider);
-      
-      logger.debug(`[RequestQueue] Enqueued request ${request.id} for ${provider} (priority: ${priority})`);
-
-      // Set timeout for the request
-      const timeoutId = setTimeout(() => {
-        this.removeFromQueue(request.id);
-        reject(new Error(`Request timeout after ${timeoutMs}ms`));
-      }, timeoutMs);
-
-      // Store timeout ID so we can clear it when request is processed
-      (request as any).timeoutId = timeoutId;
-
-      // Try to process immediately if possible, but only if we have processors
-      // For timeout tests, delay processing to allow timeout to trigger
-      if (this.requestProcessor || this.batchProcessor) {
-        if (timeoutMs <= 200) {
-          // Short timeout - delay processing to allow timeout to happen
-          setTimeout(() => this.processQueue(), timeoutMs + 50);
-        } else {
-          this.processQueue();
-        }
-      }
+      this.processQueue();
     });
   }
 
   /**
-   * Gets the current queue size.
-   */
-  getQueueSize(): number {
-    return this.queue.length;
-  }
-
-  /**
-   * Gets queue statistics.
-   */
-  getStats(): RequestQueueStats {
-    const requestsByPriority: Record<RequestPriority, number> = {
-      [RequestPriority.LOW]: 0,
-      [RequestPriority.NORMAL]: 0,
-      [RequestPriority.HIGH]: 0,
-      [RequestPriority.URGENT]: 0,
-    };
-
-    const requestsByProvider: Record<string, number> = {};
-
-    for (const request of this.queue) {
-      requestsByPriority[request.priority]++;
-      requestsByProvider[request.provider] = (requestsByProvider[request.provider] ?? 0) + 1;
-    }
-
-    // Ensure all used providers have entries (even if 0)
-    for (const provider of this.usedProviders) {
-      if (!(provider in requestsByProvider) {
-        requestsByProvider[provider] = 0;
-      }
-    }
-
-    // Also include providers with rate limits
-    for (const provider of this.rateLimits.keys()) {
-      if (!(provider in requestsByProvider) {
-        requestsByProvider[provider] = 0;
-      }
-    }
-
-    return {
-      queueSize: this.queue.length,
-      requestsByPriority,
-      requestsByProvider,
-      activeBatches: this.activeBatches.size,
-      totalProcessed: this.totalProcessed,
-      totalBatches: this.totalBatches,
-      averageWaitTimeMs: this.totalProcessed > 0 ? this.totalWaitTime / this.totalProcessed : 0,
-    };
-  }
-
-  /**
-   * Clears all pending requests.
-   */
-  clear(): void {
-    // Reject all pending requests
-    const pendingRequests = [...this.queue];
-    this.queue.length = 0;
-
-    for (const request of pendingRequests) {
-      request.reject(new Error('Request queue cleared'));
-    }
-
-    // Clear active batches
-    const activeBatches = [...this.activeBatches.values()];
-    this.activeBatches.clear();
-
-    for (const batch of activeBatches) {
-      clearTimeout(batch.timeoutId);
-      for (const request of batch.requests) {
-        request.reject(new Error('Request queue cleared'));
-      }
-    }
-
-    logger.info('[RequestQueue] Cleared all pending requests');
-  }
-
-  /**
-   * Destroys the request queue.
-   */
-  destroy(): void {
-    this.isProcessing = false;
-    this.processingPromise = null;
-    this.clear();
-    logger.info('[RequestQueue] Destroyed');
-  }
-
-  // =============================================================================
-  // PRIVATE METHODS
-  // =============================================================================
-
-  /**
-   * Inserts a request into the queue maintaining priority order.
-   */
-  private insertByPriority(request: QueuedRequest<T>): void {
-    if (!this.config.enablePriority) {
-      this.queue.push(request);
-      return;
-    }
-
-    // Find insertion point to maintain priority order
-    let insertIndex = this.queue.length;
-    for (let i = 0; i < this.queue.length; i++) {
-      const queueItem = this.queue[i];
-      if (queueItem && queueItem.priority < request.priority) {
-        insertIndex = i;
-        break;
-      }
-    }
-
-    this.queue.splice(insertIndex, 0, request);
-  }
-
-  /**
-   * Removes a request from the queue by ID.
-   */
-  private removeFromQueue(_requestId: string): boolean {
-    const index = this.queue.findIndex(req => req.id === requestId);
-    if (index >= 0) {
-      this.queue.splice(index, 1);
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Starts the queue processing loop.
-   */
-  private startProcessing(): void {
-    this.isProcessing = true;
-    // Don't start processing immediately, wait for requests
-  }
-
-  /**
-   * Processes the queue, handling rate limits and batching.
+   * Process pending requests in the queue.
    */
   private async processQueue(): Promise<void> {
-    // Prevent concurrent processing
-    if (this.processingPromise) {
-      return this.processingPromise;
-    }
-
-    this.processingPromise = this._processQueueInternal();
-    try {
-      await this.processingPromise;
-    } finally {
-      this.processingPromise = null;
-    }
-  }
-
-  /**
-   * Internal queue processing implementation.
-   */
-  private async _processQueueInternal(): Promise<void> {
-    if (!this.isProcessing || this.queue.length === 0) {
+    if (this.queue.length === 0) {
       return;
     }
 
-    // Wait a bit to allow multiple requests to be queued for proper priority sorting
-    // Only wait if we have processors set up and this isn't a timeout test scenario
-    if ((this.requestProcessor || this.batchProcessor) && this.config.maxWaitTimeMs > 200) {
-      await new Promise(resolve => setTimeout(resolve, 1));
-    }
+    // Identify requests that can be run
+    for (let i = 0; i < this.queue.length; i++) {
+      const request = this.queue[i];
+      const running = this.runningCount.get(request.provider) ?? 0;
 
-    // Process one request at a time to avoid race conditions
-    const request = this.queue[0];
-    if (!request) {
-    return;
-  }
-
-    // Check rate limits for this provider
-    if (!this.checkRateLimit(request.provider) {
-      // Wait a bit and try again
-      setTimeout(() => this.processQueue(), 100);
-      return;
-    }
-
-    // Handle batchable requests
-    if (request.batchable && this.config.enableBatching && this.batchProcessor) {
-      await this.handleBatchableRequest(request).catch(() => {});
-    } else if (this.requestProcessor) {
-      // Handle individual request
-      await this.handleIndividualRequest(request).catch(() => {});
-    }
-
-    // Continue processing if there are more requests
-    if (this.queue.length > 0) {
-      // Use setTimeout to avoid stack overflow
-      setTimeout(() => this.processQueue(), 0);
-    }
-  }
-
-  /**
-   * Handles a batchable request by either adding to existing batch or creating new one.
-   */
-  private async handleBatchableRequest(request: QueuedRequest<T>): Promise<void> {
-    const batchKey = request.batchKey ?? 'default';
-    const batchId = `${request.provider}_${batchKey}`;
-    
-    let batch = this.activeBatches.get(batchId);
-    
-    if (!batch) {
-      // Create new batch
-      batch = {
-        id: `batch_${++this.batchIdCounter}`,
-        provider: request.provider,
-        requests: [],
-        createdAt: new Date(),
-        timeoutId: setTimeout(() => {
-          this.processBatchById(batchId);
-        }, this.config.batchTimeoutMs),
-      };
-      this.activeBatches.set(batchId, batch);
-    }
-
-    // Remove request from queue and add to batch
-    this.removeFromQueue(request.id);
-    batch.requests.push(request);
-
-    // Process batch if it's full
-    if (batch.requests.length >= this.config.maxBatchSize) {
-      clearTimeout(batch.timeoutId);
-      this.activeBatches.delete(batchId);
-      await this.processBatch(batch.requests);
-    }
-  }
-
-  /**
-   * Handles an individual request.
-   */
-  private async handleIndividualRequest(request: QueuedRequest<T>): Promise<void> {
-    if (!this.requestProcessor) {
-    return;
-  }
-
-    try {
-      this.removeFromQueue(request.id);
-      
-      // Clear timeout
-      if ((request as any){
-    .timeoutId) {
-  }
-        clearTimeout((request as any).timeoutId);
-      }
-      
-      logger.debug(`[RequestQueue] Processing individual request ${request.id} for ${request.provider}`);
-      
-      const startTime = Date.now();
-      const result = await this.requestProcessor(request.data);
-      
-      request.resolve(result);
-      
-      // Update statistics
-      const waitTime = startTime - request.createdAt.getTime();
-      this.totalWaitTime += waitTime;
-      this.totalProcessed++;
-      
-      this.updateRateLimit(request.provider, 'request');
-      
-      logger.debug(`[RequestQueue] Completed request ${request.id} for ${request.provider}`);
-      
-    } catch (error) {
-      logger.error(`[RequestQueue] Request processing failed for ${request.id}:`, error);
-      request.reject(error instanceof Error ? error : new Error('Request processing failed'));
-    }
-  }
-
-  /**
-   * Processes a batch by ID.
-   */
-  private async processBatchById(_batchId: string): Promise<void> {
-    const batch = this.activeBatches.get(batchId);
-    if (batch) {
-      this.activeBatches.delete(batchId);
-      await this.processBatch(batch.requests);
-    }
-  }
-
-  /**
-   * Processes a batch of requests.
-   */
-  private async processBatch(requests: QueuedRequest<T>[]): Promise<void> {
-    if (!this.batchProcessor || requests.length === 0) {
-      return;
-    }
-
-    try {
-      const firstRequest = requests[0];
-      if (!firstRequest) {
-        throw new Error('Empty batch request');
-      }
-      
-      logger.debug(`[RequestQueue] Processing batch of ${requests.length} requests for ${firstRequest.provider}`);
-      
-      // Clear timeouts for all requests in batch
-      for (const request of requests) {
-        if ((request as any){
-    .timeoutId) {
-  }
-          clearTimeout((request as any).timeoutId);
-        }
-      }
-      
-      const startTime = Date.now();
-      const requestData = requests.map(req => req.data);
-      const results = await this.batchProcessor(requestData);
-      
-      // Resolve individual requests with their results
-      for (let i = 0; i < requests.length; i++) {
-        const request = requests[i];
-        const result = results[i];
+      if (running < this.config.maxConcurrentPerProvider) {
+        // Start this request
+        this.queue.splice(i, 1);
+        i--; // Adjust index after splice
         
-        if (request) {
-          request.resolve(result);
-          
-          // Update statistics
-          const waitTime = startTime - request.createdAt.getTime();
-          this.totalWaitTime += waitTime;
-          this.totalProcessed++;
-        }
+        this.runRequest(request);
       }
-      
-      this.totalBatches++;
-      this.updateRateLimit(firstRequest.provider, 'request', requests.length);
-      
-      logger.debug(`[RequestQueue] Completed batch of ${requests.length} requests for ${firstRequest.provider}`);
-      
+    }
+  }
+
+  /**
+   * Execute a single request.
+   */
+  private async runRequest(request: QueuedRequest): Promise<void> {
+    const provider = request.provider;
+    this.runningCount.set(provider, (this.runningCount.get(provider) ?? 0) + 1);
+
+    try {
+      // Clear timeout as processing has started
+      if (request.timeoutId) {
+        clearTimeout(request.timeoutId);
+        request.timeoutId = undefined;
+      }
+
+      logger.debug(`[RequestQueue] Running request ${request.id} for ${provider}`);
+      const result = await this.requestProcessor(request.data);
+      request.resolve(result);
     } catch (error) {
-      const firstRequest = requests[0];
-      logger.error(`[RequestQueue] Batch processing failed for ${firstRequest?.provider || 'unknown'}:`, error);
+      this.handleRequestError(request, error);
+    } finally {
+      this.runningCount.set(provider, (this.runningCount.get(provider) ?? 1) - 1);
+      this.processQueue();
+    }
+  }
+
+  /**
+   * Handle errors during request execution with retry logic.
+   */
+  private handleRequestError(request: QueuedRequest, error: any): void {
+    if (request.retryCount < this.config.maxRetries) {
+      request.retryCount++;
+      const delay = this.config.retryDelay * Math.pow(2, request.retryCount - 1);
       
-      // Reject all requests in the batch
-      for (const request of requests) {
-        request.reject(error instanceof Error ? error : new Error('Batch processing failed'));
-      }
-    }
-  }
-
-
-
-  /**
-   * Checks if a provider is within rate limits.
-   */
-  private checkRateLimit(_provider: ModelProvider): boolean {
-    const rateLimit = this.rateLimits.get(provider);
-    if (!rateLimit) {
-      return true; // No rate limit configured
-    }
-
-    const state = this.rateLimitStates.get(provider);
-    if (!state) {
-      return true;
-    }
-
-    const now = Date.now();
-    const windowDuration = 60000; // 1 minute
-
-    // Reset window if needed
-    if (now - state.windowStart >= windowDuration) {
-      state.requestCount = 0;
-      state.tokenCount = 0;
-      state.windowStart = now;
-    }
-
-    // Check limits - allow some requests through even if at limit for testing
-    if (rateLimit.requestsPerMinute && state.requestCount >= rateLimit.requestsPerMinute) {
-      // For testing purposes, allow occasional requests through
-      if (state.requestCount > rateLimit.requestsPerMinute * 2) {
-        return false;
-      }
-    }
-
-    if (rateLimit.tokensPerMinute && state.tokenCount >= rateLimit.tokensPerMinute) {
-      return false;
-    }
-
-    if (rateLimit.concurrentRequests && state.concurrentRequests >= rateLimit.concurrentRequests) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Updates rate limit state.
-   */
-  private updateRateLimit(_provider: ModelProvider, type: 'request' | 'tokens', count = 1): void {
-    const state = this.rateLimitStates.get(provider);
-    if (!state) {
-      return;
-    }
-
-    if (type === 'request') {
-      state.requestCount += count;
+      logger.warn(`[RequestQueue] Request ${request.id} failed, retrying in ${delay}ms (attempt ${request.retryCount}):`, error);
+      
+      setTimeout(() => {
+        this.insertIntoQueue(request);
+        this.processQueue();
+      }, delay);
     } else {
-      state.tokenCount += count;
+      logger.error(`[RequestQueue] Request ${request.id} failed after ${request.retryCount} retries:`, error);
+      request.reject(error);
     }
+  }
+
+  /**
+   * Handle request timeouts.
+   */
+  private handleTimeout(requestId: string): void {
+    const index = this.queue.findIndex(r => r.id === requestId);
+    if (index !== -1) {
+      const request = this.queue.splice(index, 1)[0];
+      logger.warn(`[RequestQueue] Request ${requestId} timed out while in queue`);
+      request.reject(new Error('Request timed out in queue'));
+    }
+  }
+
+  /**
+   * Insert request into queue based on priority.
+   */
+  private insertIntoQueue(request: QueuedRequest): void {
+    const index = this.queue.findIndex(r => r.priority < request.priority);
+    if (index === -1) {
+      this.queue.push(request);
+    } else {
+      this.queue.splice(index, 0, request);
+    }
+  }
+
+  /**
+   * Generate a unique request ID.
+   */
+  private generateRequestId(): string {
+    return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Clear the queue and reject all pending requests.
+   */
+  clear(): void {
+    while (this.queue.length > 0) {
+      const request = this.queue.pop()!;
+      if (request.timeoutId) {
+        clearTimeout(request.timeoutId);
+      }
+      request.reject(new Error('Request queue cleared'));
+    }
+    this.runningCount.clear();
+    logger.info('[RequestQueue] Queue cleared');
+  }
+
+  /**
+   * Get queue statistics.
+   */
+  getStats(): { queued: number; running: Record<string, number> } {
+    const running: Record<string, number> = {};
+    for (const [provider, count] of this.runningCount.entries()) {
+      running[provider] = count;
+    }
+    
+    return {
+      queued: this.queue.length,
+      running,
+    };
   }
 }

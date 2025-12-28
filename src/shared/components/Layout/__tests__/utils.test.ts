@@ -37,7 +37,7 @@ describe('Layout Utils', () => {
     });
 
     it('should handle root directory', () => {
-      expect(deriveProjectName('/')).toBe('Unknown Project');
+      expect(deriveProjectName('/')).toBe('Root Directory');
     });
 
     it('should handle empty or invalid paths', () => {

@@ -85,7 +85,7 @@ const ERROR_CODE_MAP: Record<string, string> = {
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(_message: Message): string {
+function getMessageContent(message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -192,7 +192,7 @@ function convertTools(tools: UniversalToolDefinition[]): OpenAI.Chat.Completions
 /**
  * Maps Perplexity/OpenAI API errors to StreamChunk error format.
  */
-function handleApiError(_error: unknown): StreamChunk {
+function handleApiError(error: unknown): StreamChunk {
   if (error instanceof OpenAI.APIError) {
     const errorType = error.type || 'unknown';
     const code = ERROR_CODE_MAP[errorType] || 'API_ERROR';
@@ -312,7 +312,7 @@ export class PerplexityAdapter implements IModelAdapter {
   /**
    * Creates a new Perplexity adapter.
    */
-  constructor(_config: ModelConfig) {
+  constructor(config: ModelConfig) {
     this.config = config;
     this.model = config.model;
     const defaultContextLimit = MODEL_CONTEXT_LIMITS[config.model] || 8192;
@@ -321,7 +321,7 @@ export class PerplexityAdapter implements IModelAdapter {
     this.isOnlineModel = ONLINE_MODELS.has(config.model);
 
     const apiKey = config.apiKey ?? process.env['PERPLEXITY_API_KEY'];
-    if (apiKey === undefined ?? apiKey === '') {
+    if (apiKey === undefined || apiKey === '') {
       throw new AdapterError(
         'INVALID_CONFIG',
         'perplexity',
@@ -417,7 +417,7 @@ export class PerplexityAdapter implements IModelAdapter {
       model: this.model,
       messages,
       _stream: true,
-      max_tokens: options?.maxTokens ?? this.config.maxOutputTokens ?? 4096,
+      maxtokens: options?.maxTokens ?? this.config.maxOutputTokens ?? 4096,
       temperature: options?.temperature ?? 0.7,
       ...(tools !== undefined ? { tools } : {}),
       ...(options?.topP !== undefined ? { top_p: options.topP } : {}),
@@ -435,7 +435,7 @@ export class PerplexityAdapter implements IModelAdapter {
       messageCount: requestParams.messages.length,
       hasTools: 'tools' in requestParams,
       temperature: requestParams.temperature,
-      max_tokens: requestParams.max_tokens
+      maxtokens: requestParams.max_tokens
     });
 
     try {
@@ -481,7 +481,7 @@ export class PerplexityAdapter implements IModelAdapter {
             for (const toolCall of choice.delta.tool_calls) {
               if (toolCall.id && toolCall.function?.name) {
                 // Start or update tool call accumulator
-                if (!toolCallAccumulators.has(toolCall.id) {
+                if (!toolCallAccumulators.has(toolCall.id)) {
                   toolCallAccumulators.set(toolCall.id, {
                     id: toolCall.id,
                     name: toolCall.function.name,
@@ -560,7 +560,7 @@ export class PerplexityAdapter implements IModelAdapter {
 /**
  * Creates a Perplexity adapter from configuration.
  */
-function createPerplexityAdapter(_config: ModelConfig): IModelAdapter {
+function createPerplexityAdapter(config: ModelConfig): IModelAdapter {
   return new PerplexityAdapter(config);
 }
 

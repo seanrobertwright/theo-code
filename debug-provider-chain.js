@@ -1,3 +1,5 @@
+/* eslint-env node */
+/* eslint-disable no-undef */
 // Debug the buildProviderChain method
 console.log('Starting debug...');
 

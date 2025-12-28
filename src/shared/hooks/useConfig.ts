@@ -40,7 +40,7 @@ export interface UseConfigResult {
  * return <Text>Model: {config?.global.defaultModel}</Text>;
  * ```
  */
-export function useConfig(_workspaceRoot: string): UseConfigResult {
+export function useConfig(workspaceRoot: string): UseConfigResult {
   const [config, setConfig] = useState<MergedConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);

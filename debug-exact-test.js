@@ -1,3 +1,5 @@
+/* eslint-env node */
+/* eslint-disable no-undef */
 // Exact reproduction of the failing test case
 import { ProviderManager } from './src/features/model/provider-manager.js';
 

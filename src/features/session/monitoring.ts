@@ -289,7 +289,7 @@ export class SessionMetricsCollector {
    * @param operation - Operation name
    * @returns Operation tracking token
    */
-  startOperation(_operation: string): string {
+  startOperation(operation: string): string {
     const token = `${operation}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     return token;
   }
@@ -302,12 +302,12 @@ export class SessionMetricsCollector {
    * @param success - Whether operation succeeded
    * @param duration - Operation duration in milliseconds
    */
-  endOperation(_operation: string, _token: string, _success: boolean, _duration: number): void {
-    if (!this.operationMetrics.has(operation) {
+  endOperation(operation: string, token: string, success: boolean, duration: number): void {
+    if (!this.operationMetrics.has(operation)) {
       this.operationMetrics.set(operation, {
         times: [],
-        _successes: 0,
-        _failures: 0,
+        successes: 0,
+        failures: 0,
         _lastOperation: 0,
       });
     }
@@ -336,7 +336,7 @@ export class SessionMetricsCollector {
    * @param totalSessions - Total number of sessions
    * @param totalSize - Total storage size in bytes
    */
-  recordStorageUsage(_totalSessions: number, _totalSize: number): void {
+  recordStorageUsage(totalSessions: number, _totalSize: number): void {
     this.storageHistory.push({
       timestamp: Date.now(),
       totalSessions,
@@ -355,7 +355,7 @@ export class SessionMetricsCollector {
    * @param operation - Operation name
    * @returns Operation metrics or null if not found
    */
-  getOperationMetrics(_operation: string): SessionOperationMetrics | null {
+  getOperationMetrics(operation: string): SessionOperationMetrics | null {
     const metrics = this.operationMetrics.get(operation);
     if (!metrics) {
       return null;
@@ -527,7 +527,7 @@ export class SessionMetricsCollector {
    * @param session - Session metadata
    * @returns Estimated size in bytes
    */
-  private estimateSessionSize(_session: SessionMetadata): number {
+  private estimateSessionSize(session: SessionMetadata): number {
     // Base size for metadata
     let size = 1000; // 1KB base
     
@@ -690,9 +690,7 @@ export class SystemHealthMonitor {
    */
   async getHealthStatus(): Promise<SystemHealthStatus> {
     // Return cached status if recent, otherwise perform new check
-    if (Date.now() {
-    - this.lastHealthCheck < this.config.healthCheckInterval / 2) {
-  }
+    if ((Date.now() - this.lastHealthCheck) < this.config.healthCheckInterval / 2) {
       // Return a simplified status based on current alerts
       const activeAlerts = this.getActiveAlerts();
       const criticalAlerts = activeAlerts.filter(a => a.severity === 'critical');
@@ -769,7 +767,7 @@ export class SystemHealthMonitor {
    * 
    * @param alertId - Alert ID to acknowledge
    */
-  acknowledgeAlert(_alertId: string): void {
+  acknowledgeAlert(alertId: string): void {
     const alert = this.alerts.find(a => a.id === alertId);
     if (alert) {
       alert.acknowledged = true;

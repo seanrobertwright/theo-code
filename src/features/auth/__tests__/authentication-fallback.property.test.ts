@@ -56,13 +56,13 @@ class MockOAuthManagerWithFailures implements IOAuthManager {
     this.authenticatedProviders.set(provider, tokens);
 
     return {
-      _success: true,
+      success: true,
       tokens,
       provider,
     };
   }
 
-  async handleCallback(_code: string, _state: string): Promise<TokenSet> {
+  async handleCallback(code: string, _state: string): Promise<TokenSet> {
     return {
       accessToken: `callback_token_${code}`,
       refreshToken: `callback_refresh_${code}`,
@@ -89,11 +89,11 @@ class MockOAuthManagerWithFailures implements IOAuthManager {
     return newTokens;
   }
 
-  async revokeTokens(_provider: ModelProvider): Promise<void> {
+  async revokeTokens(provider: ModelProvider): Promise<void> {
     this.authenticatedProviders.delete(provider);
   }
 
-  async getAuthStatus(_provider: ModelProvider): Promise<AuthStatus> {
+  async getAuthStatus(provider: ModelProvider): Promise<AuthStatus> {
     const tokens = this.authenticatedProviders.get(provider);
     
     return {
@@ -105,7 +105,7 @@ class MockOAuthManagerWithFailures implements IOAuthManager {
     };
   }
 
-  supportsOAuth(_provider: ModelProvider): boolean {
+  supportsOAuth(provider: ModelProvider): boolean {
     return this.supportedProviders.has(provider);
   }
 
@@ -113,8 +113,8 @@ class MockOAuthManagerWithFailures implements IOAuthManager {
     return Array.from(this.supportedProviders);
   }
 
-  async ensureValidTokens(_provider: ModelProvider): Promise<TokenSet> {
-    if (this.failureMode === 'all' || this.shouldFailForProvider.get(provider) {
+  async ensureValidTokens(provider: ModelProvider): Promise<TokenSet> {
+    if (this.failureMode === 'all' || this.shouldFailForProvider.get(provider)) {
       throw new Error(`OAuth not available for provider: ${provider}`);
     }
 
@@ -131,19 +131,19 @@ class MockOAuthManagerWithFailures implements IOAuthManager {
     return tokens;
   }
 
-  async needsTokenRefresh(_provider: ModelProvider): Promise<boolean> {
+  async needsTokenRefresh(provider: ModelProvider): Promise<boolean> {
     const tokens = this.authenticatedProviders.get(provider);
     if (!tokens) {
-    return false;
-  }
+      return false;
+    }
     return tokens.expiresAt.getTime() - Date.now() < 300000;
   }
 
-  async getTimeUntilExpiration(_provider: ModelProvider): Promise<number | null> {
+  async getTimeUntilExpiration(provider: ModelProvider): Promise<number | null> {
     const tokens = this.authenticatedProviders.get(provider);
     if (!tokens) {
-    return null;
-  }
+      return null;
+    }
     return Math.max(0, tokens.expiresAt.getTime() - Date.now());
   }
 
@@ -152,11 +152,11 @@ class MockOAuthManagerWithFailures implements IOAuthManager {
     this.failureMode = mode;
   }
 
-  setProviderFailure(_provider: ModelProvider, _shouldFail: boolean) {
+  setProviderFailure(provider: ModelProvider, shouldFail: boolean) {
     this.shouldFailForProvider.set(provider, shouldFail);
   }
 
-  setAuthenticationStatus(_provider: ModelProvider, _authenticated: boolean) {
+  setAuthenticationStatus(provider: ModelProvider, authenticated: boolean) {
     if (authenticated) {
       this.authenticatedProviders.set(provider, {
         accessToken: `mock_token_${provider}`,
@@ -170,7 +170,7 @@ class MockOAuthManagerWithFailures implements IOAuthManager {
     }
   }
 
-  setTokensNeedRefresh(_provider: ModelProvider) {
+  setTokensNeedRefresh(provider: ModelProvider) {
     // Set tokens to expire in 1 minute (within the 5-minute refresh threshold)
     this.authenticatedProviders.set(provider, {
       accessToken: `expiring_token_${provider}`,
@@ -181,11 +181,11 @@ class MockOAuthManagerWithFailures implements IOAuthManager {
     });
   }
 
-  addSupportedProvider(_provider: ModelProvider) {
+  addSupportedProvider(provider: ModelProvider) {
     this.supportedProviders.add(provider);
   }
 
-  removeSupportedProvider(_provider: ModelProvider) {
+  removeSupportedProvider(provider: ModelProvider) {
     this.supportedProviders.delete(provider);
   }
 
@@ -209,8 +209,8 @@ const oauthProviderArb = fc.constantFrom('google', 'openrouter');
  * Generates API keys.
  */
 const apiKeyArb = fc.string({ 
-  _minLength: 20, 
-  _maxLength: 100,
+  minLength: 20, 
+  maxLength: 100,
   unit: fc.constantFrom(...'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._'.split(''))
 });
 
@@ -220,7 +220,7 @@ const apiKeyArb = fc.string({
 const dualAuthConfigArb = fc.record({
   preferredMethod: fc.constantFrom('oauth', 'api_key'),
   oauthEnabled: fc.constant(true),
-  _apiKey: apiKeyArb,
+  apiKey: apiKeyArb,
   enableFallback: fc.boolean(),
 });
 
@@ -305,7 +305,7 @@ describe('Authentication Fallback Property Tests', () => {
           expect(status.fallbackAvailable).toBe(true);
         }
       ),
-      { _numRuns: 100 }
+      { numRuns: 100 }
     );
   });
 
@@ -322,7 +322,7 @@ describe('Authentication Fallback Property Tests', () => {
         fc.record({
           preferredMethod: fc.constant('oauth' as const),
           oauthEnabled: fc.constant(true),
-          _apiKey: apiKeyArb,
+          apiKey: apiKeyArb,
           enableFallback: fc.constant(false), // Ensure fallback is always disabled for this test
         }),
         failureScenarioArb.filter(mode => mode === 'auth' || mode === 'all'),
@@ -376,7 +376,7 @@ describe('Authentication Fallback Property Tests', () => {
           authManager = new AuthenticationManager(mockOAuthManager);
 
           // Remove API key to simulate unavailability
-          const configWithoutApiKey = { ...config, _apiKey: undefined };
+          const configWithoutApiKey = { ...config, apiKey: undefined };
           authManager.configureProvider(provider as ModelProvider, configWithoutApiKey);
 
           // Set OAuth as available
@@ -424,7 +424,7 @@ describe('Authentication Fallback Property Tests', () => {
           mockOAuthManager.setAuthenticationStatus(provider as ModelProvider, true);
 
           // Verify initial OAuth authentication works
-          const result = await authManager.ensureValidAuthentication(provider as ModelProvider);
+          let result = await authManager.ensureValidAuthentication(provider as ModelProvider);
           expect(result.success).toBe(true);
           expect(result.method).toBe('oauth');
 
@@ -530,7 +530,7 @@ describe('Authentication Fallback Property Tests', () => {
               }
             } else {
               // API key preferred, make it unavailable to test OAuth fallback
-              const configWithoutApiKey = { ...config, _apiKey: undefined };
+              const configWithoutApiKey = { ...config, apiKey: undefined };
               authManager.configureProvider(provider as ModelProvider, configWithoutApiKey);
 
               mockOAuthManager.setAuthenticationStatus(provider as ModelProvider, true);
@@ -574,7 +574,7 @@ describe('Authentication Fallback Property Tests', () => {
           mockOAuthManager.setFailureMode('all');
 
           // Remove API key to make it fail too
-          const configWithoutApiKey = { ...config, _apiKey: undefined };
+          const configWithoutApiKey = { ...config, apiKey: undefined };
           authManager.configureProvider(provider as ModelProvider, configWithoutApiKey);
 
           // Authenticate - should fail gracefully

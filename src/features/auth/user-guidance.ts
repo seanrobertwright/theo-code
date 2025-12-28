@@ -108,7 +108,7 @@ export class OAuthUserGuidanceManager {
   /**
    * Get guidance for a specific error.
    */
-  getErrorGuidance(_error: any, _provider: ModelProvider, _operation: string): GuidanceItem[] {
+  getErrorGuidance(error: any, provider: ModelProvider, operation: string): GuidanceItem[] {
     const errorType = this.classifyError(error);
     const guidance: GuidanceItem[] = [];
 
@@ -133,7 +133,7 @@ export class OAuthUserGuidanceManager {
   /**
    * Get setup guidance for a provider.
    */
-  getSetupGuidance(_provider: ModelProvider): GuidanceItem[] {
+  getSetupGuidance(provider: ModelProvider): GuidanceItem[] {
     const providerConfig = this.providerConfigs.get(provider);
     if (!providerConfig) {
       return this.getGenericSetupGuidance();
@@ -145,7 +145,7 @@ export class OAuthUserGuidanceManager {
   /**
    * Get troubleshooting guidance for a provider.
    */
-  getTroubleshootingGuidance(_provider: ModelProvider): GuidanceItem[] {
+  getTroubleshootingGuidance(provider: ModelProvider): GuidanceItem[] {
     const providerConfig = this.providerConfigs.get(provider);
     if (!providerConfig) {
       return this.getGenericTroubleshootingGuidance();
@@ -157,7 +157,7 @@ export class OAuthUserGuidanceManager {
   /**
    * Get guidance by category.
    */
-  getGuidanceByCategory(_category: GuidanceCategory): GuidanceItem[] {
+  getGuidanceByCategory(category: GuidanceCategory): GuidanceItem[] {
     return Array.from(this.guidanceDatabase.values())
       .filter(item => item.category === category)
       .sort((a, b) => this.getSeverityWeight(b.severity) - this.getSeverityWeight(a.severity));
@@ -166,7 +166,7 @@ export class OAuthUserGuidanceManager {
   /**
    * Get guidance by condition.
    */
-  getGuidanceByCondition(_condition: string): GuidanceItem[] {
+  getGuidanceByCondition(condition: string): GuidanceItem[] {
     return Array.from(this.guidanceDatabase.values())
       .filter(item => item.conditions?.includes(condition));
   }
@@ -198,11 +198,11 @@ export class OAuthUserGuidanceManager {
   /**
    * Get provider-specific guidance.
    */
-  private getProviderGuidance(_provider: ModelProvider, type: keyof ProviderGuidanceConfig): GuidanceItem[] {
+  private getProviderGuidance(provider: ModelProvider, type: keyof ProviderGuidanceConfig): GuidanceItem[] {
     const config = this.providerConfigs.get(provider);
     if (!config) {
-    return [];
-  }
+      return [];
+    }
 
     switch (type) {
       case 'setupInstructions':
@@ -332,35 +332,31 @@ export class OAuthUserGuidanceManager {
   /**
    * Classify error for guidance lookup.
    */
-  private classifyError(_error: any): string {
+  private classifyError(error: any): string {
     if (!error) {
-    return 'unknown';
-  }
+      return 'unknown';
+    }
 
     const message = error.message?.toLowerCase() || '';
     const code = error.code?.toLowerCase() || '';
     const errorType = error.error?.toLowerCase() || '';
 
-    if (errorType === 'access_denied' || message.includes('access_denied') {
+    if (errorType === 'access_denied' || message.includes('access_denied')) {
       return 'access_denied';
     }
-    if (errorType === 'invalid_grant' || message.includes('invalid_grant') {
+    if (errorType === 'invalid_grant' || message.includes('invalid_grant')) {
       return 'invalid_grant';
     }
-    if (message.includes('network') {
-    || code.includes('enotfound')) {
-  }
+    if (message.includes('network') || code.includes('enotfound')) {
       return 'network_error';
     }
-    if (message.includes('timeout') {
+    if (message.includes('timeout')) {
       return 'timeout';
     }
-    if (message.includes('browser') {
+    if (message.includes('browser')) {
       return 'browser_error';
     }
-    if (message.includes('configuration') {
-    || message.includes('client_id')) {
-  }
+    if (message.includes('configuration') || message.includes('client_id')) {
       return 'configuration_error';
     }
 
@@ -370,7 +366,7 @@ export class OAuthUserGuidanceManager {
   /**
    * Get severity weight for sorting.
    */
-  private getSeverityWeight(_severity: GuidanceSeverity): number {
+  private getSeverityWeight(severity: GuidanceSeverity): number {
     switch (severity) {
       case 'critical': return 4;
       case 'error': return 3;
@@ -383,7 +379,7 @@ export class OAuthUserGuidanceManager {
   /**
    * Get severity icon.
    */
-  private getSeverityIcon(_severity: GuidanceSeverity): string {
+  private getSeverityIcon(severity: GuidanceSeverity): string {
     switch (severity) {
       case 'critical': return '🚨';
       case 'error': return '❌';
@@ -399,7 +395,7 @@ export class OAuthUserGuidanceManager {
   private deduplicateGuidance(guidance: GuidanceItem[]): GuidanceItem[] {
     const seen = new Set<string>();
     return guidance.filter(item => {
-      if (seen.has(item.id) {
+      if (seen.has(item.id)) {
         return false;
       }
       seen.add(item.id);

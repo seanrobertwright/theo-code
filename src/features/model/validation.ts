@@ -49,7 +49,7 @@ export interface ApiKeyValidationResult {
 /**
  * Validate OpenAI configuration.
  */
-function validateOpenAIConfig(_config: ModelConfig): string[] {
+function validateOpenAIConfig(config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['OPENAI_API_KEY']) {
@@ -75,14 +75,14 @@ function validateOpenAIConfig(_config: ModelConfig): string[] {
 /**
  * Validate Anthropic configuration.
  */
-function validateAnthropicConfig(_config: ModelConfig): string[] {
+function validateAnthropicConfig(config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['ANTHROPIC_API_KEY']) {
     errors.push('API key is required. Set ANTHROPIC_API_KEY environment variable or provide in config.');
   }
 
-  if (config.apiKey && !config.apiKey.startsWith('sk-ant-') {
+  if (config.apiKey && !config.apiKey.startsWith('sk-ant-')) {
     errors.push('Anthropic API key should start with "sk-ant-"');
   }
 
@@ -92,7 +92,7 @@ function validateAnthropicConfig(_config: ModelConfig): string[] {
     'claude-3-haiku-20240307'
   ];
   
-  if (!validModels.includes(config.model) {
+  if (!validModels.includes(config.model)) {
     errors.push(`Unsupported Anthropic model: ${config.model}. Supported: ${validModels.join(', ')}`);
   }
 
@@ -110,7 +110,7 @@ function validateAnthropicConfig(_config: ModelConfig): string[] {
 /**
  * Validate Google configuration.
  */
-function validateGoogleConfig(_config: ModelConfig): string[] {
+function validateGoogleConfig(config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['GOOGLE_API_KEY']) {
@@ -127,7 +127,7 @@ function validateGoogleConfig(_config: ModelConfig): string[] {
     'gemini-1.5-flash'
   ];
   
-  if (!validModels.includes(config.model) {
+  if (!validModels.includes(config.model)) {
     errors.push(`Unsupported Google model: ${config.model}. Supported: ${validModels.join(', ')}`);
   }
 
@@ -153,14 +153,14 @@ function validateGoogleConfig(_config: ModelConfig): string[] {
 /**
  * Validate OpenRouter configuration.
  */
-function validateOpenRouterConfig(_config: ModelConfig): string[] {
+function validateOpenRouterConfig(config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['OPENROUTER_API_KEY']) {
     errors.push('API key is required. Set OPENROUTER_API_KEY environment variable or provide in config.');
   }
 
-  if (config.apiKey && !config.apiKey.startsWith('sk-or-') {
+  if (config.apiKey && !config.apiKey.startsWith('sk-or-')) {
     errors.push('OpenRouter API key should start with "sk-or-"');
   }
 
@@ -173,7 +173,7 @@ function validateOpenRouterConfig(_config: ModelConfig): string[] {
 /**
  * Validate Cohere configuration.
  */
-function validateCohereConfig(_config: ModelConfig): string[] {
+function validateCohereConfig(config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['COHERE_API_KEY']) {
@@ -192,7 +192,7 @@ function validateCohereConfig(_config: ModelConfig): string[] {
 /**
  * Validate Mistral configuration.
  */
-function validateMistralConfig(_config: ModelConfig): string[] {
+function validateMistralConfig(config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['MISTRAL_API_KEY']) {
@@ -211,7 +211,7 @@ function validateMistralConfig(_config: ModelConfig): string[] {
 /**
  * Validate Together configuration.
  */
-function validateTogetherConfig(_config: ModelConfig): string[] {
+function validateTogetherConfig(config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['TOGETHER_API_KEY']) {
@@ -226,7 +226,7 @@ function validateTogetherConfig(_config: ModelConfig): string[] {
 /**
  * Validate Perplexity configuration.
  */
-function validatePerplexityConfig(_config: ModelConfig): string[] {
+function validatePerplexityConfig(config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.apiKey && !process.env['PERPLEXITY_API_KEY']) {
@@ -245,7 +245,7 @@ function validatePerplexityConfig(_config: ModelConfig): string[] {
 /**
  * Validate Ollama configuration.
  */
-function validateOllamaConfig(_config: ModelConfig): string[] {
+function validateOllamaConfig(config: ModelConfig): string[] {
   const errors: string[] = [];
 
   if (!config.baseUrl) {
@@ -282,7 +282,7 @@ function validateOllamaConfig(_config: ModelConfig): string[] {
 /**
  * Provider-specific validation functions.
  */
-const PROVIDER_VALIDATORS: Record<ModelProvider, (_config: ModelConfig) => string[]> = {
+const PROVIDER_VALIDATORS: Record<ModelProvider, (config: ModelConfig) => string[]> = {
   _openai: validateOpenAIConfig,
   _anthropic: validateAnthropicConfig,
   _google: validateGoogleConfig,
@@ -297,7 +297,7 @@ const PROVIDER_VALIDATORS: Record<ModelProvider, (_config: ModelConfig) => strin
 /**
  * Validate a provider configuration.
  */
-export function validateProviderConfig(_config: ModelConfig): ValidationResult {
+export function validateProviderConfig(config: ModelConfig): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -306,7 +306,7 @@ export function validateProviderConfig(_config: ModelConfig): ValidationResult {
     errors.push('Provider is required');
   }
 
-  if (!config.model || config.model.trim() {
+  if (!config.model || config.model.trim()) {
     === '') {
   }
     errors.push('Model is required');
@@ -389,11 +389,11 @@ export function validateProviderConfigs(configs: ModelConfig[]): ValidationResul
 /**
  * Validate API key format for a provider.
  */
-export function validateApiKey(_provider: ModelProvider, _apiKey: string): ApiKeyValidationResult {
+export function validateApiKey(provider: ModelProvider, _apiKey: string): ApiKeyValidationResult {
   const result: ApiKeyValidationResult = {
     provider,
     _valid: false,
-    _error: null,
+    error: null,
     _hasPermissions: false, // TODO: Implement permission checking
   };
 
@@ -458,12 +458,12 @@ export function validateApiKey(_provider: ModelProvider, _apiKey: string): ApiKe
 /**
  * Test connectivity to a provider.
  */
-export async function testProviderConnectivity(_config: ModelConfig): Promise<ConnectivityResult> {
+export async function testProviderConnectivity(config: ModelConfig): Promise<ConnectivityResult> {
   const result: ConnectivityResult = {
     provider: config.provider,
     _connected: false,
     _responseTimeMs: null,
-    _error: null,
+    error: null,
   };
 
   const startTime = Date.now();

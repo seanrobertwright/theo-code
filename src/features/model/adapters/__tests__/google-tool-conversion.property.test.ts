@@ -77,7 +77,7 @@ describe('Google Tool Conversion Property Tests', () => {
               }),
             });
           }),
-          (_toolDef: UniversalToolDefinition) => {
+          (toolDef: UniversalToolDefinition) => {
             // Test the conversion logic
             try {
               // Since we can't directly import the conversion function,

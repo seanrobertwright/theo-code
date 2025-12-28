@@ -99,36 +99,36 @@ const OPENAI_ERROR_PATTERNS: ErrorPattern[] = [
     code: 'RATE_LIMITED',
     severity: 'medium',
     recoveryStrategy: 'retry',
-    _retryable: true,
-    _retryAfterMs: 60000,
+    retryable: true,
+    retryAfterMs: 60000,
   },
   {
     pattern: /invalid api key/i,
     code: 'AUTH_FAILED',
     severity: 'high',
     recoveryStrategy: 'abort',
-    _retryable: false,
+    retryable: false,
   },
   {
     pattern: /context length/i,
     code: 'CONTEXT_LENGTH_EXCEEDED',
     severity: 'medium',
     recoveryStrategy: 'truncate',
-    _retryable: true,
+    retryable: true,
   },
   {
     pattern: /model not found/i,
     code: 'INVALID_MODEL',
     severity: 'high',
     recoveryStrategy: 'fallback',
-    _retryable: false,
+    retryable: false,
   },
   {
     pattern: /insufficient quota/i,
     code: 'QUOTA_EXCEEDED',
     severity: 'high',
     recoveryStrategy: 'fallback',
-    _retryable: false,
+    retryable: false,
   },
 ];
 
@@ -141,30 +141,30 @@ const ANTHROPIC_ERROR_PATTERNS: ErrorPattern[] = [
     code: 'RATE_LIMITED',
     severity: 'medium',
     recoveryStrategy: 'retry',
-    _retryable: true,
-    _retryAfterMs: 60000,
+    retryable: true,
+    retryAfterMs: 60000,
   },
   {
     pattern: /authentication_error/i,
     code: 'AUTH_FAILED',
     severity: 'high',
     recoveryStrategy: 'abort',
-    _retryable: false,
+    retryable: false,
   },
   {
     pattern: /invalid_request_error.*max_tokens/i,
     code: 'CONTEXT_LENGTH_EXCEEDED',
     severity: 'medium',
     recoveryStrategy: 'truncate',
-    _retryable: true,
+    retryable: true,
   },
   {
     pattern: /overloaded_error/i,
     code: 'MODEL_OVERLOADED',
     severity: 'medium',
     recoveryStrategy: 'retry',
-    _retryable: true,
-    _retryAfterMs: 30000,
+    retryable: true,
+    retryAfterMs: 30000,
   },
 ];
 
@@ -177,30 +177,30 @@ const GOOGLE_ERROR_PATTERNS: ErrorPattern[] = [
     code: 'RATE_LIMITED',
     severity: 'medium',
     recoveryStrategy: 'retry',
-    _retryable: true,
-    _retryAfterMs: 60000,
+    retryable: true,
+    retryAfterMs: 60000,
   },
   {
     pattern: /PERMISSION_DENIED/i,
     code: 'AUTH_FAILED',
     severity: 'high',
     recoveryStrategy: 'abort',
-    _retryable: false,
+    retryable: false,
   },
   {
     pattern: /INVALID_ARGUMENT.*context/i,
     code: 'CONTEXT_LENGTH_EXCEEDED',
     severity: 'medium',
     recoveryStrategy: 'truncate',
-    _retryable: true,
+    retryable: true,
   },
   {
     pattern: /RESOURCE_EXHAUSTED/i,
     code: 'MODEL_OVERLOADED',
     severity: 'medium',
     recoveryStrategy: 'retry',
-    _retryable: true,
-    _retryAfterMs: 30000,
+    retryable: true,
+    retryAfterMs: 30000,
   },
 ];
 
@@ -213,22 +213,22 @@ const OPENROUTER_ERROR_PATTERNS: ErrorPattern[] = [
     code: 'RATE_LIMITED',
     severity: 'medium',
     recoveryStrategy: 'retry',
-    _retryable: true,
-    _retryAfterMs: 60000,
+    retryable: true,
+    retryAfterMs: 60000,
   },
   {
     pattern: /insufficient credits/i,
     code: 'INSUFFICIENT_CREDITS',
     severity: 'high',
     recoveryStrategy: 'fallback',
-    _retryable: false,
+    retryable: false,
   },
   {
     pattern: /model not available/i,
     code: 'SERVICE_UNAVAILABLE',
     severity: 'medium',
     recoveryStrategy: 'fallback',
-    _retryable: true,
+    retryable: true,
   },
 ];
 
@@ -241,15 +241,15 @@ const COHERE_ERROR_PATTERNS: ErrorPattern[] = [
     code: 'RATE_LIMITED',
     severity: 'medium',
     recoveryStrategy: 'retry',
-    _retryable: true,
-    _retryAfterMs: 60000,
+    retryable: true,
+    retryAfterMs: 60000,
   },
   {
     pattern: /unauthorized/i,
     code: 'AUTH_FAILED',
     severity: 'high',
     recoveryStrategy: 'abort',
-    _retryable: false,
+    retryable: false,
   },
 ];
 
@@ -262,15 +262,15 @@ const MISTRAL_ERROR_PATTERNS: ErrorPattern[] = [
     code: 'RATE_LIMITED',
     severity: 'medium',
     recoveryStrategy: 'retry',
-    _retryable: true,
-    _retryAfterMs: 60000,
+    retryable: true,
+    retryAfterMs: 60000,
   },
   {
     pattern: /unauthorized/i,
     code: 'AUTH_FAILED',
     severity: 'high',
     recoveryStrategy: 'abort',
-    _retryable: false,
+    retryable: false,
   },
 ];
 
@@ -283,15 +283,15 @@ const TOGETHER_ERROR_PATTERNS: ErrorPattern[] = [
     code: 'RATE_LIMITED',
     severity: 'medium',
     recoveryStrategy: 'retry',
-    _retryable: true,
-    _retryAfterMs: 60000,
+    retryable: true,
+    retryAfterMs: 60000,
   },
   {
     pattern: /invalid api key/i,
     code: 'AUTH_FAILED',
     severity: 'high',
     recoveryStrategy: 'abort',
-    _retryable: false,
+    retryable: false,
   },
 ];
 
@@ -304,15 +304,15 @@ const PERPLEXITY_ERROR_PATTERNS: ErrorPattern[] = [
     code: 'RATE_LIMITED',
     severity: 'medium',
     recoveryStrategy: 'retry',
-    _retryable: true,
-    _retryAfterMs: 60000,
+    retryable: true,
+    retryAfterMs: 60000,
   },
   {
     pattern: /unauthorized/i,
     code: 'AUTH_FAILED',
     severity: 'high',
     recoveryStrategy: 'abort',
-    _retryable: false,
+    retryable: false,
   },
 ];
 
@@ -325,14 +325,14 @@ const OLLAMA_ERROR_PATTERNS: ErrorPattern[] = [
     code: 'NETWORK_ERROR',
     severity: 'high',
     recoveryStrategy: 'abort',
-    _retryable: false,
+    retryable: false,
   },
   {
     pattern: /model not found/i,
     code: 'INVALID_MODEL',
     severity: 'high',
     recoveryStrategy: 'abort',
-    _retryable: false,
+    retryable: false,
   },
 ];
 
@@ -340,15 +340,15 @@ const OLLAMA_ERROR_PATTERNS: ErrorPattern[] = [
  * Provider error pattern mappings.
  */
 const PROVIDER_ERROR_PATTERNS: Record<ModelProvider, ErrorPattern[]> = {
-  _openai: OPENAI_ERROR_PATTERNS,
-  _anthropic: ANTHROPIC_ERROR_PATTERNS,
-  _google: GOOGLE_ERROR_PATTERNS,
-  _openrouter: OPENROUTER_ERROR_PATTERNS,
-  _cohere: COHERE_ERROR_PATTERNS,
-  _mistral: MISTRAL_ERROR_PATTERNS,
-  _together: TOGETHER_ERROR_PATTERNS,
-  _perplexity: PERPLEXITY_ERROR_PATTERNS,
-  _ollama: OLLAMA_ERROR_PATTERNS,
+  openai: OPENAI_ERROR_PATTERNS,
+  anthropic: ANTHROPIC_ERROR_PATTERNS,
+  google: GOOGLE_ERROR_PATTERNS,
+  openrouter: OPENROUTER_ERROR_PATTERNS,
+  cohere: COHERE_ERROR_PATTERNS,
+  mistral: MISTRAL_ERROR_PATTERNS,
+  together: TOGETHER_ERROR_PATTERNS,
+  perplexity: PERPLEXITY_ERROR_PATTERNS,
+  ollama: OLLAMA_ERROR_PATTERNS,
 };
 
 // =============================================================================
@@ -359,8 +359,8 @@ const PROVIDER_ERROR_PATTERNS: Record<ModelProvider, ErrorPattern[]> = {
  * Map a provider-specific error to a standardized ExtendedAdapterError.
  */
 export function mapProviderError(
-  _provider: ModelProvider,
-  _error: unknown,
+  provider: ModelProvider,
+  error: unknown,
   context?: Record<string, unknown>
 ): ExtendedAdapterError {
   const errorMessage = extractErrorMessage(error);
@@ -380,10 +380,10 @@ export function mapProviderError(
         {
           retryable: pattern.retryable,
           ...(pattern.retryAfterMs !== undefined && { retryAfterMs: pattern.retryAfterMs }),
-          ...(error instanceof Error && { _cause: error }),
+          ...(error instanceof Error && { cause: error }),
           severity: pattern.severity,
           recoveryStrategy: pattern.recoveryStrategy,
-          _originalError: error,
+          originalError: error,
           ...(context !== undefined && { context }),
         }
       );
@@ -398,61 +398,55 @@ export function mapProviderError(
  * Map generic errors that don't match provider-specific patterns.
  */
 function mapGenericError(
-  _provider: ModelProvider,
-  _error: unknown,
+  provider: ModelProvider,
+  error: unknown,
   context?: Record<string, unknown>
 ): ExtendedAdapterError {
   const errorMessage = extractErrorMessage(error);
 
   // Network-related errors
-  if (errorMessage.includes('ECONNREFUSED') {
-    || errorMessage.includes('ENOTFOUND')) {
-  }
+  if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')) {
     return new ExtendedAdapterError(
       'NETWORK_ERROR',
       provider,
       'Network connection failed',
       {
-        _retryable: true,
+        retryable: true,
         severity: 'high',
         recoveryStrategy: 'retry',
-        _originalError: error,
+        originalError: error,
         ...(context !== undefined && { context }),
       }
     );
   }
 
   // Timeout errors
-  if (errorMessage.includes('timeout') {
-    || errorMessage.includes('ETIMEDOUT')) {
-  }
+  if (errorMessage.includes('timeout') || errorMessage.includes('ETIMEDOUT')) {
     return new ExtendedAdapterError(
       'TIMEOUT',
       provider,
       'Request timed out',
       {
-        _retryable: true,
+        retryable: true,
         severity: 'medium',
         recoveryStrategy: 'retry',
-        _originalError: error,
+        originalError: error,
         ...(context !== undefined && { context }),
       }
     );
   }
 
   // JSON parsing errors
-  if (errorMessage.includes('JSON') {
-    || errorMessage.includes('parse')) {
-  }
+  if (errorMessage.includes('JSON') || errorMessage.includes('parse')) {
     return new ExtendedAdapterError(
       'PARSING_ERROR',
       provider,
       'Failed to parse response',
       {
-        _retryable: false,
+        retryable: false,
         severity: 'medium',
         recoveryStrategy: 'abort',
-        _originalError: error,
+        originalError: error,
         ...(context !== undefined && { context }),
       }
     );
@@ -464,10 +458,10 @@ function mapGenericError(
     provider,
     errorMessage || 'Unknown API error',
     {
-      _retryable: false,
+      retryable: false,
       severity: 'medium',
       recoveryStrategy: 'fallback',
-      _originalError: error,
+      originalError: error,
       ...(context !== undefined && { context }),
     }
   );
@@ -476,7 +470,7 @@ function mapGenericError(
 /**
  * Extract error message from various error types.
  */
-function extractErrorMessage(_error: unknown): string {
+function extractErrorMessage(error: unknown): string {
   if (typeof error === 'string') {
     return error;
   }
@@ -530,7 +524,7 @@ export interface ErrorRecoveryContext {
 /**
  * Determine if an error should trigger a recovery strategy.
  */
-export function shouldRecover(_error: ExtendedAdapterError, _context: ErrorRecoveryContext): boolean {
+export function shouldRecover(error: ExtendedAdapterError, context: ErrorRecoveryContext): boolean {
   // Don't recover from critical errors
   if (error.severity === 'critical') {
     return false;
@@ -553,8 +547,8 @@ export function shouldRecover(_error: ExtendedAdapterError, _context: ErrorRecov
  * Get the next recovery action based on error and context.
  */
 export function getRecoveryAction(
-  _error: ExtendedAdapterError,
-  _context: ErrorRecoveryContext
+  error: ExtendedAdapterError,
+  context: ErrorRecoveryContext
 ): RecoveryStrategy {
   // For auth failures, try fallback immediately
   if (error.code === 'AUTH_FAILED' && context.fallbackProviders.length > 0) {
@@ -584,8 +578,8 @@ export function getRecoveryAction(
  * Calculate retry delay based on attempt count and error type.
  */
 export function calculateRetryDelay(
-  _error: ExtendedAdapterError,
-  _attemptCount: number
+  error: ExtendedAdapterError,
+  attemptCount: number
 ): number {
   // Use provider-specified retry delay if available
   if (error.retryAfterMs) {
@@ -610,7 +604,7 @@ export function calculateRetryDelay(
 /**
  * Log error with appropriate level and context.
  */
-export function logError(_error: ExtendedAdapterError, context?: Record<string, unknown>): void {
+export function logError(error: ExtendedAdapterError, context?: Record<string, unknown>): void {
   const logContext = {
     provider: error.provider,
     code: error.code,
@@ -640,7 +634,7 @@ export function logError(_error: ExtendedAdapterError, context?: Record<string, 
 /**
  * Create error summary for monitoring and debugging.
  */
-export function createErrorSummary(_error: ExtendedAdapterError): Record<string, unknown> {
+export function createErrorSummary(error: ExtendedAdapterError): Record<string, unknown> {
   return {
     timestamp: new Date().toISOString(),
     provider: error.provider,

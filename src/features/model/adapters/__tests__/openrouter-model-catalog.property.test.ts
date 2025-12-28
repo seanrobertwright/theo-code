@@ -26,8 +26,8 @@ interface MockOpenRouterModel {
     max_completion_tokens?: number;
   };
   per_request_limits?: {
-    prompt_tokens: string;
-    completion_tokens: string;
+    prompttokens: string;
+    completiontokens: string;
   };
 }
 
@@ -53,11 +53,11 @@ describe('OpenRouter Model Catalog Property Tests', () => {
               }),
               top_provider: fc.record({
                 context_length: fc.integer({ _min: 1024, _max: 200000 }),
-                max_completion_tokens: fc.option(fc.integer({ _min: 1024, _max: 8192 })),
+                max_completiontokens: fc.option(fc.integer({ _min: 1024, _max: 8192 })),
               }),
               per_request_limits: fc.option(fc.record({
-                prompt_tokens: fc.integer({ _min: 1000, _max: 100000 }).map(n => n.toString()),
-                completion_tokens: fc.integer({ _min: 1000, _max: 8192 }).map(n => n.toString()),
+                prompttokens: fc.integer({ _min: 1000, _max: 100000 }).map(n => n.toString()),
+                completiontokens: fc.integer({ _min: 1000, _max: 8192 }).map(n => n.toString()),
               })),
             }),
             { _minLength: 1, _maxLength: 10 }

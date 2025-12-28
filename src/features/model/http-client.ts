@@ -6,6 +6,14 @@
  * and reduce connection overhead for AI provider API calls.
  */
 
+// Add logger
+const logger = {
+  debug: (message: string, ...args: any[]) => console.debug(message, ...args),
+  info: (message: string, ...args: any[]) => console.info(message, ...args),
+  warn: (message: string, ...args: any[]) => console.warn(message, ...args),
+  error: (message: string, ...args: any[]) => console.error(message, ...args),
+};
+
 import { ConnectionPool, globalConnectionPool, type ConnectionPoolConfig } from './connection-pool.js';
 // =============================================================================
 // TYPES
@@ -100,7 +108,7 @@ export class HttpClient {
   /**
    * Makes an HTTP request with connection pooling.
    */
-  async fetch(_url: string, options: HttpRequestOptions = {}): Promise<HttpResponse> {
+  async fetch(url: string, options: HttpRequestOptions = {}): Promise<HttpResponse> {
     const {
       timeoutMs = this.config.timeoutMs,
       useConnectionPool = true,
@@ -163,28 +171,28 @@ export class HttpClient {
   /**
    * Makes a GET request.
    */
-  async get(_url: string, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
+  async get(url: string, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
     return this.fetch(url, { ...options, method: 'GET' });
   }
 
   /**
    * Makes a POST request.
    */
-  async post(_url: string, body?: string | ArrayBuffer | Uint8Array | FormData | URLSearchParams | ReadableStream, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
+  async post(url: string, body?: string | ArrayBuffer | Uint8Array | FormData | URLSearchParams | ReadableStream, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
     return this.fetch(url, { ...options, method: 'POST', ...(body !== undefined && { body }) });
   }
 
   /**
    * Makes a PUT request.
    */
-  async put(_url: string, body?: string | ArrayBuffer | Uint8Array | FormData | URLSearchParams | ReadableStream, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
+  async put(url: string, body?: string | ArrayBuffer | Uint8Array | FormData | URLSearchParams | ReadableStream, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
     return this.fetch(url, { ...options, method: 'PUT', ...(body !== undefined && { body }) });
   }
 
   /**
    * Makes a DELETE request.
    */
-  async delete(_url: string, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
+  async delete(url: string, options: Omit<HttpRequestOptions, 'method' | 'body'> = {}): Promise<HttpResponse> {
     return this.fetch(url, { ...options, method: 'DELETE' });
   }
 
@@ -195,7 +203,7 @@ export class HttpClient {
   /**
    * Makes a streaming request with connection pooling.
    */
-  async fetchStream(_url: string, options: HttpRequestOptions = {}): Promise<{
+  async fetchStream(url: string, options: HttpRequestOptions = {}): Promise<{
     response: HttpResponse;
     stream: ReadableStream<Uint8Array>;
   }> {
@@ -214,7 +222,7 @@ export class HttpClient {
   /**
    * Creates a Server-Sent Events stream parser.
    */
-  async *parseSSEStream(_url: string, options: HttpRequestOptions = {}): AsyncGenerator<string> {
+  async *parseSSEStream(url: string, options: HttpRequestOptions = {}): AsyncGenerator<string> {
     const { response, stream } = await this.fetchStream(url, options);
     
     if (!response.ok) {
@@ -301,7 +309,7 @@ export function createProviderHttpClient(
 /**
  * Gets the recommended connection limit for a provider.
  */
-function getProviderConnectionLimit(_provider: string): number {
+function getProviderConnectionLimit(provider: string): number {
   const limits: Record<string, number> = {
     _openai: 10,
     _anthropic: 5,
@@ -320,7 +328,7 @@ function getProviderConnectionLimit(_provider: string): number {
 /**
  * Gets the recommended timeout for a provider.
  */
-function getProviderTimeout(_provider: string): number {
+function getProviderTimeout(provider: string): number {
   const timeouts: Record<string, number> = {
     _openai: 60000,     // 1 minute
     _anthropic: 60000,  // 1 minute

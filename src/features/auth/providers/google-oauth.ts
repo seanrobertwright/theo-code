@@ -25,7 +25,7 @@ const GOOGLE_OAUTH_CONFIG = {
  * Google OAuth token response interface.
  */
 interface GoogleTokenResponse {
-  access_token: string;
+  accesstoken: string;
   refresh_token?: string;
   expires_in: number;
   token_type: string;
@@ -77,14 +77,14 @@ export class GoogleOAuthAdapter implements IOAuthProviderAdapter {
    * @returns Promise resolving to token set
    * @throws Error if token exchange fails
    */
-  async exchangeCodeForTokens(_code: string, _codeVerifier: string): Promise<TokenSet> {
+  async exchangeCodeForTokens(code: string, codeVerifier: string): Promise<TokenSet> {
     const config = this.getOAuthConfig();
     
     const tokenRequest = {
       grant_type: 'authorization_code',
       client_id: config.clientId,
       code,
-      _code_verifier: codeVerifier,
+      code_verifier: codeVerifier,
       redirect_uri: config.redirectUri,
     };
 
@@ -120,13 +120,13 @@ export class GoogleOAuthAdapter implements IOAuthProviderAdapter {
    * @returns Promise resolving to new token set
    * @throws Error if token refresh fails
    */
-  async refreshAccessToken(_refreshToken: string): Promise<TokenSet> {
+  async refreshAccessToken(refreshToken: string): Promise<TokenSet> {
     const config = this.getOAuthConfig();
     
     const refreshRequest = {
       grant_type: 'refresh_token',
       client_id: config.clientId,
-      _refresh_token: refreshToken,
+      refreshtoken: refreshToken,
     };
 
     try {
@@ -167,7 +167,7 @@ export class GoogleOAuthAdapter implements IOAuthProviderAdapter {
    * @param tokens - Token set to revoke
    * @returns Promise that resolves when tokens are revoked
    */
-  async revokeTokens(_tokens: TokenSet): Promise<void> {
+  async revokeTokens(tokens: TokenSet): Promise<void> {
     const revokeEndpoint = 'https://oauth2.googleapis.com/revoke';
     
     try {
@@ -180,7 +180,7 @@ export class GoogleOAuthAdapter implements IOAuthProviderAdapter {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          _token: tokenToRevoke,
+          token: tokenToRevoke,
         }),
       });
 
@@ -205,7 +205,7 @@ export class GoogleOAuthAdapter implements IOAuthProviderAdapter {
    * @param tokens - Token set to validate
    * @returns True if tokens are valid, false otherwise
    */
-  validateTokens(_tokens: TokenSet): boolean {
+  validateTokens(tokens: TokenSet): boolean {
     try {
       // Use Zod schema for validation
       TokenSetSchema.parse(tokens);
@@ -237,7 +237,7 @@ export class GoogleOAuthAdapter implements IOAuthProviderAdapter {
    * @param tokenData - Raw token response from Google
    * @returns Normalized token set
    */
-  private normalizeTokenResponse(_tokenData: GoogleTokenResponse): TokenSet {
+  private normalizeTokenResponse(tokenData: GoogleTokenResponse): TokenSet {
     const expiresAt = new Date();
     expiresAt.setSeconds(expiresAt.getSeconds() + tokenData.expires_in);
 

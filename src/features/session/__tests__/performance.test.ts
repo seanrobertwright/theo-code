@@ -81,7 +81,7 @@ function createMockSessionMetadata(overrides: Partial<SessionMetadata> = {}): Se
 /**
  * Creates multiple mock sessions for performance testing.
  */
-function createMockSessions(_count: number): Session[] {
+function createMockSessions(count: number): Session[] {
   const sessions: Session[] = [];
   const baseTime = Date.now() - (count * 60000); // Spread over time
   
@@ -111,7 +111,7 @@ function createMockSessions(_count: number): Session[] {
 /**
  * Creates multiple mock session metadata for performance testing.
  */
-function createMockSessionsMetadata(_count: number): SessionMetadata[] {
+function createMockSessionsMetadata(count: number): SessionMetadata[] {
   const metadata: SessionMetadata[] = [];
   const baseTime = Date.now() - (count * 60000);
   
@@ -269,7 +269,7 @@ describe('LazyLoadingManager Performance', () => {
   });
   
   it('should load pages efficiently with large datasets', async () => {
-    const loader = async (_offset: number, _limit: number) => {
+    const loader = async (offset: number, _limit: number) => {
       // Simulate some loading time
       await new Promise(resolve => setTimeout(resolve, 1));
       return mockData.slice(offset, offset + limit);
@@ -306,7 +306,7 @@ describe('LazyLoadingManager Performance', () => {
   });
   
   it('should handle preloading efficiently', async () => {
-    const loader = async (_offset: number, _limit: number) => {
+    const loader = async (offset: number, _limit: number) => {
       await new Promise(resolve => setTimeout(resolve, 2));
       return mockData.slice(offset, offset + limit);
     };
@@ -332,7 +332,7 @@ describe('LazyLoadingManager Performance', () => {
   });
   
   it('should manage memory usage with large page counts', async () => {
-    const loader = async (_offset: number, _limit: number) => {
+    const loader = async (offset: number, _limit: number) => {
       return mockData.slice(offset, offset + limit);
     };
     
@@ -692,7 +692,7 @@ describe('Performance Benchmarks', () => {
     const mockData = createMockSessionsMetadata(1000);
     lazyLoader.initialize(mockData.length);
     
-    const loader = async (_offset: number, _limit: number) => {
+    const loader = async (offset: number, _limit: number) => {
       return mockData.slice(offset, offset + limit);
     };
     

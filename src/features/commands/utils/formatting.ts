@@ -146,7 +146,7 @@ export function formatSingleSession(
  * @param session - Session metadata
  * @returns Formatted preview string
  */
-export function formatSessionPreview(_session: SessionMetadata): string {
+export function formatSessionPreview(session: SessionMetadata): string {
   const created = new Date(session.created).toLocaleString();
   const lastModified = new Date(session.lastModified).toLocaleString();
   
@@ -309,7 +309,7 @@ export function formatFilterResults(
  * @param tokenCount - Token count object
  * @returns Formatted token count string
  */
-export function formatTokenCount(_tokenCount: SessionTokenCount): string {
+export function formatTokenCount(tokenCount: SessionTokenCount): string {
   const { total, input, output } = tokenCount;
   
   if (input === 0 && output === 0) {
@@ -352,7 +352,7 @@ export function highlightSearchTerms(text: string, query: string): string {
  * @param bytes - Size in bytes
  * @returns Formatted size string
  */
-export function formatFileSize(_bytes: number): string {
+export function formatFileSize(bytes: number): string {
   const units = ['B', 'KB', 'MB', 'GB'];
   let size = bytes;
   let unitIndex = 0;
@@ -371,7 +371,7 @@ export function formatFileSize(_bytes: number): string {
  * @param ms - Duration in milliseconds
  * @returns Formatted duration string
  */
-export function formatDuration(_ms: number): string {
+export function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);

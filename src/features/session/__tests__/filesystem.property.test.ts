@@ -73,7 +73,7 @@ describe('File System Operations Property Tests', () => {
           try {
             await safeReadFile(filePath);
             // If it doesn't throw, the content should still be readable
-          } catch (_error: any) {
+          } catch (error: any) {
             // Should provide meaningful error message
             expect(error.message).toContain('Failed to read file');
           }
@@ -168,7 +168,7 @@ describe('File System Operations Property Tests', () => {
             await atomicWriteFile(validPath, content);
             const readContent = await safeReadFile(validPath);
             expect(readContent).toBe(content);
-          } catch (_error: any) {
+          } catch (error: any) {
             // Should not fail for valid paths
             expect.fail(`Valid file operation failed: ${error.message}`);
           }
@@ -178,7 +178,7 @@ describe('File System Operations Property Tests', () => {
           try {
             await safeReadFile(nonExistentPath);
             expect.fail('Should have thrown error for non-existent file');
-          } catch (_error: any) {
+          } catch (error: any) {
             expect(error.message).toContain('File not found');
           }
         }

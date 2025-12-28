@@ -41,10 +41,10 @@ class MockOAuthManager implements IOAuthManager {
   private shouldFailAuth = false;
   private shouldFailRefresh = false;
 
-  async initiateFlow(_provider: ModelProvider) {
+  async initiateFlow(provider: ModelProvider) {
     if (this.shouldFailAuth) {
       return {
-        _success: false,
+        success: false,
         error: 'OAuth flow failed',
         provider,
       };
@@ -61,13 +61,13 @@ class MockOAuthManager implements IOAuthManager {
     this.authenticatedProviders.set(provider, tokens);
 
     return {
-      _success: true,
+      success: true,
       tokens,
       provider,
     };
   }
 
-  async handleCallback(_code: string, _state: string): Promise<TokenSet> {
+  async handleCallback(code: string, _state: string): Promise<TokenSet> {
     return {
       accessToken: `callback_token_${code}`,
       refreshToken: `callback_refresh_${code}`,
@@ -77,7 +77,7 @@ class MockOAuthManager implements IOAuthManager {
     };
   }
 
-  async refreshTokens(_provider: ModelProvider): Promise<TokenSet> {
+  async refreshTokens(provider: ModelProvider): Promise<TokenSet> {
     if (this.shouldFailRefresh) {
       throw new Error('Token refresh failed');
     }
@@ -94,11 +94,11 @@ class MockOAuthManager implements IOAuthManager {
     return newTokens;
   }
 
-  async revokeTokens(_provider: ModelProvider): Promise<void> {
+  async revokeTokens(provider: ModelProvider): Promise<void> {
     this.authenticatedProviders.delete(provider);
   }
 
-  async getAuthStatus(_provider: ModelProvider): Promise<AuthStatus> {
+  async getAuthStatus(provider: ModelProvider): Promise<AuthStatus> {
     const tokens = this.authenticatedProviders.get(provider);
     
     return {
@@ -110,7 +110,7 @@ class MockOAuthManager implements IOAuthManager {
     };
   }
 
-  supportsOAuth(_provider: ModelProvider): boolean {
+  supportsOAuth(provider: ModelProvider): boolean {
     return this.supportedProviders.has(provider);
   }
 
@@ -118,7 +118,7 @@ class MockOAuthManager implements IOAuthManager {
     return Array.from(this.supportedProviders);
   }
 
-  async ensureValidTokens(_provider: ModelProvider): Promise<TokenSet> {
+  async ensureValidTokens(provider: ModelProvider): Promise<TokenSet> {
     const tokens = this.authenticatedProviders.get(provider);
     if (!tokens) {
       throw new Error(`No tokens available for provider: ${provider}`);
@@ -132,7 +132,7 @@ class MockOAuthManager implements IOAuthManager {
     return tokens;
   }
 
-  async needsTokenRefresh(_provider: ModelProvider): Promise<boolean> {
+  async needsTokenRefresh(provider: ModelProvider): Promise<boolean> {
     const tokens = this.authenticatedProviders.get(provider);
     if (!tokens) {
     return false;
@@ -140,7 +140,7 @@ class MockOAuthManager implements IOAuthManager {
     return tokens.expiresAt.getTime() - Date.now() < 300000;
   }
 
-  async getTimeUntilExpiration(_provider: ModelProvider): Promise<number | null> {
+  async getTimeUntilExpiration(provider: ModelProvider): Promise<number | null> {
     const tokens = this.authenticatedProviders.get(provider);
     if (!tokens) {
     return null;
@@ -149,7 +149,7 @@ class MockOAuthManager implements IOAuthManager {
   }
 
   // Test helpers
-  setAuthenticationStatus(_provider: ModelProvider, _authenticated: boolean) {
+  setAuthenticationStatus(provider: ModelProvider, authenticated: boolean) {
     if (authenticated) {
       this.authenticatedProviders.set(provider, {
         accessToken: `oauth_token_${provider}_${Date.now()}`,
@@ -163,19 +163,19 @@ class MockOAuthManager implements IOAuthManager {
     }
   }
 
-  setShouldFailAuth(_shouldFail: boolean) {
+  setShouldFailAuth(shouldFail: boolean) {
     this.shouldFailAuth = shouldFail;
   }
 
-  setShouldFailRefresh(_shouldFail: boolean) {
+  setShouldFailRefresh(shouldFail: boolean) {
     this.shouldFailRefresh = shouldFail;
   }
 
-  addSupportedProvider(_provider: ModelProvider) {
+  addSupportedProvider(provider: ModelProvider) {
     this.supportedProviders.add(provider);
   }
 
-  removeSupportedProvider(_provider: ModelProvider) {
+  removeSupportedProvider(provider: ModelProvider) {
     this.supportedProviders.delete(provider);
   }
 

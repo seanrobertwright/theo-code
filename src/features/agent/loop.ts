@@ -252,14 +252,14 @@ export class AgentLoop {
         // Create tool context
         const context: ToolContext = {
           workspaceRoot: store.workspaceRoot,
-          confirm: (_message: string, details?: string) => 
+          confirm: (message: string, details?: string) => 
             confirmationService.requestConfirmation(message, details),
-          onProgress: (_message: string) => {
+          onProgress: (message: string) => {
             // TODO: Update progress in UI
             console.warn(`Tool progress: ${message}`);
           },
-          debug: (_message: string, data?: unknown) => {
-            console.debug(`Tool debug [${toolCall.name}]: ${message}`, data);
+          debug: (message: string, data?: unknown) => {
+            console.warn(`Tool debug [${toolCall.name}]: ${_message}`, data);
           },
         };
 

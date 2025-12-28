@@ -46,7 +46,7 @@ class TestableSessionStorage {
   
   constructor(private _sessionsDir: string) {}
   
-  private getSessionFilePath(_sessionId: SessionId): string {
+  private getSessionFilePath(sessionId: SessionId): string {
     return path.join(this.sessionsDir, `${sessionId}.json`);
   }
   
@@ -54,7 +54,7 @@ class TestableSessionStorage {
     return path.join(this.sessionsDir, 'index.json');
   }
   
-  async writeSession(_sessionId: SessionId, _session: Session): Promise<void> {
+  async writeSession(sessionId: SessionId, session: Session): Promise<void> {
     await fs.mkdir(this.sessionsDir, { _recursive: true });
     
     // Validate session data
@@ -116,7 +116,7 @@ class TestableSessionStorage {
       const content = await safeReadFile(indexPath);
       const parsed = JSON.parse(content);
       return SessionIndexSchema.parse(parsed);
-    } catch (_error: any) {
+    } catch (error: any) {
       // Index is corrupted, rebuild it
       console.warn(`Index corrupted, rebuilding: ${error.message}`);
       await this.rebuildIndex();
@@ -124,7 +124,7 @@ class TestableSessionStorage {
     }
   }
   
-  async updateIndex(_metadata: SessionMetadata): Promise<void> {
+  async updateIndex(metadata: SessionMetadata): Promise<void> {
     const indexPath = this.getSessionIndexPath();
     
     // Load existing index or create new one
@@ -141,7 +141,7 @@ class TestableSessionStorage {
           sessions: {},
         };
       }
-    } catch (_error: any) {
+    } catch (error: any) {
       // If index is corrupted, rebuild it
       console.warn(`Index corrupted, rebuilding: ${error.message}`);
       await this.rebuildIndex();
@@ -176,7 +176,7 @@ class TestableSessionStorage {
         const session = await this.readSession(sessionId);
         const metadata = this.createSessionMetadata(session);
         index.sessions[sessionId] = metadata;
-      } catch (_error: any) {
+      } catch (error: any) {
         console.warn(`Failed to process session file ${filePath}: ${error.message}`);
         // Continue with other files
       }
@@ -189,7 +189,7 @@ class TestableSessionStorage {
     });
   }
   
-  async readSession(_sessionId: SessionId): Promise<Session> {
+  async readSession(sessionId: SessionId): Promise<Session> {
     const filePath = this.getSessionFilePath(sessionId);
     
     // Read file content
@@ -202,7 +202,7 @@ class TestableSessionStorage {
     try {
       const parsed = JSON.parse(content);
       versionedSession = VersionedSessionSchema.parse(parsed);
-    } catch (_error: any) {
+    } catch (error: any) {
       const errorMessage = error?.message || String(error);
       throw new Error(`Invalid session file format: ${errorMessage}`);
     }
@@ -227,7 +227,7 @@ class TestableSessionStorage {
     
     // Verify checksum if present
     if (versionedSession.checksum && this.options.enableChecksum) {
-      if (!verifyChecksum(sessionData, versionedSession.checksum) {
+      if (!verifyChecksum(sessionData, versionedSession.checksum)) {
         throw new Error('Session data checksum verification failed');
       }
     }
@@ -237,14 +237,14 @@ class TestableSessionStorage {
     try {
       const parsed = JSON.parse(sessionData);
       session = SessionSchema.parse(parsed);
-    } catch (_error: any) {
+    } catch (error: any) {
       throw new Error(`Invalid session data: ${error.message}`);
     }
     
     return session;
   }
   
-  async deleteSession(_sessionId: SessionId): Promise<void> {
+  async deleteSession(sessionId: SessionId): Promise<void> {
     const filePath = this.getSessionFilePath(sessionId);
     
     // Delete session file
@@ -254,7 +254,7 @@ class TestableSessionStorage {
     await this.removeFromIndex(sessionId);
   }
   
-  private async removeFromIndex(_sessionId: SessionId): Promise<void> {
+  private async removeFromIndex(sessionId: SessionId): Promise<void> {
     const index = await this.getIndex();
     delete index.sessions[sessionId];
     index.lastUpdated = Date.now();
@@ -272,12 +272,12 @@ class TestableSessionStorage {
       return files
         .filter(file => file.endsWith('.json') && file !== 'index.json')
         .map(file => path.join(this.sessionsDir, file));
-    } catch (_error: any) {
+    } catch (error: any) {
       throw new Error(`Failed to list session files: ${error.message}`);
     }
   }
   
-  private createSessionMetadata(_session: Session): SessionMetadata {
+  private createSessionMetadata(session: Session): SessionMetadata {
     // Get preview from first user message or first message
     let preview: string | undefined;
     const firstUserMessage = session.messages.find(m => m.role === 'user');

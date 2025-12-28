@@ -30,7 +30,7 @@ class MockCommandContext implements CommandContext {
     }
   });
 
-  showConfirmation = vi.fn(async (_message: string, details?: string): Promise<boolean> => {
+  showConfirmation = vi.fn(async (message: string, details?: string): Promise<boolean> => {
     const result = this.confirmationResults[this.confirmationIndex] ?? true;
     this.confirmationIndex++;
     return result;
@@ -55,7 +55,7 @@ class MockCommandContext implements CommandContext {
     return this.messages.length;
   }
 
-  setConfirmationResult(_result: boolean): void {
+  setConfirmationResult(result: boolean): void {
     this.confirmationResults.push(result);
   }
 

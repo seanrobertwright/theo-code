@@ -19,7 +19,7 @@ interface HistoryEntry {
  */
 export interface UseKeyboardOptions {
   /** Callback when user submits input */
-  onSubmit?: (_input: string) => void;
+  onSubmit?: (input: string) => void;
   /** Callback when user requests exit */
   onExit?: () => void;
   /** Whether keyboard input is active */
@@ -33,13 +33,13 @@ export interface UseKeyboardResult {
   /** Current input value */
   currentInput: string;
   /** Set input value */
-  setInput: (_value: string) => void;
+  setInput: (value: string) => void;
   /** Clear input */
   clearInput: () => void;
   /** Command history */
   history: HistoryEntry[];
   /** Add entry to history */
-  addToHistory: (_entry: string) => void;
+  addToHistory: (entry: string) => void;
 }
 
 /**
@@ -48,8 +48,8 @@ export interface UseKeyboardResult {
 function navigateHistoryUp(
   history: HistoryEntry[],
   _historyIndex: number,
-  setHistoryIndex: (_idx: number) => void,
-  setInput: (_value: string) => void
+  setHistoryIndex: (idx: number) => void,
+  setInput: (value: string) => void
 ): void {
   if (history.length > 0 && historyIndex < history.length - 1) {
     const newIndex = historyIndex + 1;
@@ -67,8 +67,8 @@ function navigateHistoryUp(
 function navigateHistoryDown(
   history: HistoryEntry[],
   _historyIndex: number,
-  setHistoryIndex: (_idx: number) => void,
-  setInput: (_value: string) => void
+  setHistoryIndex: (idx: number) => void,
+  setInput: (value: string) => void
 ): void {
   if (historyIndex > 0) {
     const newIndex = historyIndex - 1;
@@ -87,7 +87,7 @@ function navigateHistoryDown(
  * Check if the key is a special key that should be handled.
  */
 function handleSpecialKey(
-  _key: Key,
+  key: Key,
   _char: string,
   handlers: {
     onExit: (() => void) | undefined;
@@ -151,7 +151,7 @@ export function useKeyboard(options: UseKeyboardOptions = {}): UseKeyboardResult
     setHistoryIndex(-1);
   }, []);
 
-  const addToHistory = useCallback((_entry: string): void => {
+  const addToHistory = useCallback((entry: string): void => {
     if (length === 0) {
       return;
     }

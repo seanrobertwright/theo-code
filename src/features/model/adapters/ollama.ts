@@ -143,7 +143,7 @@ interface OllamaListResponse {
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(_message: Message): string {
+function getMessageContent(message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -238,7 +238,7 @@ function convertToolsToSystemPrompt(tools: UniversalToolDefinition[]): string {
 /**
  * Maps Ollama API errors to StreamChunk error format.
  */
-function handleApiError(_error: unknown): StreamChunk {
+function handleApiError(error: unknown): StreamChunk {
   if (error instanceof Error) {
     // Try to extract error code from message
     const errorMessage = error.message.toLowerCase();
@@ -348,7 +348,7 @@ export class OllamaAdapter implements IModelAdapter {
   /**
    * Creates a new enhanced Ollama adapter.
    */
-  constructor(_config: ModelConfig) {
+  constructor(config: ModelConfig) {
     this.config = config;
     this.model = config.model;
     const defaultContextLimit = MODEL_CONTEXT_LIMITS[config.model] || 8192;
@@ -480,7 +480,7 @@ export class OllamaAdapter implements IModelAdapter {
   /**
    * Pulls a model from the Ollama registry.
    */
-  async pullModel(_modelName: string): Promise<void> {
+  async pullModel(modelName: string): Promise<void> {
     try {
       logger.info(`[Ollama] Pulling model ${modelName}...`);
       await this.client.pull({ _model: modelName });
@@ -498,7 +498,7 @@ export class OllamaAdapter implements IModelAdapter {
   /**
    * Removes a model from local storage.
    */
-  async removeModel(_modelName: string): Promise<void> {
+  async removeModel(modelName: string): Promise<void> {
     try {
       logger.info(`[Ollama] Removing model ${modelName}...`);
       await this.client.delete({ _model: modelName });
@@ -628,7 +628,7 @@ export class OllamaAdapter implements IModelAdapter {
 /**
  * Creates an enhanced Ollama adapter from configuration.
  */
-function createOllamaAdapter(_config: ModelConfig): IModelAdapter {
+function createOllamaAdapter(config: ModelConfig): IModelAdapter {
   return new OllamaAdapter(config);
 }
 

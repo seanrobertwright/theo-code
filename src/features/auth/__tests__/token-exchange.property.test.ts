@@ -21,8 +21,8 @@ import type { ModelProvider } from '../../../shared/types/models.js';
  * Mock successful token response for Google.
  */
 const mockGoogleTokenResponse = {
-  access_token: 'ya29.mock_access_token_12345',
-  refresh_token: 'mock_refresh_token_67890',
+  accesstoken: 'ya29.mock_access_token_12345',
+  refreshtoken: 'mock_refresh_token_67890',
   expires_in: 3600,
   token_type: 'Bearer',
   scope: 'https://www.googleapis.com/auth/generative-language.retriever',
@@ -32,8 +32,8 @@ const mockGoogleTokenResponse = {
  * Mock successful token response for OpenRouter.
  */
 const mockOpenRouterTokenResponse = {
-  access_token: 'or_mock_access_token_abcdef',
-  refresh_token: 'or_mock_refresh_token_ghijkl',
+  accesstoken: 'or_mock_access_token_abcdef',
+  refreshtoken: 'or_mock_refresh_token_ghijkl',
   expires_in: 7200,
   token_type: 'Bearer',
   scope: 'api:read',
@@ -199,16 +199,16 @@ describe('OAuth Token Exchange Property Tests', () => {
           let mockResponse: any;
           if (provider === 'google') {
             mockResponse = {
-              access_token: `google_token_${Math.random().toString(36)}`,
-              refresh_token: `google_refresh_${Math.random().toString(36)}`,
+              accesstoken: `google_token_${Math.random().toString(36)}`,
+              refreshtoken: `google_refresh_${Math.random().toString(36)}`,
               expires_in: fc.sample(fc.integer({ min: 300, max: 7200 }), 1)[0],
               token_type: 'Bearer',
               scope: 'https://www.googleapis.com/auth/generative-language.retriever',
             };
           } else {
             mockResponse = {
-              access_token: `or_token_${Math.random().toString(36)}`,
-              refresh_token: `or_refresh_${Math.random().toString(36)}`,
+              accesstoken: `or_token_${Math.random().toString(36)}`,
+              refreshtoken: `or_refresh_${Math.random().toString(36)}`,
               expires_in: fc.sample(fc.integer({ min: 300, max: 7200 }), 1)[0],
               token_type: 'Bearer',
               scope: 'api:read',

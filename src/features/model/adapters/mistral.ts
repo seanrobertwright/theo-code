@@ -62,7 +62,7 @@ const ERROR_CODE_MAP: Record<string, string> = {
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(_message: Message): string {
+function getMessageContent(message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -196,7 +196,7 @@ function convertTools(tools: UniversalToolDefinition[]): Array<{
 /**
  * Validates and parses tool call arguments.
  */
-function parseToolCallArguments(_argumentsJson: string, _toolName: string): any {
+function parseToolCallArguments(argumentsJson: string, _toolName: string): any {
   if (!argumentsJson.trim()) {
     return {};
   }
@@ -217,14 +217,14 @@ function parseToolCallArguments(_argumentsJson: string, _toolName: string): any 
 /**
  * Maps Mistral API errors to StreamChunk error format.
  */
-function handleApiError(_error: unknown): StreamChunk {
+function handleApiError(error: unknown): StreamChunk {
   if (error instanceof Error) {
     // Try to extract error code from message
     const errorMessage = error.message.toLowerCase();
     let code = 'API_ERROR';
     
     for (const [mistralError, mappedCode] of Object.entries(ERROR_CODE_MAP)) {
-      if (errorMessage.includes(mistralError) {
+      if (errorMessage.includes(mistralError)) {
         code = mappedCode;
         break;
       }
@@ -327,14 +327,14 @@ export class MistralAdapter implements IModelAdapter {
   /**
    * Creates a new Mistral adapter.
    */
-  constructor(_config: ModelConfig) {
+  constructor(config: ModelConfig) {
     this.config = config;
     this.model = config.model;
     this.contextLimit = config.contextLimit ?? MODEL_CONTEXT_LIMITS[config.model] ?? 32000;
     this.supportsToolCalling = FUNCTION_CALLING_MODELS.has(config.model);
 
     const apiKey = config.apiKey ?? process.env['MISTRAL_API_KEY'];
-    if (apiKey === undefined ?? apiKey === '') {
+    if (apiKey === undefined || apiKey === '') {
       throw new AdapterError(
         'INVALID_CONFIG',
         'mistral',
@@ -503,7 +503,7 @@ export class MistralAdapter implements IModelAdapter {
             for (const toolCall of choice.delta.tool_calls) {
               if (toolCall.id && toolCall.function?.name) {
                 // Start or update tool call accumulator
-                if (!toolCallAccumulators.has(toolCall.id) {
+                if (!toolCallAccumulators.has(toolCall.id)) {
                   toolCallAccumulators.set(toolCall.id, {
                     id: toolCall.id,
                     name: toolCall.function.name,
@@ -584,7 +584,7 @@ export class MistralAdapter implements IModelAdapter {
 /**
  * Creates a Mistral adapter from configuration.
  */
-function createMistralAdapter(_config: ModelConfig): IModelAdapter {
+function createMistralAdapter(config: ModelConfig): IModelAdapter {
   return new MistralAdapter(config);
 }
 

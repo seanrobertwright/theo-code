@@ -8,6 +8,7 @@
 
 import type { ModelProvider } from '../../shared/types/models.js';
 import type { Message } from '../../shared/types/index.js';
+import { logger } from '../../shared/utils/logger.js';
 
 // =============================================================================
 // TYPES
@@ -104,9 +105,9 @@ export interface ResponseCacheEntry {
  * Default cache configuration.
  */
 export const DEFAULT_CACHE_CONFIG: CacheConfig = {
-  _maxEntries: 10000,
-  _ttlMs: 3600000,        // 1 hour
-  _enableCompression: false,
+  maxEntries: 10000,
+  ttlMs: 3600000,        // 1 hour
+  enableCompression: false,
   evictionStrategy: 'lru',
 };
 
@@ -152,7 +153,7 @@ export class Cache<T> {
   /**
    * Gets a value from the cache.
    */
-  get(_key: string): T | undefined {
+  get(key: string): T | undefined {
     const entry = this.entries.get(key);
     
     if (!entry) {
@@ -178,22 +179,22 @@ export class Cache<T> {
   /**
    * Sets a value in the cache.
    */
-  set(_key: string, _value: T): void {
+  set(key: string, value: T): void {
     const now = new Date();
     const size = this.estimateSize(value);
     
     const entry: CacheEntry<T> = {
       key,
       value,
-      _createdAt: now,
-      _lastAccessedAt: now,
-      _accessCount: 1,
+      createdAt: now,
+      lastAccessedAt: now,
+      accessCount: 1,
       expiresAt: new Date(now.getTime() + this.config.ttlMs),
       size,
     };
 
     // Remove existing entry if present
-    if (this.entries.has(key) {
+    if (this.entries.has(key)) {
       this.entries.delete(key);
     }
 
@@ -209,14 +210,14 @@ export class Cache<T> {
   /**
    * Checks if a key exists in the cache.
    */
-  has(_key: string): boolean {
+  has(key: string): boolean {
     return this.get(key) !== undefined;
   }
 
   /**
    * Deletes a key from the cache.
    */
-  delete(_key: string): boolean {
+  delete(key: string): boolean {
     const deleted = this.entries.delete(key);
     if (deleted) {
       logger.debug(`[Cache] Deleted entry ${key}`);
@@ -251,7 +252,7 @@ export class Cache<T> {
       hitRate,
       hits: this.hits,
       misses: this.misses,
-      _memoryUsage: totalSize,
+      memoryUsage: totalSize,
       averageEntrySize: this.entries.size > 0 ? totalSize / this.entries.size : 0,
     };
   }
@@ -263,7 +264,7 @@ export class Cache<T> {
   /**
    * Estimates the size of a value in bytes.
    */
-  protected estimateSize(_value: T): number {
+  protected estimateSize(value: T): number {
     try {
       const json = JSON.stringify(value);
       return new Blob([json]).size;
@@ -335,8 +336,8 @@ export class Cache<T> {
 export class TokenCountCache extends Cache<TokenCountCacheEntry> {
   constructor(config: Partial<CacheConfig> = {}) {
     super({
-      _maxEntries: 5000,
-      _ttlMs: 1800000, // 30 minutes
+      maxEntries: 5000,
+      ttlMs: 1800000, // 30 minutes
       ...config,
     });
   }
@@ -344,7 +345,7 @@ export class TokenCountCache extends Cache<TokenCountCacheEntry> {
   /**
    * Gets cached token count for messages.
    */
-  getTokenCount(_provider: ModelProvider, _model: string, messages: Message[]): number | undefined {
+  getTokenCount(provider: ModelProvider, model: string, messages: Message[]): number | undefined {
     const messageHash = this.hashMessages(messages);
     const key = `${provider}:${model}:${messageHash}`;
     
@@ -355,7 +356,7 @@ export class TokenCountCache extends Cache<TokenCountCacheEntry> {
   /**
    * Caches token count for messages.
    */
-  setTokenCount(_provider: ModelProvider, _model: string, messages: Message[], _tokenCount: number): void {
+  setTokenCount(provider: ModelProvider, model: string, messages: Message[], tokenCount: number): void {
     const messageHash = this.hashMessages(messages);
     const key = `${provider}:${model}:${messageHash}`;
     
@@ -384,7 +385,7 @@ export class TokenCountCache extends Cache<TokenCountCacheEntry> {
   /**
    * Simple hash function for cache keys.
    */
-  private simpleHash(_str: string): string {
+  private simpleHash(str: string): string {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
@@ -401,8 +402,8 @@ export class TokenCountCache extends Cache<TokenCountCacheEntry> {
 export class ModelCapabilityCache extends Cache<ModelCapabilityCacheEntry> {
   constructor(config: Partial<CacheConfig> = {}) {
     super({
-      _maxEntries: 1000,
-      _ttlMs: 7200000, // 2 hours
+      maxEntries: 1000,
+      ttlMs: 7200000, // 2 hours
       ...config,
     });
   }
@@ -410,7 +411,7 @@ export class ModelCapabilityCache extends Cache<ModelCapabilityCacheEntry> {
   /**
    * Gets cached model capabilities.
    */
-  getCapabilities(_provider: ModelProvider, _model: string): ModelCapabilityCacheEntry['capabilities'] | undefined {
+  getCapabilities(provider: ModelProvider, model: string): ModelCapabilityCacheEntry['capabilities'] | undefined {
     const key = `${provider}:${model}`;
     const entry = this.get(key);
     return entry?.capabilities;
@@ -420,8 +421,8 @@ export class ModelCapabilityCache extends Cache<ModelCapabilityCacheEntry> {
    * Caches model capabilities.
    */
   setCapabilities(
-    _provider: ModelProvider,
-    _model: string,
+    provider: ModelProvider,
+    model: string,
     capabilities: ModelCapabilityCacheEntry['capabilities']
   ): void {
     const key = `${provider}:${model}`;
@@ -442,8 +443,8 @@ export class ModelCapabilityCache extends Cache<ModelCapabilityCacheEntry> {
 export class ResponseCache extends Cache<ResponseCacheEntry> {
   constructor(config: Partial<CacheConfig> = {}) {
     super({
-      _maxEntries: 2000,
-      _ttlMs: 600000, // 10 minutes
+      maxEntries: 2000,
+      ttlMs: 600000, // 10 minutes
       ...config,
     });
   }
@@ -451,7 +452,7 @@ export class ResponseCache extends Cache<ResponseCacheEntry> {
   /**
    * Gets cached response for a request.
    */
-  getResponse(_provider: ModelProvider, _model: string, _requestData: any): any | undefined {
+  getResponse(provider: ModelProvider, model: string, requestData: any): any | undefined {
     const requestHash = this.hashRequest(requestData);
     const key = `${provider}:${model}:${requestHash}`;
     
@@ -462,7 +463,7 @@ export class ResponseCache extends Cache<ResponseCacheEntry> {
   /**
    * Caches a response for a request.
    */
-  setResponse(_provider: ModelProvider, _model: string, _requestData: any, _response: any): void {
+  setResponse(provider: ModelProvider, model: string, requestData: any, response: any): void {
     const requestHash = this.hashRequest(requestData);
     const key = `${provider}:${model}:${requestHash}`;
     
@@ -480,7 +481,7 @@ export class ResponseCache extends Cache<ResponseCacheEntry> {
   /**
    * Creates a hash of request data for caching.
    */
-  private hashRequest(_requestData: any): string {
+  private hashRequest(requestData: any): string {
     const normalized = this.normalizeRequest(requestData);
     return this.simpleHash(JSON.stringify(normalized));
   }
@@ -488,7 +489,7 @@ export class ResponseCache extends Cache<ResponseCacheEntry> {
   /**
    * Normalizes request data for consistent hashing.
    */
-  private normalizeRequest(_requestData: any): any {
+  private normalizeRequest(requestData: any): any {
     if (typeof requestData !== 'object' || requestData === null) {
       return requestData;
     }
@@ -497,7 +498,7 @@ export class ResponseCache extends Cache<ResponseCacheEntry> {
     const { timestamp, requestId, ...normalized } = requestData;
     
     // Sort object keys for consistent hashing
-    if (Array.isArray(normalized) {
+    if (Array.isArray(normalized)) {
       return normalized.map(item => this.normalizeRequest(item));
     }
 
@@ -512,7 +513,7 @@ export class ResponseCache extends Cache<ResponseCacheEntry> {
   /**
    * Simple hash function for cache keys.
    */
-  private simpleHash(_str: string): string {
+  private simpleHash(str: string): string {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
@@ -591,9 +592,9 @@ export class CacheManager {
     const responseStats = this.responseCache.getStats();
 
     return {
-      _tokenCount: tokenCountStats,
-      _modelCapability: modelCapabilityStats,
-      _response: responseStats,
+      tokenCount: tokenCountStats,
+      modelCapability: modelCapabilityStats,
+      response: responseStats,
       total: {
         entryCount: tokenCountStats.entryCount + modelCapabilityStats.entryCount + responseStats.entryCount,
         memoryUsage: tokenCountStats.memoryUsage + modelCapabilityStats.memoryUsage + responseStats.memoryUsage,

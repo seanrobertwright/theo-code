@@ -297,7 +297,7 @@ export class ContextManager {
         _messagesRemoved: 0,
         _tokensRemoved: 0,
         strategyUsed: this.config.truncationStrategy,
-        _success: true,
+        success: true,
       };
     }
 
@@ -471,7 +471,7 @@ export class ContextManager {
   /**
    * Estimate token count for a single message.
    */
-  private estimateMessageTokens(_message: Message): number {
+  private estimateMessageTokens(message: Message): number {
     // Simple estimation: ~4 characters per token
     const contentLength = Array.isArray(message.content)
       ? message.content.reduce((len, block) => {
@@ -488,7 +488,7 @@ export class ContextManager {
   /**
    * Determine message priority for truncation decisions.
    */
-  private determineMessagePriority(_message: Message, _index: number, _totalMessages: number): MessagePriority {
+  private determineMessagePriority(message: Message, _index: number, _totalMessages: number): MessagePriority {
     // System messages are critical
     if (message.role === 'system') {
       return 'critical';
@@ -642,7 +642,7 @@ export class ContextManager {
     // Sort truncatable messages by token count (largest first)
     const truncatableWithTokens = analysis.truncatableMessages
       .map(i => messages[i] ? { _index: i, tokens: messages[i].tokenCount ?? 0 } : null)
-      .filter((item): item is { index: number; _tokens: number } => item !== null)
+      .filter((item): item is { index: number; tokens: number } => item !== null)
       .sort((a, b) => b.tokens - a.tokens);
 
     for (const { index, tokens } of truncatableWithTokens) {
@@ -739,7 +739,7 @@ export function createContextManager(
 /**
  * Get default context configuration for a provider.
  */
-export function getDefaultContextConfig(_provider: ModelProvider): ContextConfig {
+export function getDefaultContextConfig(provider: ModelProvider): ContextConfig {
   return { ...DEFAULT_CONTEXT_CONFIGS[provider] };
 }
 

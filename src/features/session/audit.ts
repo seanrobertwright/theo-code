@@ -73,10 +73,10 @@ export interface AuditLoggerConfig {
   /** Log destination */
   destination: AuditLogDestination;
   
-  /** Maximum log file size in bytes (_default: 10MB) */
+  /** Maximum log file size in bytes (default: 10MB) */
   maxFileSize: number;
   
-  /** Maximum number of log files to keep (_default: 5) */
+  /** Maximum number of log files to keep (default: 5) */
   maxFiles: number;
   
   /** Whether to include context data in logs */
@@ -105,13 +105,13 @@ interface RotationResult {
 // =============================================================================
 
 const DEFAULT_CONFIG: AuditLoggerConfig = {
-  _enabled: false,
+  enabled: false,
   level: 'info',
   destination: 'file',
   maxFileSize: 10 * 1024 * 1024, // 10MB
-  _maxFiles: 5,
-  _includeContext: true,
-  _consoleOutput: false,
+  maxFiles: 5,
+  includeContext: true,
+  consoleOutput: false,
 };
 
 // =============================================================================
@@ -157,13 +157,13 @@ export class AuditLogger {
    * 
    * @param entry - Audit log entry
    */
-  async log(_entry: AuditLogEntry): Promise<void> {
+  async log(entry: AuditLogEntry): Promise<void> {
     if (!this.config.enabled) {
       return;
     }
     
     // Check if log level meets minimum threshold
-    if (!this.shouldLog(entry.level) {
+    if (!this.shouldLog(entry.level)) {
       return;
     }
     
@@ -196,7 +196,7 @@ export class AuditLogger {
    * @param duration - Operation duration in ms
    */
   async logSuccess(
-    _operation: string,
+    operation: string,
     sessionId?: SessionId,
     context?: Record<string, any>,
     duration?: number
@@ -222,7 +222,7 @@ export class AuditLogger {
    * @param context - Additional context
    */
   async logFailure(
-    _operation: string,
+    operation: string,
     error: string | Error,
     sessionId?: SessionId,
     context?: Record<string, any>
@@ -236,7 +236,7 @@ export class AuditLogger {
       sessionId,
       actor: 'system',
       context: this.config.includeContext ? context : undefined,
-      _error: errorMessage,
+      error: errorMessage,
       result: 'failure',
     });
   }
@@ -250,8 +250,8 @@ export class AuditLogger {
    * @param context - Additional context
    */
   async logWarning(
-    _operation: string,
-    _message: string,
+    operation: string,
+    message: string,
     sessionId?: SessionId,
     context?: Record<string, any>
   ): Promise<void> {
@@ -262,7 +262,7 @@ export class AuditLogger {
       sessionId,
       actor: 'system',
       context: this.config.includeContext ? context : undefined,
-      _error: message,
+      error: message,
       result: 'success', // Warnings don't indicate failure
     });
   }
@@ -347,7 +347,7 @@ export class AuditLogger {
    * @param level - Log level to check
    * @returns True if level should be logged
    */
-  private shouldLog(_level: AuditLogLevel): boolean {
+  private shouldLog(level: AuditLogLevel): boolean {
     const levels: AuditLogLevel[] = ['info', 'warn', 'error'];
     const configLevelIndex = levels.indexOf(this.config.level);
     const entryLevelIndex = levels.indexOf(level);
@@ -361,7 +361,7 @@ export class AuditLogger {
    * @param entry - Log entry to format
    * @returns Formatted log string
    */
-  private formatLogEntry(_entry: AuditLogEntry): string {
+  private formatLogEntry(entry: AuditLogEntry): string {
     const timestamp = new Date(entry.timestamp).toISOString();
     
     const formattedEntry = {
@@ -384,7 +384,7 @@ export class AuditLogger {
    * 
    * @param formattedEntry - Formatted log entry string
    */
-  private async writeToDestinations(_formattedEntry: string): Promise<void> {
+  private async writeToDestinations(formattedEntry: string): Promise<void> {
     const promises: Promise<void>[] = [];
     
     // Write to file
@@ -405,11 +405,11 @@ export class AuditLogger {
    * 
    * @param formattedEntry - Formatted log entry string
    */
-  private async writeToFile(_formattedEntry: string): Promise<void> {
+  private async writeToFile(formattedEntry: string): Promise<void> {
     try {
       // Ensure logs directory exists
       const logsDir = this.getLogsDirectory();
-      await fs.mkdir(logsDir, { _recursive: true });
+      await fs.mkdir(logsDir, { recursive: true });
       
       // Append to log file
       await fs.appendFile(this.logFilePath, formattedEntry + '\n', 'utf-8');
@@ -423,7 +423,7 @@ export class AuditLogger {
    * 
    * @param formattedEntry - Formatted log entry string
    */
-  private writeToConsole(_formattedEntry: string): void {
+  private writeToConsole(formattedEntry: string): void {
     try {
       const entry = JSON.parse(formattedEntry) as AuditLogEntry;
       const prefix = `[AUDIT ${entry.level.toUpperCase()}]`;
@@ -455,7 +455,7 @@ export class AuditLogger {
       if (stats.size >= this.config.maxFileSize) {
         await this.rotateLogFile();
       }
-    } catch (_error: any) {
+    } catch (error: any) {
       // If file doesn't exist, no rotation needed
       if (error.code !== 'ENOENT') {
         console.error('Failed to check log file size:', error);
@@ -477,10 +477,10 @@ export class AuditLogger {
       // Rename current log file
       try {
         await fs.rename(this.logFilePath, rotatedPath);
-      } catch (_error: any) {
+      } catch (error: any) {
         // If current log doesn't exist, no rotation needed
         if (error.code === 'ENOENT') {
-          return { _rotated: false, _filesDeleted: 0 };
+          return { rotated: false, filesDeleted: 0 };
         }
         throw error;
       }
@@ -489,13 +489,13 @@ export class AuditLogger {
       const filesDeleted = await this.cleanupOldLogFiles();
       
       return {
-        _rotated: true,
+        rotated: true,
         filesDeleted,
-        _newLogFile: rotatedPath,
+        newLogFile: rotatedPath,
       };
     } catch (error) {
       console.error('Failed to rotate log file:', error);
-      return { _rotated: false, _filesDeleted: 0 };
+      return { rotated: false, filesDeleted: 0 };
     }
   }
   
@@ -513,7 +513,7 @@ export class AuditLogger {
       const logFiles = files
         .filter(file => file.startsWith('audit-') && file.endsWith('.log'))
         .map(file => ({
-          _name: file,
+          name: file,
           path: path.join(logsDir, file),
           timestamp: this.extractTimestampFromFilename(file),
         }))
@@ -546,7 +546,7 @@ export class AuditLogger {
    * @param filename - Log filename
    * @returns Timestamp or 0 if not found
    */
-  private extractTimestampFromFilename(_filename: string): number {
+  private extractTimestampFromFilename(filename: string): number {
     const match = filename.match(/audit-(\d+)\.log/);
     return match && match[1] ? parseInt(match[1], 10) : 0;
   }
@@ -614,7 +614,7 @@ export function resetAuditLogger(): void {
  * @returns Result of the function
  */
 export async function logOperation<T>(
-  _operation: string,
+  operation: string,
   fn: () => Promise<T>,
   sessionId?: SessionId,
   context?: Record<string, any>

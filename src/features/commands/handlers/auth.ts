@@ -12,6 +12,8 @@ import type {
   ProviderAuthStatus,
   OAuthError 
 } from '../../auth/index.js';
+import { logger } from '../../../shared/utils/logger.js';
+
 // =============================================================================
 // PROGRESS INDICATORS AND FEEDBACK
 // =============================================================================
@@ -25,7 +27,7 @@ class OAuthProgressIndicator {
   private startTime: number;
   private timeoutId: NodeJS.Timeout | null = null;
 
-  constructor(_context: CommandContext, _provider: ModelProvider) {
+  constructor(context: CommandContext, provider: ModelProvider) {
     this.context = context;
     this.provider = provider;
     this.startTime = Date.now();
@@ -38,7 +40,9 @@ class OAuthProgressIndicator {
     this.context.addMessage({
       role: 'assistant',
       content: `🔐 **Starting OAuth Authentication**\n\n` +
-               `Provider: \`${this.provider}\`\n` +
+               `Provider: 
+{this.provider}
+` +
                `Status: Initializing OAuth flow...\n\n` +
                `📱 **Next Steps:**\n` +
                `1. Browser will open automatically\n` +
@@ -157,7 +161,7 @@ class OAuthErrorHandler {
   /**
    * Handle and format OAuth errors with user-friendly messages.
    */
-  static handleOAuthError(_error: any, _provider: ModelProvider, _operation: string): string {
+  static handleOAuthError(error: any, provider: ModelProvider, operation: string): string {
     logger.error(`[AuthCommand] ${operation} failed for ${provider}:`, error);
 
     // Handle specific OAuth error types
@@ -192,7 +196,7 @@ class OAuthErrorHandler {
   /**
    * Check if error is an OAuth-specific error.
    */
-  private static isOAuthError(_error: any): boolean {
+  private static isOAuthError(error: any): boolean {
     return error && (
       error.code?.includes('oauth') ||
       error.message?.includes('oauth') ||
@@ -204,7 +208,7 @@ class OAuthErrorHandler {
   /**
    * Check if error is a network-related error.
    */
-  private static isNetworkError(_error: any): boolean {
+  private static isNetworkError(error: any): boolean {
     return error && (
       error.code === 'ENOTFOUND' ||
       error.code === 'ECONNREFUSED' ||
@@ -217,7 +221,7 @@ class OAuthErrorHandler {
   /**
    * Check if error is a timeout error.
    */
-  private static isTimeoutError(_error: any): boolean {
+  private static isTimeoutError(error: any): boolean {
     return error && (
       error.code === 'TIMEOUT' ||
       error.message?.includes('timeout') ||
@@ -228,7 +232,7 @@ class OAuthErrorHandler {
   /**
    * Check if error is a configuration error.
    */
-  private static isConfigurationError(_error: any): boolean {
+  private static isConfigurationError(error: any): boolean {
     return error && (
       error.message?.includes('client_id') ||
       error.message?.includes('configuration') ||
@@ -240,7 +244,7 @@ class OAuthErrorHandler {
   /**
    * Check if error is a token-related error.
    */
-  private static isTokenError(_error: any): boolean {
+  private static isTokenError(error: any): boolean {
     return error && (
       error.message?.includes('token') ||
       error.message?.includes('expired') ||
@@ -252,12 +256,14 @@ class OAuthErrorHandler {
   /**
    * Format OAuth-specific errors.
    */
-  private static formatOAuthError(_error: any, _provider: ModelProvider, _operation: string): string {
+  private static formatOAuthError(error: any, provider: ModelProvider, operation: string): string {
     const errorCode = error.error || error.code || 'unknown_error';
     const errorDescription = error.error_description || error.message || 'Unknown OAuth error';
 
     let message = `❌ **OAuth ${operation} Failed**\n\n`;
-    message += `Provider: \`${provider}\`\n`;
+    message += `Provider: 
+{provider}
+`;
     message += `Error: ${errorCode}\n`;
     message += `Details: ${errorDescription}\n\n`;
 
@@ -265,7 +271,9 @@ class OAuthErrorHandler {
     switch (errorCode) {
       case 'access_denied':
         message += `**What happened:** You denied authorization in the browser.\n\n`;
-        message += `**To fix:** Run \`/auth login ${provider}\` again and click "Allow" or "Authorize".`;
+        message += `**To fix:** Run 
+/auth login ${provider}
+ again and click "Allow" or "Authorize".`;
         break;
       
       case 'invalid_client':
@@ -275,7 +283,9 @@ class OAuthErrorHandler {
       
       case 'invalid_grant':
         message += `**What happened:** The authorization code or refresh token is invalid or expired.\n\n`;
-        message += `**To fix:** Try logging in again with \`/auth login ${provider}\`.`;
+        message += `**To fix:** Try logging in again with 
+/auth login ${provider}
+.`;
         break;
       
       case 'invalid_scope':
@@ -287,7 +297,11 @@ class OAuthErrorHandler {
         message += `**To fix:** Try the following steps:\n`;
         message += `1. Wait a moment and try again\n`;
         message += `2. Check your internet connection\n`;
-        message += `3. Try \`/auth logout ${provider}\` then \`/auth login ${provider}\``;
+        message += `3. Try 
+/auth logout ${provider}
+ then 
+/auth login ${provider}
+`;
     }
 
     return message;
@@ -296,7 +310,7 @@ class OAuthErrorHandler {
   /**
    * Format network errors.
    */
-  private static formatNetworkError(_error: any, _provider: ModelProvider, _operation: string): string {
+  private static formatNetworkError(_error: any, provider: ModelProvider, operation: string): string {
     return `❌ **Network Error**\n\n` +
            `Failed to connect to ${provider} during ${operation}.\n\n` +
            `**Possible causes:**\n` +
@@ -313,7 +327,7 @@ class OAuthErrorHandler {
   /**
    * Format timeout errors.
    */
-  private static formatTimeoutError(_error: any, _provider: ModelProvider, _operation: string): string {
+  private static formatTimeoutError(_error: any, provider: ModelProvider, operation: string): string {
     return `⏱️ **Authentication Timeout**\n\n` +
            `The ${operation} process timed out after 5 minutes.\n\n` +
            `**What happened:**\n` +
@@ -321,7 +335,9 @@ class OAuthErrorHandler {
            `• Network connection may be slow\n` +
            `• ${provider} may be experiencing delays\n\n` +
            `**To fix:**\n` +
-           `1. Try \`/auth login ${provider}\` again\n` +
+           `1. Try 
+/auth login ${provider}
+ again\n` +
            `2. Complete the browser authentication more quickly\n` +
            `3. Check your internet connection speed\n` +
            `4. Try again during off-peak hours`;
@@ -330,7 +346,7 @@ class OAuthErrorHandler {
   /**
    * Format configuration errors.
    */
-  private static formatConfigurationError(_error: any, _provider: ModelProvider, _operation: string): string {
+  private static formatConfigurationError(error: any, provider: ModelProvider, operation: string): string {
     return `⚙️ **Configuration Error**\n\n` +
            `OAuth is not properly configured for ${provider}.\n\n` +
            `**Error details:** ${error.message}\n\n` +
@@ -348,7 +364,7 @@ class OAuthErrorHandler {
   /**
    * Format token errors.
    */
-  private static formatTokenError(_error: any, _provider: ModelProvider, _operation: string): string {
+  private static formatTokenError(error: any, provider: ModelProvider, operation: string): string {
     return `🔑 **Token Error**\n\n` +
            `There was an issue with your authentication tokens for ${provider}.\n\n` +
            `**Error details:** ${error.message}\n\n` +
@@ -358,7 +374,11 @@ class OAuthErrorHandler {
            `• Account permissions have changed\n` +
            `• Provider has revoked access\n\n` +
            `**To fix:**\n` +
-           `1. Log out and log back in: \`/auth logout ${provider}\` then \`/auth login ${provider}\`\n` +
+           `1. Log out and log back in: 
+/auth logout ${provider}
+ then 
+/auth login ${provider}
+` +
            `2. Check your account status with ${provider}\n` +
            `3. Ensure your account has the necessary permissions\n` +
            `4. Contact ${provider} support if issues persist`;
@@ -367,7 +387,7 @@ class OAuthErrorHandler {
   /**
    * Format generic errors.
    */
-  private static formatGenericError(_error: any, _provider: ModelProvider, _operation: string): string {
+  private static formatGenericError(error: any, provider: ModelProvider, operation: string): string {
     const errorMessage = error.message || error.toString() || 'Unknown error';
     
     return `❌ **${operation} Failed**\n\n` +
@@ -377,7 +397,9 @@ class OAuthErrorHandler {
            `1. Wait a moment and try again\n` +
            `2. Check your internet connection\n` +
            `3. Restart the application if issues persist\n` +
-           `4. Check \`/auth status\` for current authentication state\n\n` +
+           `4. Check 
+/auth status
+ for current authentication state\n\n` +
            `**If the problem continues:**\n` +
            `• Try using API key authentication instead\n` +
            `• Contact support with the error details above\n` +
@@ -396,13 +418,15 @@ class SuccessMessageFormatter {
   /**
    * Format successful login message.
    */
-  static formatLoginSuccess(_provider: ModelProvider, _tokens: any): string {
+  static formatLoginSuccess(provider: ModelProvider, tokens: any): string {
     const expiresIn = tokens?.expiresAt ? 
       Math.round((tokens.expiresAt.getTime() - Date.now()) / (1000 * 60)) : 
       null;
     
     let message = `✅ **Authentication Successful!**\n\n`;
-    message += `🎉 Successfully authenticated with \`${provider}\` via OAuth\n\n`;
+    message += `🎉 Successfully authenticated with 
+${provider}
+ via OAuth\n\n`;
     
     message += `**What's enabled:**\n`;
     message += `🔑 Secure access to ${provider} models\n`;
@@ -415,10 +439,14 @@ class SuccessMessageFormatter {
     
     message += `\n**Next steps:**\n`;
     message += `• Start using ${provider} models in your conversations\n`;
-    message += `• Check \`/auth status\` to monitor authentication\n`;
+    message += `• Check 
+/auth status
+ to monitor authentication\n`;
     message += `• Tokens will refresh automatically when needed\n\n`;
     
-    message += `💡 **Tip:** Use \`/provider switch ${provider}\` to make this your default provider.`;
+    message += `💡 **Tip:** Use 
+/provider switch ${provider}
+ to make this your default provider.`;
     
     return message;
   }
@@ -426,27 +454,35 @@ class SuccessMessageFormatter {
   /**
    * Format successful logout message.
    */
-  static formatLogoutSuccess(_provider: ModelProvider): string {
+  static formatLogoutSuccess(provider: ModelProvider): string {
     return `✅ **Logout Successful**\n\n` +
-           `Successfully logged out from \`${provider}\`.\n\n` +
+           `Successfully logged out from 
+${provider}
+.\n\n` +
            `**What was cleared:**\n` +
            `🔒 OAuth tokens revoked with ${provider}\n` +
            `💾 Local credentials removed from keychain\n` +
            `🚫 API access disabled for ${provider}\n\n` +
            `**To use ${provider} again:**\n` +
-           `• Run \`/auth login ${provider}\` for OAuth authentication\n` +
+           `• Run 
+/auth login ${provider}
+ for OAuth authentication\n` +
            `• Or configure API key authentication\n` +
-           `• Check \`/auth list\` for available options`;
+           `• Check 
+/auth list
+ for available options`;
   }
 
   /**
    * Format successful refresh message.
    */
-  static formatRefreshSuccess(_provider: ModelProvider, _tokens: any): string {
+  static formatRefreshSuccess(provider: ModelProvider, tokens: any): string {
     const expiresIn = Math.round((tokens.expiresAt.getTime() - Date.now()) / (1000 * 60));
     
     return `✅ **Tokens Refreshed Successfully**\n\n` +
-           `OAuth tokens for \`${provider}\` have been updated.\n\n` +
+           `OAuth tokens for 
+${provider}
+ have been updated.\n\n` +
            `**Token status:**\n` +
            `🔑 New access token obtained\n` +
            `🕒 Expires in ${expiresIn} minutes\n` +
@@ -508,7 +544,11 @@ export const authCommandHandler: CommandHandler = async (args, context) => {
     default:
       context.addMessage({
         role: 'assistant',
-        content: `❌ **Unknown Auth Command**\n\nUnknown subcommand: \`${subcommand}\`\n\nUse \`/auth help\` to see available commands.`
+        content: `❌ **Unknown Auth Command**\n\nUnknown subcommand: 
+${subcommand}
+\nUse 
+/auth help
+ to see available commands.`
       });
   }
 };
@@ -520,13 +560,19 @@ export const authCommandHandler: CommandHandler = async (args, context) => {
 /**
  * Handles /auth login <provider> command.
  */
-async function handleAuthLogin(args: string[], _context: CommandContext): Promise<void> {
+async function handleAuthLogin(args: string[], context: CommandContext): Promise<void> {
   const { addMessage, setError } = context;
   
   if (args.length === 0) {
     addMessage({
       role: 'assistant',
-      content: `❌ **Missing Provider**\n\nUsage: \`/auth login <provider>\`\n\nExample: \`/auth login google\`\n\nUse \`/auth list\` to see available providers.`
+      content: `❌ **Missing Provider**\n\nUsage: 
+/auth login <provider>
+\nExample: 
+/auth login google
+\nUse 
+/auth list
+ to see available providers.`
     });
     return;
   }
@@ -544,16 +590,20 @@ async function handleAuthLogin(args: string[], _context: CommandContext): Promis
     }
     
     // Check if provider supports OAuth
-    if (!oauthManager.supportsOAuth(provider) {
+    if (!oauthManager.supportsOAuth(provider)) {
       const supportedProviders = oauthManager.getSupportedProviders();
       addMessage({
         role: 'assistant',
         content: `❌ **OAuth Not Supported**\n\n` +
-                 `Provider \`${provider}\` does not support OAuth authentication.\n\n` +
+                 `Provider 
+${provider}
+ does not support OAuth authentication.\n\n` +
                  `**OAuth-supported providers:**\n` +
                  `${supportedProviders.map(p => `• ${p}`).join('\n')}\n\n` +
                  `**Alternative:** Check if ${provider} supports API key authentication.\n` +
-                 `Use \`/auth list\` to see all available authentication methods.`
+                 `Use 
+/auth list
+ to see all available authentication methods.`
       });
       return;
     }
@@ -566,12 +616,16 @@ async function handleAuthLogin(args: string[], _context: CommandContext): Promis
         null;
       
       const needsRefreshWarning = status.needsRefresh ? 
-        `\n⚠️ **Note:** Your token will expire soon. Consider running \`/auth refresh ${provider}\`.` : '';
+        `\n⚠️ **Note:** Your token will expire soon. Consider running 
+/auth refresh ${provider}
+.` : '';
       
       addMessage({
         role: 'assistant',
         content: `✅ **Already Authenticated**\n\n` +
-                 `You are already logged in to \`${provider}\` via OAuth.\n\n` +
+                 `You are already logged in to 
+${provider}
+ via OAuth.\n\n` +
                  `**Current status:**\n` +
                  `🔑 OAuth authentication active\n` +
                  `${expiresIn ? `🕒 Token expires in ${expiresIn} minutes\n` : ''}` +
@@ -579,8 +633,12 @@ async function handleAuthLogin(args: string[], _context: CommandContext): Promis
                  `${needsRefreshWarning}\n\n` +
                  `**Options:**\n` +
                  `• Continue using your current authentication\n` +
-                 `• Use \`/auth logout ${provider}\` to log out first if you want to re-authenticate\n` +
-                 `• Use \`/auth refresh ${provider}\` to refresh expiring tokens`
+                 `• Use 
+/auth logout ${provider}
+ to log out first if you want to re-authenticate\n` +
+                 `• Use 
+/auth refresh ${provider}
+ to refresh expiring tokens`
       });
       return;
     }
@@ -622,7 +680,7 @@ async function handleAuthLogin(args: string[], _context: CommandContext): Promis
       const successMessage = SuccessMessageFormatter.formatLoginSuccess(provider, result.tokens);
       addMessage({
         role: 'assistant',
-        _content: successMessage
+        content: successMessage
       });
     } else {
       // Handle OAuth flow failure with detailed error information
@@ -633,11 +691,11 @@ async function handleAuthLogin(args: string[], _context: CommandContext): Promis
       );
       addMessage({
         role: 'assistant',
-        _content: errorMessage
+        content: errorMessage
       });
     }
     
-  } catch (_error: any) {
+  } catch (error: any) {
     // Clear progress indicator on error
     if (progressIndicator) {
       progressIndicator.clearTimeoutWarning();
@@ -650,7 +708,7 @@ async function handleAuthLogin(args: string[], _context: CommandContext): Promis
     const errorMessage = OAuthErrorHandler.handleOAuthError(error, provider, 'Authentication');
     addMessage({
       role: 'assistant',
-      _content: errorMessage
+      content: errorMessage
     });
   }
 }
@@ -658,13 +716,19 @@ async function handleAuthLogin(args: string[], _context: CommandContext): Promis
 /**
  * Handles /auth logout <provider> command.
  */
-async function handleAuthLogout(args: string[], _context: CommandContext): Promise<void> {
+async function handleAuthLogout(args: string[], context: CommandContext): Promise<void> {
   const { addMessage, setError, showConfirmation } = context;
   
   if (args.length === 0) {
     addMessage({
       role: 'assistant',
-      content: `❌ **Missing Provider**\n\nUsage: \`/auth logout <provider>\`\n\nExample: \`/auth logout google\`\n\nUse \`/auth status\` to see authenticated providers.`
+      content: `❌ **Missing Provider**\n\nUsage: 
+/auth logout <provider>
+\nExample: 
+/auth logout google
+\nUse 
+/auth status
+ to see authenticated providers.`
     });
     return;
   }
@@ -685,10 +749,16 @@ async function handleAuthLogout(args: string[], _context: CommandContext): Promi
       addMessage({
         role: 'assistant',
         content: `ℹ️ **Not Authenticated**\n\n` +
-                 `You are not currently authenticated with \`${provider}\`.\n\n` +
+                 `You are not currently authenticated with 
+${provider}
+.\n\n` +
                  `**Current status:** No active authentication\n` +
-                 `**Available options:** Use \`/auth login ${provider}\` to authenticate\n\n` +
-                 `Use \`/auth status\` to see your authentication status for all providers.`
+                 `**Available options:** Use 
+/auth login ${provider}
+ to authenticate\n\n` +
+                 `Use 
+/auth status
+ to see your authentication status for all providers.`
       });
       return;
     }
@@ -720,7 +790,9 @@ async function handleAuthLogout(args: string[], _context: CommandContext): Promi
     // Show progress message for logout
     addMessage({
       role: 'assistant',
-      content: `🔄 **Logging Out**\n\nRevoking authentication with \`${provider}\`...\n\n` +
+      content: `🔄 **Logging Out**\n\nRevoking authentication with 
+${provider}
+...\n\n` +
                `This may take a moment.`
     });
     
@@ -737,10 +809,10 @@ async function handleAuthLogout(args: string[], _context: CommandContext): Promi
     const successMessage = SuccessMessageFormatter.formatLogoutSuccess(provider);
     addMessage({
       role: 'assistant',
-      _content: successMessage
+      content: successMessage
     });
     
-  } catch (_error: any) {
+  } catch (error: any) {
     logger.error(`[AuthCommand] Logout failed for provider ${provider}:`, error);
     setError(`Logout failed: ${error.message}`);
     
@@ -750,7 +822,9 @@ async function handleAuthLogout(args: string[], _context: CommandContext): Promi
       role: 'assistant',
       content: errorMessage + 
                `\n\n**Note:** The logout may have been partially completed. ` +
-               `Use \`/auth status\` to check your current authentication state.`
+               `Use 
+/auth status
+ to check your current authentication state.`
     });
   }
 }
@@ -758,7 +832,7 @@ async function handleAuthLogout(args: string[], _context: CommandContext): Promi
 /**
  * Handles /auth status command.
  */
-async function handleAuthStatus(args: string[], _context: CommandContext): Promise<void> {
+async function handleAuthStatus(args: string[], context: CommandContext): Promise<void> {
   const { addMessage, setError } = context;
   
   try {
@@ -776,7 +850,9 @@ async function handleAuthStatus(args: string[], _context: CommandContext): Promi
       addMessage({
         role: 'assistant',
         content: `📊 **Authentication Status**\n\nNo providers are configured for authentication.\n\n` +
-                 `Use \`/auth list\` to see available providers.`
+                 `Use 
+/auth list
+ to see available providers.`
       });
       return;
     }
@@ -811,16 +887,22 @@ async function handleAuthStatus(args: string[], _context: CommandContext): Promi
     
     // Add helpful tips
     message += `**💡 Tips:**\n`;
-    message += `• Use \`/auth login <provider>\` to authenticate\n`;
-    message += `• Use \`/auth refresh <provider>\` to refresh expiring tokens\n`;
-    message += `• Use \`/auth list\` to see all available authentication methods`;
+    message += `• Use 
+/auth login <provider>
+ to authenticate\n`;
+    message += `• Use 
+/auth refresh <provider>
+ to refresh expiring tokens\n`;
+    message += `• Use 
+/auth list
+ to see all available authentication methods`;
     
     addMessage({
       role: 'assistant',
-      _content: message
+      content: message
     });
     
-  } catch (_error: any) {
+  } catch (error: any) {
     logger.error('[AuthCommand] Failed to get authentication status:', error);
     setError(`Failed to get status: ${error.message}`);
     
@@ -834,13 +916,19 @@ async function handleAuthStatus(args: string[], _context: CommandContext): Promi
 /**
  * Handles /auth refresh <provider> command.
  */
-async function handleAuthRefresh(args: string[], _context: CommandContext): Promise<void> {
+async function handleAuthRefresh(args: string[], context: CommandContext): Promise<void> {
   const { addMessage, setError } = context;
   
   if (args.length === 0) {
     addMessage({
       role: 'assistant',
-      content: `❌ **Missing Provider**\n\nUsage: \`/auth refresh <provider>\`\n\nExample: \`/auth refresh google\`\n\nUse \`/auth status\` to see providers that need refresh.`
+      content: `❌ **Missing Provider**\n\nUsage: 
+/auth refresh <provider>
+\nExample: 
+/auth refresh google
+\nUse 
+/auth status
+ to see providers that need refresh.`
     });
     return;
   }
@@ -862,10 +950,16 @@ async function handleAuthRefresh(args: string[], _context: CommandContext): Prom
       addMessage({
         role: 'assistant',
         content: `❌ **Not Authenticated**\n\n` +
-                 `You are not currently authenticated with \`${provider}\`.\n\n` +
+                 `You are not currently authenticated with 
+${provider}
+.\n\n` +
                  `**To get started:**\n` +
-                 `1. Use \`/auth login ${provider}\` to authenticate\n` +
-                 `2. Then use \`/auth refresh ${provider}\` if needed\n\n` +
+                 `1. Use 
+/auth login ${provider}
+ to authenticate\n` +
+                 `2. Then use 
+/auth refresh ${provider}
+ if needed\n\n` +
                  `**Note:** You can only refresh tokens for OAuth authentication.`
       });
       return;
@@ -875,13 +969,17 @@ async function handleAuthRefresh(args: string[], _context: CommandContext): Prom
       addMessage({
         role: 'assistant',
         content: `ℹ️ **API Key Authentication**\n\n` +
-                 `Provider \`${provider}\` is using API key authentication.\n\n` +
+                 `Provider 
+${provider}
+ is using API key authentication.\n\n` +
                  `**About API keys:**\n` +
                  `• API keys don't expire like OAuth tokens\n` +
                  `• No refresh is needed for API key authentication\n` +
                  `• Your authentication is always valid as long as the key is correct\n\n` +
                  `**If you want OAuth instead:**\n` +
-                 `Use \`/auth login ${provider}\` to switch to OAuth authentication.`
+                 `Use 
+/auth login ${provider}
+ to switch to OAuth authentication.`
       });
       return;
     }
@@ -894,7 +992,9 @@ async function handleAuthRefresh(args: string[], _context: CommandContext): Prom
         addMessage({
           role: 'assistant',
           content: `✅ **Tokens Still Valid**\n\n` +
-                   `Your OAuth tokens for \`${provider}\` are still valid.\n\n` +
+                   `Your OAuth tokens for 
+${provider}
+ are still valid.\n\n` +
                    `**Current status:**\n` +
                    `🔑 OAuth authentication active\n` +
                    `🕒 Token expires in ${expiresIn} minutes\n` +
@@ -910,7 +1010,9 @@ async function handleAuthRefresh(args: string[], _context: CommandContext): Prom
     addMessage({
       role: 'assistant',
       content: `🔄 **Refreshing OAuth Tokens**\n\n` +
-               `Updating authentication tokens for \`${provider}\`...\n\n` +
+               `Updating authentication tokens for 
+${provider}
+...\n\n` +
                `**What's happening:**\n` +
                `• Contacting ${provider} token endpoint\n` +
                `• Exchanging refresh token for new access token\n` +
@@ -926,10 +1028,10 @@ async function handleAuthRefresh(args: string[], _context: CommandContext): Prom
     const successMessage = SuccessMessageFormatter.formatRefreshSuccess(provider, tokens);
     addMessage({
       role: 'assistant',
-      _content: successMessage
+      content: successMessage
     });
     
-  } catch (_error: any) {
+  } catch (error: any) {
     logger.error(`[AuthCommand] Token refresh failed for provider ${provider}:`, error);
     setError(`Token refresh failed: ${error.message}`);
     
@@ -939,13 +1041,17 @@ async function handleAuthRefresh(args: string[], _context: CommandContext): Prom
     // Add specific refresh troubleshooting
     errorMessage += `\n\n**Refresh-specific troubleshooting:**\n`;
     errorMessage += `• Your refresh token may have expired (typically after 30-90 days)\n`;
-    errorMessage += `• Try logging out and back in: \`/auth logout ${provider}\` then \`/auth login ${provider}\`\n`;
-    errorMessage += `• Check if your account permissions have changed\n`;
-    errorMessage += `• Verify your internet connection and try again`;
+    errorMessage += `• Try logging out and back in: 
+/auth logout ${provider}
+ then 
+/auth login ${provider}
+` +
+                    `• Check if your account permissions have changed\n` +
+                    `• Verify your internet connection and try again`;
     
     addMessage({
       role: 'assistant',
-      _content: errorMessage
+      content: errorMessage
     });
   }
 }
@@ -953,7 +1059,7 @@ async function handleAuthRefresh(args: string[], _context: CommandContext): Prom
 /**
  * Handles /auth list command.
  */
-async function handleAuthList(args: string[], _context: CommandContext): Promise<void> {
+async function handleAuthList(args: string[], context: CommandContext): Promise<void> {
   const { addMessage, setError } = context;
   
   try {
@@ -1011,9 +1117,15 @@ async function handleAuthList(args: string[], _context: CommandContext): Promise
     
     // Add usage instructions
     message += `**💡 Usage:**\n`;
-    message += `• \`/auth login <provider>\` - Start OAuth authentication\n`;
-    message += `• \`/auth status\` - Check current authentication status\n`;
-    message += `• \`/auth logout <provider>\` - Revoke authentication\n\n`;
+    message += `• 
+/auth login <provider>
+ - Start OAuth authentication\n`;
+    message += `• 
+/auth status
+ - Check current authentication status\n`;
+    message += `• 
+/auth logout <provider>
+ - Revoke authentication\n\n`;
     
     message += `**🔐 OAuth Benefits:**\n`;
     message += `• More secure than API keys\n`;
@@ -1023,10 +1135,10 @@ async function handleAuthList(args: string[], _context: CommandContext): Promise
     
     addMessage({
       role: 'assistant',
-      _content: message
+      content: message
     });
     
-  } catch (_error: any) {
+  } catch (error: any) {
     logger.error('[AuthCommand] Failed to list authentication methods:', error);
     setError(`Failed to list methods: ${error.message}`);
     
@@ -1044,45 +1156,66 @@ async function handleAuthList(args: string[], _context: CommandContext): Promise
 /**
  * Shows help for auth commands.
  */
-async function showAuthHelp(_context: CommandContext): Promise<void> {
+async function showAuthHelp(context: CommandContext): Promise<void> {
   const helpText = `🔐 **OAuth Authentication Commands**
 
-**Usage:** \`/auth <subcommand> [options]\`
+**Usage:** 
+/auth <subcommand> [options]
 
 **Subcommands:**
 
-• \`login <provider>\` - Start OAuth authentication flow
+• 
+login <provider>
+ - Start OAuth authentication flow
   - Opens browser for secure authentication
   - Stores tokens securely in system keychain
-  - Example: \`/auth login google\`
+  - Example: 
+/auth login google
 
-• \`logout <provider>\` - Revoke authentication and clear tokens
+• 
+logout <provider>
+ - Revoke authentication and clear tokens
   - Revokes tokens with the provider
   - Clears local storage
-  - Example: \`/auth logout anthropic\`
+  - Example: 
+/auth logout anthropic
 
-• \`status\` - Show authentication status for all providers
+• 
+status
+ - Show authentication status for all providers
   - Displays current authentication method
   - Shows token expiration times
   - Indicates which tokens need refresh
 
-• \`refresh <provider>\` - Manually refresh OAuth tokens
+• 
+refresh <provider>
+ - Manually refresh OAuth tokens
   - Updates expired or expiring tokens
   - Only works with OAuth authentication
-  - Example: \`/auth refresh openai\`
+  - Example: 
+/auth refresh openai
 
-• \`list\` - Show available authentication methods
+• 
+list
+ - Show available authentication methods
   - Lists OAuth-supported providers
   - Shows API key authentication options
   - Displays current authentication status
 
-• \`help\` - Show this help message
+• 
+help
+ - Show this help message
 
 **Examples:**
-\`/auth login google\` - Authenticate with Google via OAuth
-\`/auth status\` - Check authentication status for all providers
-\`/auth refresh anthropic\` - Refresh Anthropic OAuth tokens
-\`/auth logout openai\` - Log out from OpenAI
+
+/auth login google
+ - Authenticate with Google via OAuth
+/auth status
+ - Check authentication status for all providers
+/auth refresh anthropic
+ - Refresh Anthropic OAuth tokens
+/auth logout openai
+ - Log out from OpenAI
 
 **OAuth Benefits:**
 • 🔒 More secure than API keys
@@ -1094,10 +1227,12 @@ async function showAuthHelp(_context: CommandContext): Promise<void> {
 **Troubleshooting:**
 • Make sure your browser allows popups
 • Check internet connection for OAuth flows
-• Use \`/auth status\` to diagnose issues
+• Use 
+/auth status
+ to diagnose issues
 • Try logout/login if refresh fails`;
 
-  context.addMessage({ role: 'assistant', _content: helpText });
+  context.addMessage({ role: 'assistant', content: helpText });
 }
 
 /**
@@ -1128,7 +1263,7 @@ export const authContextHelpers = {
 /**
  * Format time until token expiration.
  */
-function formatTimeUntilExpiration(_expiresAt: Date): string {
+function formatTimeUntilExpiration(expiresAt: Date): string {
   const now = Date.now();
   const expiresAtMs = expiresAt.getTime();
   const diffMs = expiresAtMs - now;
@@ -1153,7 +1288,7 @@ function formatTimeUntilExpiration(_expiresAt: Date): string {
 /**
  * Get display text for available authentication methods.
  */
-function getAvailableMethodsDisplay(_status: ProviderAuthStatus): string {
+function getAvailableMethodsDisplay(status: ProviderAuthStatus): string {
   const methods: string[] = [];
   
   if (status.oauthStatus) {

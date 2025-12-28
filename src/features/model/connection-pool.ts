@@ -6,6 +6,14 @@
  * connections across requests to the same provider endpoints.
  */
 
+// Add logger
+const logger = {
+  debug: (message: string, ...args: any[]) => console.debug(message, ...args),
+  info: (message: string, ...args: any[]) => console.info(message, ...args),
+  warn: (message: string, ...args: any[]) => console.warn(message, ...args),
+  error: (message: string, ...args: any[]) => console.error(message, ...args),
+};
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -61,8 +69,8 @@ interface Connection {
  */
 interface PendingRequest {
   host: string;
-  resolve: (_connection: Connection) => void;
-  reject: (_error: Error) => void;
+  resolve: (connection: Connection) => void;
+  reject: (error: Error) => void;
   createdAt: Date;
 }
 
@@ -129,7 +137,7 @@ export class ConnectionPool {
   /**
    * Gets a connection for the specified host, creating one if necessary.
    */
-  async getConnection(_url: string): Promise<Connection> {
+  async getConnection(url: string): Promise<Connection> {
     const host = this.extractHost(url);
     this.totalRequests++;
 
@@ -143,7 +151,7 @@ export class ConnectionPool {
     }
 
     // Check if we can create a new connection
-    if (this.canCreateConnection(host) {
+    if (this.canCreateConnection(host)) {
       const connection = this.createConnection(host);
       logger.debug(`[ConnectionPool] Created new connection ${connection.id} for ${host}`);
       return connection;
@@ -178,7 +186,7 @@ export class ConnectionPool {
   /**
    * Closes a specific connection and removes it from the pool.
    */
-  closeConnection(_connection: Connection): void {
+  closeConnection(connection: Connection): void {
     this.removeConnection(connection);
     logger.debug(`[ConnectionPool] Closed connection ${connection.id} for ${connection.host}`);
   }
@@ -234,7 +242,7 @@ export class ConnectionPool {
   /**
    * Extracts the host from a URL.
    */
-  private extractHost(_url: string): string {
+  private extractHost(url: string): string {
     try {
       const parsed = new URL(url);
       return `${parsed.protocol}//${parsed.host}`;
@@ -247,14 +255,14 @@ export class ConnectionPool {
   /**
    * Gets an idle connection for the specified host.
    */
-  private getIdleConnection(_host: string): Connection | null {
+  private getIdleConnection(host: string): Connection | null {
     const hostConnections = this.connectionsByHost.get(host);
     if (!hostConnections) {
       return null;
     }
 
     for (const connectionId of hostConnections) {
-      if (this.idleConnections.has(connectionId) {
+      if (this.idleConnections.has(connectionId)) {
         const connection = this.connections.get(connectionId);
         if (connection) {
           return connection;
@@ -268,7 +276,7 @@ export class ConnectionPool {
   /**
    * Checks if a new connection can be created for the host.
    */
-  private canCreateConnection(_host: string): boolean {
+  private canCreateConnection(host: string): boolean {
     const totalConnections = this.connections.size;
     const hostConnections = this.connectionsByHost.get(host)?.size ?? 0;
 
@@ -281,7 +289,7 @@ export class ConnectionPool {
   /**
    * Creates a new connection for the specified host.
    */
-  private createConnection(_host: string): Connection {
+  private createConnection(host: string): Connection {
     const connection: Connection = {
       id: `conn_${++this.connectionIdCounter}`,
       host,
@@ -306,7 +314,7 @@ export class ConnectionPool {
   /**
    * Marks a connection as active.
    */
-  private markConnectionActive(_connection: Connection): void {
+  private markConnectionActive(connection: Connection): void {
     connection.isActive = true;
     connection.lastUsedAt = new Date();
     this.idleConnections.delete(connection.id);
@@ -315,7 +323,7 @@ export class ConnectionPool {
   /**
    * Waits for a connection to become available for the specified host.
    */
-  private async waitForConnection(_host: string): Promise<Connection> {
+  private async waitForConnection(host: string): Promise<Connection> {
     return new Promise<Connection>((resolve, reject) => {
       const request: PendingRequest = {
         host,
@@ -340,7 +348,7 @@ export class ConnectionPool {
   /**
    * Processes pending requests for a specific host.
    */
-  private processPendingRequests(_host: string): void {
+  private processPendingRequests(host: string): void {
     const pendingForHost = this.pendingRequests.filter(req => req.host === host);
     
     for (const request of pendingForHost) {
@@ -364,7 +372,7 @@ export class ConnectionPool {
   /**
    * Removes a connection from all tracking structures.
    */
-  private removeConnection(_connection: Connection): void {
+  private removeConnection(connection: Connection): void {
     this.connections.delete(connection.id);
     this.idleConnections.delete(connection.id);
     

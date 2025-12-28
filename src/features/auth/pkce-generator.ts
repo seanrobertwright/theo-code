@@ -5,6 +5,8 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 import type { IPKCEGenerator } from './types.js';
+import { logger } from '../../shared/utils/logger.js';
+
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -72,7 +74,7 @@ export class PKCEGenerator implements IPKCEGenerator {
    * @param verifier - The code verifier to hash
    * @returns Base64URL-encoded SHA256 hash of the verifier
    */
-  generateCodeChallenge(_verifier: string): string {
+  generateCodeChallenge(verifier: string): string {
     logger.debug('[PKCEGenerator] Generating code challenge');
     
     try {
@@ -117,7 +119,7 @@ export class PKCEGenerator implements IPKCEGenerator {
    * @param challenge - The expected code challenge
    * @returns True if verifier matches challenge, false otherwise
    */
-  validateCodeVerifier(_verifier: string, _challenge: string): boolean {
+  validateCodeVerifier(verifier: string, challenge: string): boolean {
     logger.debug('[PKCEGenerator] Validating code verifier against challenge');
     
     try {
@@ -157,7 +159,7 @@ export class PKCEGenerator implements IPKCEGenerator {
    * @param buffer - Buffer to encode
    * @returns Base64URL-encoded string
    */
-  private base64URLEncode(_buffer: Buffer): string {
+  private base64URLEncode(buffer: Buffer): string {
     return buffer
       .toString('base64')
       .replace(/\+/g, '-')
@@ -175,12 +177,12 @@ export class PKCEGenerator implements IPKCEGenerator {
    * @param b - Second string
    * @returns True if strings are equal, false otherwise
    */
-  private constantTimeEquals(_a: string, _b: string): boolean {
+  private constantTimeEquals(a: string, b: string): boolean {
     if (a.length !== b.length) {
       return false;
     }
     
-    const result = 0;
+    let result = 0;
     for (let i = 0; i < a.length; i++) {
       result |= a.charCodeAt(i) ^ b.charCodeAt(i);
     }

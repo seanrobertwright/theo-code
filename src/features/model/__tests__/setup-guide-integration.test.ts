@@ -20,7 +20,7 @@ const mockEnvironmentVariables = {
 
 // Mock provider validation functions
 class ProviderValidator {
-  static validateApiKey(_provider: string, _apiKey: string): boolean {
+  static validateApiKey(provider: string, apiKey: string): boolean {
     const patterns = {
       anthropic: /^sk-ant-/,
       google: /^AIza/,
@@ -35,7 +35,7 @@ class ProviderValidator {
     return pattern ? pattern.test(apiKey) : false;
   }
 
-  static async testConnection(_provider: string, _config: any): Promise<boolean> {
+  static async testConnection(provider: string, config: any): Promise<boolean> {
     // Mock connection test - in real implementation would make actual API calls
     if (!config.apiKey && provider !== 'ollama') {
       throw new Error('API key required');
@@ -49,10 +49,10 @@ class ProviderValidator {
     return this.validateApiKey(provider, config.apiKey);
   }
 
-  static validateRateLimit(_rateLimit: any): boolean {
+  static validateRateLimit(rateLimit: any): boolean {
     if (!rateLimit) {
-    return true;
-  }
+      return true;
+    }
     
     return (
       rateLimit.requestsPerMinute > 0 &&
@@ -62,7 +62,7 @@ class ProviderValidator {
     );
   }
 
-  static validateModel(_provider: string, _model: string): boolean {
+  static validateModel(provider: string, model: string): boolean {
     const supportedModels = {
       anthropic: [
         'claude-3-5-sonnet-20241022',
@@ -93,22 +93,22 @@ class ProviderValidator {
 
 // Mock CLI commands for testing setup procedures
 class MockCLI {
-  static async addProvider(_provider: string): Promise<{ success: boolean; _message: string }> {
+  static async addProvider(provider: string): Promise<{ success: boolean; message: string }> {
     const supportedProviders = [
       'anthropic', 'google', 'openrouter', 'cohere', 
       'mistral', 'together', 'perplexity', 'ollama'
     ];
 
-    if (!supportedProviders.includes(provider) {
-      return { _success: false, message: `Unsupported provider: ${provider}` };
+    if (!supportedProviders.includes(provider)) {
+      return { success: false, message: `Unsupported provider: ${provider}` };
     }
 
-    return { _success: true, message: `Provider ${provider} added successfully` };
+    return { success: true, message: `Provider ${provider} added successfully` };
   }
 
-  static async setConfig(_key: string, _value: string): Promise<{ success: boolean; _message: string }> {
+  static async setConfig(key: string, value: string): Promise<{ success: boolean; message: string }> {
     if (!key || !value) {
-      return { _success: false, message: 'Key and value are required' };
+      return { success: false, message: 'Key and value are required' };
     }
 
     // Validate API key format if it's an API key
@@ -119,10 +119,10 @@ class MockCLI {
       }
     }
 
-    return { _success: true, message: `Configuration set: ${key} = ${value}` };
+    return { success: true, message: `Configuration set: ${key} = ${value}` };
   }
 
-  static async testProvider(_provider: string): Promise<{ success: boolean; _message: string }> {
+  static async testProvider(provider: string): Promise<{ success: boolean; message: string }> {
     try {
       const config = {
         apiKey: mockEnvironmentVariables[`${provider.toUpperCase()}_API_KEY` as keyof typeof mockEnvironmentVariables],
@@ -132,12 +132,12 @@ class MockCLI {
       const isValid = await ProviderValidator.testConnection(provider, config);
       
       if (isValid) {
-        return { _success: true, message: `Provider ${provider} connection successful` };
+        return { success: true, message: `Provider ${provider} connection successful` };
       } else {
-        return { _success: false, message: `Provider ${provider} connection failed` };
+        return { success: false, message: `Provider ${provider} connection failed` };
       }
     } catch (error) {
-      return { _success: false, message: `Provider ${provider} test failed: ${(error as Error).message}` };
+      return { success: false, message: `Provider ${provider} test failed: ${(error as Error).message}` };
     }
   }
 }
@@ -373,9 +373,9 @@ describe('Setup Guide Integration Tests', () => {
   describe('Rate Limit Validation', () => {
     it('should validate rate limits are within acceptable ranges', () => {
       const rateLimitConfigs = [
-        { _requestsPerMinute: 60, _tokensPerMinute: 100000 },
-        { _requestsPerMinute: 200, _tokensPerMinute: 500000 },
-        { _requestsPerMinute: 1000, _tokensPerMinute: 2000000 }
+        { requestsPerMinute: 60, tokensPerMinute: 100000 },
+        { requestsPerMinute: 200, tokensPerMinute: 500000 },
+        { requestsPerMinute: 1000, tokensPerMinute: 2000000 }
       ];
 
       rateLimitConfigs.forEach(config => {
@@ -385,10 +385,10 @@ describe('Setup Guide Integration Tests', () => {
 
     it('should reject invalid rate limits', () => {
       const invalidConfigs = [
-        { _requestsPerMinute: 0, _tokensPerMinute: 100000 },
-        { _requestsPerMinute: 60, _tokensPerMinute: 0 },
-        { _requestsPerMinute: 20000, _tokensPerMinute: 100000 },
-        { _requestsPerMinute: 60, _tokensPerMinute: 20000000 }
+        { requestsPerMinute: 0, tokensPerMinute: 100000 },
+        { requestsPerMinute: 60, tokensPerMinute: 0 },
+        { requestsPerMinute: 20000, tokensPerMinute: 100000 },
+        { requestsPerMinute: 60, tokensPerMinute: 20000000 }
       ];
 
       invalidConfigs.forEach(config => {
@@ -402,12 +402,12 @@ describe('Setup Guide Integration Tests', () => {
       const validConfig = {
         providers: {
           anthropic: {
-            _enabled: true,
+            enabled: true,
             apiKey: "${ANTHROPIC_API_KEY}",
             models: ["claude-3-5-sonnet-20241022"],
             rateLimit: {
-              _requestsPerMinute: 60,
-              _tokensPerMinute: 100000
+              requestsPerMinute: 60,
+              tokensPerMinute: 100000
             }
           }
         },
@@ -488,9 +488,9 @@ describe('Troubleshooting Guide Integration Tests', () => {
   describe('Rate Limiting Error Scenarios', () => {
     it('should validate rate limit configurations', () => {
       const configs = [
-        { _requestsPerMinute: 30, _tokensPerMinute: 50000 }, // Reduced limits
-        { _requestsPerMinute: 100, _tokensPerMinute: 200000 }, // Standard limits
-        { _requestsPerMinute: 1000, _tokensPerMinute: 500000 } // High limits
+        { requestsPerMinute: 30, tokensPerMinute: 50000 }, // Reduced limits
+        { requestsPerMinute: 100, tokensPerMinute: 200000 }, // Standard limits
+        { requestsPerMinute: 1000, tokensPerMinute: 500000 } // High limits
       ];
 
       configs.forEach(config => {
@@ -502,8 +502,8 @@ describe('Troubleshooting Guide Integration Tests', () => {
       const fallbackConfig = {
         fallbackChain: ['anthropic', 'google', 'openrouter'],
         retryConfig: {
-          _maxRetries: 3,
-          _backoffMs: 1000
+          maxRetries: 3,
+          backoffMs: 1000
         }
       };
 
@@ -543,12 +543,12 @@ describe('Troubleshooting Guide Integration Tests', () => {
   describe('Model Availability Scenarios', () => {
     it('should validate model names against supported lists', () => {
       const modelTests = [
-        { provider: 'anthropic', model: 'claude-3-5-sonnet-20241022', _valid: true },
-        { provider: 'anthropic', model: 'claude-4-invalid', _valid: false },
-        { provider: 'google', model: 'gemini-3-pro-preview', _valid: true },
-        { provider: 'google', model: 'gemini-invalid', _valid: false },
-        { provider: 'ollama', model: 'llama2', _valid: true },
-        { provider: 'ollama', model: 'invalid-model', _valid: false }
+        { provider: 'anthropic', model: 'claude-3-5-sonnet-20241022', valid: true },
+        { provider: 'anthropic', model: 'claude-4-invalid', valid: false },
+        { provider: 'google', model: 'gemini-3-pro-preview', valid: true },
+        { provider: 'google', model: 'gemini-invalid', valid: false },
+        { provider: 'ollama', model: 'llama2', valid: true },
+        { provider: 'ollama', model: 'invalid-model', valid: false }
       ];
 
       modelTests.forEach(({ provider, model, valid }) => {
@@ -560,14 +560,14 @@ describe('Troubleshooting Guide Integration Tests', () => {
     it('should provide model availability information', () => {
       const modelInfo = {
         'claude-3-5-sonnet-20241022': {
-          _contextLimit: 200000,
-          _supportsToolCalling: true,
-          _supportsStreaming: true
+          contextLimit: 200000,
+          supportsToolCalling: true,
+          supportsStreaming: true
         },
         'gemini-3-pro-preview': {
-          _contextLimit: 1000000,
-          _supportsToolCalling: true,
-          _supportsStreaming: true,
+          contextLimit: 1000000,
+          supportsToolCalling: true,
+          supportsStreaming: true,
           features: ['multimodal', 'reasoning']
         }
       };
@@ -594,9 +594,9 @@ describe('Troubleshooting Guide Integration Tests', () => {
 
     it('should suggest truncation strategies for context overflow', () => {
       const truncationConfig = {
-        _autoTruncate: true,
-        _maxContextTokens: 180000,
-        _reserveOutputTokens: 4000,
+        autoTruncate: true,
+        maxContextTokens: 180000,
+        reserveOutputTokens: 4000,
         truncationStrategy: 'smart'
       };
 
@@ -610,19 +610,19 @@ describe('Troubleshooting Guide Integration Tests', () => {
     it('should validate performance configuration options', () => {
       const performanceConfig = {
         connectionPooling: {
-          _maxConnections: 50,
-          _keepAlive: true,
-          _timeout: 30000
+          maxConnections: 50,
+          keepAlive: true,
+          timeout: 30000
         },
         caching: {
-          _tokenCounting: true,
-          _modelCapabilities: true,
-          _responseCache: false
+          tokenCounting: true,
+          modelCapabilities: true,
+          responseCache: false
         },
         batching: {
-          _enabled: true,
-          _maxBatchSize: 10,
-          _batchTimeout: 100
+          enabled: true,
+          maxBatchSize: 10,
+          batchTimeout: 100
         }
       };
 
@@ -636,14 +636,14 @@ describe('Troubleshooting Guide Integration Tests', () => {
       const debugConfig = {
         logging: {
           level: 'debug',
-          _providers: true,
-          _requests: true,
-          _responses: true
+          providers: true,
+          requests: true,
+          responses: true
         },
         monitoring: {
-          _enabled: true,
-          _metrics: true,
-          _healthChecks: true
+          enabled: true,
+          metrics: true,
+          healthChecks: true
         }
       };
 

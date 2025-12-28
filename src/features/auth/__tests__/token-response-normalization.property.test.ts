@@ -48,9 +48,9 @@ const scopeArb = fc.array(
  */
 const providerTokenResponseArb = fc.record({
   // Common OAuth 2.0 fields (snake_case as returned by providers)
-  _access_token: accessTokenArb,
+  access_token: accessTokenArb,
   token_type: fc.constantFrom('Bearer', 'bearer', 'BEARER'),
-  expires_in: fc.integer({ _min: 60, _max: 86400 }), // 1 minute to 24 hours
+  expires_in: fc.integer({ min: 60, max: 86400 }), // 1 minute to 24 hours
   refresh_token: fc.option(refreshTokenArb),
   scope: fc.option(scopeArb),
 });
@@ -62,7 +62,7 @@ const providerTokenResponseArb = fc.record({
 /**
  * Normalize provider-specific token response to standard TokenSet format.
  */
-function normalizeTokenResponse(_providerResponse: any, _provider: string): TokenSet {
+function normalizeTokenResponse(providerResponse: any, _provider: string): TokenSet {
   // Extract access token (required)
   const accessToken = providerResponse.access_token;
   if (!accessToken || typeof accessToken !== 'string' || !accessToken.trim()) {
@@ -104,7 +104,7 @@ function normalizeTokenResponse(_providerResponse: any, _provider: string): Toke
 /**
  * Validate that a TokenSet contains all required fields.
  */
-function validateTokenSet(_tokenSet: TokenSet): boolean {
+function validateTokenSet(tokenSet: TokenSet): boolean {
   try {
     TokenSetSchema.parse(tokenSet);
     return true;
@@ -180,9 +180,9 @@ describe('Token Response Normalization Properties', () => {
     fc.assert(
       fc.property(
         fc.record({
-          _access_token: accessTokenArb,
+          access_token: accessTokenArb,
           token_type: fc.constantFrom('bearer', 'BEARER', 'Bearer', 'bEaReR'),
-          expires_in: fc.integer({ _min: 60, _max: 86400 }),
+          expires_in: fc.integer({ min: 60, max: 86400 }),
         }),
         fc.constantFrom('google', 'anthropic', 'openai', 'openrouter'),
         (tokenResponse, provider) => {
@@ -206,8 +206,8 @@ describe('Token Response Normalization Properties', () => {
     fc.assert(
       fc.property(
         fc.record({
-          _access_token: accessTokenArb,
-          expires_in: fc.integer({ _min: 60, _max: 86400 }), // 1 minute to 24 hours
+          access_token: accessTokenArb,
+          expires_in: fc.integer({ min: 60, max: 86400 }), // 1 minute to 24 hours
         }),
         fc.constantFrom('google', 'anthropic', 'openai', 'openrouter'),
         (tokenResponse, provider) => {
@@ -303,14 +303,14 @@ describe('Token Response Normalization Properties', () => {
       fc.property(
         fc.record({
           // Intentionally missing access_token or with invalid values
-          access_token: fc.oneof(
+          accesstoken: fc.oneof(
             fc.constant(null),
             fc.constant(undefined),
             fc.constant(''),
             fc.constant('   '), // whitespace only
             fc.constant('\t\n  '), // various whitespace characters
           ),
-          expires_in: fc.option(fc.integer({ _min: 60, _max: 86400 })),
+          expires_in: fc.option(fc.integer({ min: 60, max: 86400 })),
         }),
         fc.constantFrom('google', 'anthropic', 'openai', 'openrouter'),
         (invalidResponse, provider) => {

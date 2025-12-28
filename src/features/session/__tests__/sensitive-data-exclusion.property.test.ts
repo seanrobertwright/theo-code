@@ -358,7 +358,7 @@ describe('Sensitive Data Exclusion Property Tests', () => {
           const filteredContent = filteredSession.messages[0].content as string;
           
           // If the custom pattern appears in the content, it should be redacted
-          if (customPattern.length > 0 && messageContent.includes(customPattern) {
+          if (customPattern.length > 0 && messageContent.includes(customPattern)) {
             expect(result.filtered).toBe(true);
             expect(filteredContent).not.toContain(customPattern);
             expect(filteredContent).toContain('[REDACTED]');

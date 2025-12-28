@@ -6,6 +6,8 @@ import { execSync } from 'node:child_process';
 import * as path from 'node:path';
 import { z } from 'zod';
 import type { Tool } from '../../../shared/types/tools.js';
+import { logger } from '../../../shared/utils/logger.js';
+
 interface AstGrepMatch {
   file: string;
   line: number;
@@ -23,7 +25,7 @@ export const createAstGrepTool = (): Tool => ({
       properties: {
         pattern: {
           type: 'string',
-          description: 'AST pattern to search (e.g., "function $NAME($ARGS) { $$ }")'
+          description: 'AST pattern to search (e.g., "function $NAME($ARGS) { $$ }" )'
         },
         language: {
           type: 'string',
@@ -63,7 +65,7 @@ export const createAstGrepTool = (): Tool => ({
   _requiresConfirmation: false,
   category: 'search',
 
-  async execute(_params: unknown, context) {
+  async execute(params: unknown, context) {
     const typedParams = params as { pattern: string; language: string; files?: string[]; rewrite?: string };
     const { pattern, language, files = [], rewrite } = typedParams;
     const workspaceRoot = context.workspaceRoot;
@@ -80,7 +82,7 @@ export const createAstGrepTool = (): Tool => ({
       }
 
       if (files.length > 0) {
-        files.forEach((_file: string) => cmd.push(file));
+        files.forEach((file: string) => cmd.push(file));
       } else {
         cmd.push('.');
       }
@@ -103,10 +105,10 @@ export const createAstGrepTool = (): Tool => ({
             return null;
           }
         })
-        .filter(Boolean);
+        .filter((item): item is AstGrepMatch => item !== null);
 
       return {
-        _success: true,
+        success: true,
         data: {
           matches,
           total: matches.length,
@@ -119,7 +121,7 @@ export const createAstGrepTool = (): Tool => ({
     } catch (error) {
       logger.error('AST-Grep execution failed', error);
       return {
-        _success: false,
+        success: false,
         error: `AST-Grep failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
@@ -135,20 +137,20 @@ export const createAstGrepRewriteTool = (): Tool => ({
       properties: {
         pattern: { type: 'string', description: 'AST pattern to match' },
         rewrite: { type: 'string', description: 'Replacement pattern' },
-        language: { 
-          type: 'string', 
+        language: {
+          type: 'string',
           enum: ['typescript', 'javascript', 'python', 'rust', 'go'],
           description: 'Programming language'
         },
-        files: { 
-          type: 'array', 
+        files: {
+          type: 'array',
           items: { type: 'string' },
           description: 'File patterns to process'
         },
-        dryRun: { 
-          type: 'boolean', 
-          _default: true, 
-          description: 'Preview changes without applying' 
+        dryRun: {
+          type: 'boolean',
+          _default: true,
+          description: 'Preview changes without applying'
         }
       },
       required: ['pattern', 'rewrite', 'language']
@@ -174,7 +176,7 @@ export const createAstGrepRewriteTool = (): Tool => ({
   _requiresConfirmation: true,
   category: 'search',
 
-  async execute(_params: unknown, context) {
+  async execute(params: unknown, context) {
     const typedParams = params as { pattern: string; rewrite: string; language: string; files?: string[]; dryRun?: boolean };
     const { pattern, rewrite, language, files = [], dryRun = true } = typedParams;
 
@@ -183,13 +185,13 @@ export const createAstGrepRewriteTool = (): Tool => ({
       cmd.push('--pattern', pattern);
       cmd.push('--rewrite', rewrite);
       cmd.push('--lang', language);
-      
+
       if (dryRun) {
         cmd.push('--dry-run');
       }
 
       if (files.length > 0) {
-        files.forEach((_file: string) => cmd.push(file));
+        files.forEach((file: string) => cmd.push(file));
       }
 
       const result = execSync(cmd.join(' '), {
@@ -198,9 +200,9 @@ export const createAstGrepRewriteTool = (): Tool => ({
       });
 
       return {
-        _success: true,
+        success: true,
         data: {
-          _changes: result,
+          changes: result,
           dryRun,
           pattern,
           rewrite
@@ -209,7 +211,7 @@ export const createAstGrepRewriteTool = (): Tool => ({
 
     } catch (error) {
       return {
-        _success: false,
+        success: false,
         error: `Rewrite failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }

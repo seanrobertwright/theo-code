@@ -1,3 +1,5 @@
+/* eslint-env node */
+/* eslint-disable no-undef */
 // Debug test for buildProviderChain method
 import { ProviderManager } from './src/features/model/provider-manager.js';
 

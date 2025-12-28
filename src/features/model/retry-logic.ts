@@ -34,7 +34,7 @@ export interface RetryConfig {
   /** Error codes that should trigger retries */
   retryableErrors: Set<string>;
   /** Custom delay calculation function */
-  customDelayFn?: (_attempt: number, _error: ExtendedAdapterError) => number;
+  customDelayFn?: (attempt: number, error: ExtendedAdapterError) => number;
 }
 
 /**
@@ -209,7 +209,7 @@ export class RetryExecutor {
   private readonly config: RetryConfig;
   private readonly provider: ModelProvider;
 
-  constructor(_provider: ModelProvider, customConfig?: Partial<RetryConfig>) {
+  constructor(provider: ModelProvider, customConfig?: Partial<RetryConfig>) {
     this.provider = provider;
     this.config = {
       ...DEFAULT_RETRY_CONFIGS[provider],
@@ -247,7 +247,7 @@ export class RetryExecutor {
         }
 
         return {
-          _success: true,
+          success: true,
           _value: result,
           _context: retryContext,
         };
@@ -266,8 +266,7 @@ export class RetryExecutor {
         if (!this.shouldRetry(adaptedError, retryContext)) {
           logger.warn(`[RetryExecutor] ${operationName} failed permanently after ${retryContext.attempt} attempts`);
           return {
-            _success: false,
-            _error: adaptedError,
+            success: false, error: adaptedError,
             _context: retryContext,
           };
         }
@@ -288,8 +287,8 @@ export class RetryExecutor {
     logger.error(`[RetryExecutor] ${operationName} failed after ${retryContext.maxAttempts} attempts`);
 
     return {
-      _success: false,
-      ...(finalError !== undefined && { _error: finalError }),
+      success: false,
+      ...(finalError !== undefined && { error: finalError }),
       _context: retryContext,
     };
   }
@@ -356,7 +355,7 @@ export class RetryExecutor {
   /**
    * Determine if an error should trigger a retry.
    */
-  private shouldRetry(_error: ExtendedAdapterError, _context: RetryContext): boolean {
+  private shouldRetry(error: ExtendedAdapterError, _context: RetryContext): boolean {
     // No more attempts left
     if (context.attempt >= context.maxAttempts) {
       return false;
@@ -383,7 +382,7 @@ export class RetryExecutor {
   /**
    * Calculate retry delay based on strategy and attempt.
    */
-  private calculateDelay(_error: ExtendedAdapterError, _attempt: number): number {
+  private calculateDelay(error: ExtendedAdapterError, attempt: number): number {
     // Use error-specific delay if provided
     if (error.retryAfterMs) {
       return error.retryAfterMs;
@@ -433,7 +432,7 @@ export class RetryExecutor {
   /**
    * Adapt generic errors to ExtendedAdapterError.
    */
-  private adaptError(_error: unknown): ExtendedAdapterError {
+  private adaptError(error: unknown): ExtendedAdapterError {
     if (error instanceof ExtendedAdapterError) {
       return error;
     }
@@ -446,7 +445,7 @@ export class RetryExecutor {
   /**
    * Sleep for the specified duration.
    */
-  private sleep(_ms: number): Promise<void> {
+  private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
@@ -487,7 +486,7 @@ export async function withRetry<T>(
 /**
  * Get default retry configuration for a provider.
  */
-export function getDefaultRetryConfig(_provider: ModelProvider): RetryConfig {
+export function getDefaultRetryConfig(provider: ModelProvider): RetryConfig {
   return { ...DEFAULT_RETRY_CONFIGS[provider] };
 }
 
@@ -523,7 +522,7 @@ export function withRetryDecorator(
   ) {
     const originalMethod = descriptor.value!;
     
-    descriptor.value = async function (_this: any, ...args: any[]) {
+    descriptor.value = async function (this: any, ...args: any[]) {
       const executor = createRetryExecutor(provider, customConfig);
       const result = await executor.execute(
         () => originalMethod.apply(this, args),

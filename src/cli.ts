@@ -107,7 +107,7 @@ program.action((options: { model?: string; verbose?: boolean; safeMode?: boolean
       logger.debug('Application exited cleanly');
       process.exit(0);
     })
-    .catch((_error: unknown) => {
+    .catch((error: unknown) => {
       logger.error('Application error', error);
       process.exit(1);
     });

@@ -71,8 +71,8 @@ const openAIChunkGenerator = fc.record({
   ),
   usage: fc.option(
     fc.record({
-      prompt_tokens: fc.integer({ min: 1, max: 1000 }),
-      completion_tokens: fc.integer({ min: 1, max: 1000 }),
+      prompttokens: fc.integer({ min: 1, max: 1000 }),
+      completiontokens: fc.integer({ min: 1, max: 1000 }),
     })
   ),
 });
@@ -117,8 +117,8 @@ const anthropicEventGenerator = fc.oneof(
     }),
     usage: fc.option(
       fc.record({
-        input_tokens: fc.integer({ min: 1, max: 1000 }),
-        output_tokens: fc.integer({ min: 1, max: 1000 }),
+        inputtokens: fc.integer({ min: 1, max: 1000 }),
+        outputtokens: fc.integer({ min: 1, max: 1000 }),
       })
     ),
   }),
@@ -223,8 +223,8 @@ const cohereChunkGenerator = fc.oneof(
           fc.record({
             tokens: fc.option(
               fc.record({
-                input_tokens: fc.integer({ min: 1, max: 1000 }),
-                output_tokens: fc.integer({ min: 1, max: 1000 }),
+                inputtokens: fc.integer({ min: 1, max: 1000 }),
+                outputtokens: fc.integer({ min: 1, max: 1000 }),
               })
             ),
           })
@@ -922,9 +922,9 @@ describe('Response Format Standardization Property Tests', () => {
               model: fc.string({ minLength: 3, maxLength: 30 }),
               usage: fc.option(
                 fc.record({
-                  prompt_tokens: fc.integer({ min: 1, max: 1000 }),
-                  completion_tokens: fc.integer({ min: 1, max: 1000 }),
-                  total_tokens: fc.integer({ min: 2, max: 2000 }),
+                  prompttokens: fc.integer({ min: 1, max: 1000 }),
+                  completiontokens: fc.integer({ min: 1, max: 1000 }),
+                  totaltokens: fc.integer({ min: 2, max: 2000 }),
                 })
               ),
               // Add provider-specific fields to ensure content is included

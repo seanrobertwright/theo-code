@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+/* eslint-env node */
+/* eslint-disable no-undef */
 
 /**
  * Fix remaining parsing errors with more comprehensive patterns

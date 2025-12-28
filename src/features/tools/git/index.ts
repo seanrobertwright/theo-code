@@ -110,7 +110,7 @@ class GitAnalyzer {
     };
   }
 
-  formatCommitMessage(_analysis: CommitAnalysis): string {
+  formatCommitMessage(analysis: CommitAnalysis): string {
     let message = analysis.type;
     
     if (analysis.scope) {
@@ -164,7 +164,7 @@ export const createGitTools = (): Tool[] => [
     _requiresConfirmation: false,
     category: 'git',
 
-    async execute(_params: unknown, context) {
+    async execute(params: unknown, context) {
       try {
         const typedParams = params as { porcelain?: boolean };
         const cmd = typedParams.porcelain ? 'git status --porcelain' : 'git status';
@@ -174,7 +174,7 @@ export const createGitTools = (): Tool[] => [
         });
 
         return {
-          _success: true,
+          success: true,
           data: {
             status: result.trim(),
             hasChanges: result.trim().length > 0
@@ -182,7 +182,7 @@ export const createGitTools = (): Tool[] => [
         };
       } catch (error) {
         return {
-          _success: false,
+          success: false,
           error: `Git status failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         };
       }
@@ -222,7 +222,7 @@ export const createGitTools = (): Tool[] => [
     _requiresConfirmation: false,
     category: 'git',
 
-    async execute(_params: unknown, context) {
+    async execute(params: unknown, context) {
       try {
         const typedParams = params as { staged?: boolean; files?: string[]; generateCommit?: boolean };
         const { staged, files = [], generateCommit } = typedParams;
@@ -289,7 +289,7 @@ export const createGitTools = (): Tool[] => [
         }
 
         return {
-          _success: true,
+          success: true,
           data: {
             changes,
             totalFiles: changes.length,
@@ -301,7 +301,7 @@ export const createGitTools = (): Tool[] => [
 
       } catch (error) {
         return {
-          _success: false,
+          success: false,
           error: `Git diff failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         };
       }
@@ -341,7 +341,7 @@ export const createGitTools = (): Tool[] => [
     _requiresConfirmation: true,
     category: 'git',
 
-    async execute(_params: unknown, context) {
+    async execute(params: unknown, context) {
       try {
         const typedParams = params as { message?: string; autoGenerate?: boolean; addAll?: boolean; files?: string[] };
         const { message, autoGenerate, addAll, files = [] } = typedParams;
@@ -362,9 +362,9 @@ export const createGitTools = (): Tool[] => [
             encoding: 'utf8'
           });
 
-          if (!diffResult.trim() {
+          if (!diffResult.trim()) {
             return {
-              _success: false,
+              success: false,
               error: 'No staged changes to commit'
             };
           }
@@ -398,7 +398,7 @@ export const createGitTools = (): Tool[] => [
 
         if (!commitMessage) {
           return {
-            _success: false,
+            success: false,
             error: 'No commit message provided'
           };
         }
@@ -410,7 +410,7 @@ export const createGitTools = (): Tool[] => [
         });
 
         return {
-          _success: true,
+          success: true,
           data: {
             _message: commitMessage,
             output: result.trim(),
@@ -420,7 +420,7 @@ export const createGitTools = (): Tool[] => [
 
       } catch (error) {
         return {
-          _success: false,
+          success: false,
           error: `Git commit failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         };
       }
@@ -462,7 +462,7 @@ export const createGitTools = (): Tool[] => [
     _requiresConfirmation: false,
     category: 'git',
 
-    async execute(_params: unknown, context) {
+    async execute(params: unknown, context) {
       try {
         const typedParams = params as { limit?: number; oneline?: boolean; since?: string };
         const { limit, oneline, since } = typedParams;
@@ -490,7 +490,7 @@ export const createGitTools = (): Tool[] => [
           });
 
         return {
-          _success: true,
+          success: true,
           data: {
             commits,
             total: commits.length
@@ -499,7 +499,7 @@ export const createGitTools = (): Tool[] => [
 
       } catch (error) {
         return {
-          _success: false,
+          success: false,
           error: `Git log failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         };
       }

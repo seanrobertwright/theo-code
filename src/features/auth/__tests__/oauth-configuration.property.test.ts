@@ -65,7 +65,7 @@ const oauthResultArb = fc.oneof(
   // Success case
   fc.record({
     success: fc.constant(true),
-    _tokens: tokenSetArb,
+    tokens: tokenSetArb,
     error: fc.constant(null),
     provider: fc.string({ _minLength: 1, _maxLength: 50 }),
   }),

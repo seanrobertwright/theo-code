@@ -76,9 +76,8 @@ const refreshProviderArb = fc.constantFrom('google', 'openrouter');
  * Generates token sets with various expiration states.
  */
 const tokenSetArb = fc.record({
-  _accessToken: accessTokenArb,
-  _refreshToken: refreshTokenArb,
-  _expiresAt: expirationArb,
+  accessToken: accessTokenArb, refreshToken: refreshTokenArb,
+  expiresAt: expirationArb,
   tokenType: fc.constant('Bearer' as const),
   scope: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
 });
@@ -87,8 +86,7 @@ const tokenSetArb = fc.record({
  * Generates expired token sets.
  */
 const expiredTokenSetArb = fc.record({
-  _accessToken: accessTokenArb,
-  _refreshToken: refreshTokenArb,
+  accessToken: accessTokenArb, refreshToken: refreshTokenArb,
   expiresAt: fc.date({ min: new Date(Date.now() - 86400000), max: new Date(Date.now() - 1000) }).filter(d => !isNaN(d.getTime())),
   tokenType: fc.constant('Bearer' as const),
   scope: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
@@ -98,8 +96,7 @@ const expiredTokenSetArb = fc.record({
  * Generates token sets expiring soon (within 5 minutes).
  */
 const expiringSoonTokenSetArb = fc.record({
-  _accessToken: accessTokenArb,
-  _refreshToken: refreshTokenArb,
+  accessToken: accessTokenArb, refreshToken: refreshTokenArb,
   expiresAt: fc.date({ min: new Date(Date.now() + 1000), max: new Date(Date.now() + 300000) }).filter(d => !isNaN(d.getTime())),
   tokenType: fc.constant('Bearer' as const),
   scope: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
@@ -109,8 +106,7 @@ const expiringSoonTokenSetArb = fc.record({
  * Generates valid (not expired, not expiring soon) token sets.
  */
 const validTokenSetArb = fc.record({
-  _accessToken: accessTokenArb,
-  _refreshToken: refreshTokenArb,
+  accessToken: accessTokenArb, refreshToken: refreshTokenArb,
   expiresAt: fc.date({ min: new Date(Date.now() + 600000), max: new Date(Date.now() + 3600000) }).filter(d => !isNaN(d.getTime())),
   tokenType: fc.constant('Bearer' as const),
   scope: fc.option(fc.string({ _minLength: 1, _maxLength: 100 })),
@@ -137,7 +133,7 @@ class MockOAuthAdapter implements IOAuthProviderAdapter {
     };
   }
 
-  async exchangeCodeForTokens(_code: string, _codeVerifier: string): Promise<TokenSet> {
+  async exchangeCodeForTokens(code: string, _codeVerifier: string): Promise<TokenSet> {
     return {
       accessToken: `mock_access_${code}`,
       refreshToken: `mock_refresh_${code}`,
@@ -147,7 +143,7 @@ class MockOAuthAdapter implements IOAuthProviderAdapter {
     };
   }
 
-  async refreshAccessToken(_refreshToken: string): Promise<TokenSet> {
+  async refreshAccessToken(refreshToken: string): Promise<TokenSet> {
     if (this.refreshTokenExpired) {
       const error = new Error('Refresh token expired');
       (error as any).code = 'invalid_grant';
@@ -167,19 +163,19 @@ class MockOAuthAdapter implements IOAuthProviderAdapter {
     };
   }
 
-  async revokeTokens(_tokens: TokenSet): Promise<void> {
+  async revokeTokens(tokens: TokenSet): Promise<void> {
     // Mock implementation
   }
 
-  validateTokens(_tokens: TokenSet): boolean {
+  validateTokens(tokens: TokenSet): boolean {
     return !!(tokens.accessToken && tokens.tokenType === 'Bearer' && tokens.expiresAt);
   }
 
-  setRefreshFailure(_shouldFail: boolean) {
+  setRefreshFailure(shouldFail: boolean) {
     this.shouldFailRefresh = shouldFail;
   }
 
-  setRefreshTokenExpired(_expired: boolean) {
+  setRefreshTokenExpired(expired: boolean) {
     this.refreshTokenExpired = expired;
   }
 }
@@ -202,25 +198,25 @@ describe('Automatic Token Refresh Property Tests', () => {
     
     // Mock keytar with proper storage simulation using the existing mocks
     const keytar = await import('keytar');
-    vi.mocked(keytar.setPassword).mockImplementation(async (_service: string, _account: string, _password: string) => {
+    vi.mocked(keytar.setPassword).mockImplementation(async (service: string, _account: string, _password: string) => {
       const key = `${service}:${account}`;
       mockTokenStorage.set(key, password);
       return undefined;
     });
-    vi.mocked(keytar.getPassword).mockImplementation(async (_service: string, _account: string) => {
+    vi.mocked(keytar.getPassword).mockImplementation(async (service: string, _account: string) => {
       const key = `${service}:${account}`;
       return mockTokenStorage.get(key) || null;
     });
-    vi.mocked(keytar.deletePassword).mockImplementation(async (_service: string, _account: string) => {
+    vi.mocked(keytar.deletePassword).mockImplementation(async (service: string, _account: string) => {
       const key = `${service}:${account}`;
       const existed = mockTokenStorage.has(key);
       mockTokenStorage.delete(key);
       return existed;
     });
-    vi.mocked(keytar.findCredentials).mockImplementation(async (_service: string) => {
-      const credentials: Array<{ account: string; _password: string }> = [];
+    vi.mocked(keytar.findCredentials).mockImplementation(async (service: string) => {
+      const credentials: Array<{ account: string; password: string }> = [];
       for (const [key, password] of mockTokenStorage.entries()) {
-        if (key.startsWith(`${service}:`) {
+        if (key.startsWith(`${service}:`)) {
           const account = key.substring(service.length + 1);
           credentials.push({ account, password });
         }

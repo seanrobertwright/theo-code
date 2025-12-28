@@ -36,8 +36,8 @@ class LSPManager {
     go: { command: 'gopls', args: [] }
   };
 
-  async startServer(_language: string, _workspaceRoot: string): Promise<boolean> {
-    if (this.servers.has(language) {
+  async startServer(language: string, _workspaceRoot: string): Promise<boolean> {
+    if (this.servers.has(language)) {
       return true;
     }
 
@@ -85,7 +85,7 @@ class LSPManager {
     }
   }
 
-  private async sendRequest(_server: LSPServer, _method: string, _params: any): Promise<any> {
+  private async sendRequest(server: LSPServer, _method: string, params: any): Promise<any> {
     return new Promise((resolve, reject) => {
       const id = server.messageId++;
       const message = {
@@ -114,7 +114,7 @@ class LSPManager {
     });
   }
 
-  async getDefinition(_language: string, _file: string, _position: Position): Promise<Location[]> {
+  async getDefinition(language: string, _file: string, _position: Position): Promise<Location[]> {
     const server = this.servers.get(language);
     if (!server?.ready) {
       throw new Error(`LSP server not ready for ${language}`);
@@ -126,7 +126,7 @@ class LSPManager {
     });
   }
 
-  async getHover(_language: string, _file: string, _position: Position): Promise<any> {
+  async getHover(language: string, _file: string, _position: Position): Promise<any> {
     const server = this.servers.get(language);
     if (!server?.ready) {
       throw new Error(`LSP server not ready for ${language}`);
@@ -138,7 +138,7 @@ class LSPManager {
     });
   }
 
-  async getReferences(_language: string, _file: string, _position: Position): Promise<Location[]> {
+  async getReferences(language: string, _file: string, _position: Position): Promise<Location[]> {
     const server = this.servers.get(language);
     if (!server?.ready) {
       throw new Error(`LSP server not ready for ${language}`);
@@ -192,7 +192,7 @@ export const createLSPTools = (): Tool[] => [
     _requiresConfirmation: false,
     category: 'lsp',
 
-    async execute(_params: unknown, context) {
+    async execute(params: unknown, context) {
       try {
         const typedParams = params as { _language: string };
         const success = await lspManager.startServer(typedParams.language, context.workspaceRoot);
@@ -202,7 +202,7 @@ export const createLSPTools = (): Tool[] => [
         };
       } catch (error) {
         return {
-          _success: false,
+          success: false,
           error: error instanceof Error ? error.message : 'Unknown error'
         };
       }
@@ -245,7 +245,7 @@ export const createLSPTools = (): Tool[] => [
     _requiresConfirmation: false,
     category: 'lsp',
 
-    async execute(_params: unknown, context) {
+    async execute(params: unknown, context) {
       try {
         const typedParams = params as { language: string; file: string; line: number; _character: number };
         const filePath = path.resolve(context.workspaceRoot, typedParams.file);
@@ -256,12 +256,12 @@ export const createLSPTools = (): Tool[] => [
         );
 
         return {
-          _success: true,
+          success: true,
           data: { definitions, file: typedParams.file, position: { line: typedParams.line, character: typedParams.character } }
         };
       } catch (error) {
         return {
-          _success: false,
+          success: false,
           error: error instanceof Error ? error.message : 'Unknown error'
         };
       }
@@ -300,7 +300,7 @@ export const createLSPTools = (): Tool[] => [
     _requiresConfirmation: false,
     category: 'lsp',
 
-    async execute(_params: unknown, context) {
+    async execute(params: unknown, context) {
       try {
         const typedParams = params as { language: string; file: string; line: number; _character: number };
         const filePath = path.resolve(context.workspaceRoot, typedParams.file);
@@ -311,12 +311,12 @@ export const createLSPTools = (): Tool[] => [
         );
 
         return {
-          _success: true,
+          success: true,
           data: { hover, file: typedParams.file }
         };
       } catch (error) {
         return {
-          _success: false,
+          success: false,
           error: error instanceof Error ? error.message : 'Unknown error'
         };
       }
@@ -355,7 +355,7 @@ export const createLSPTools = (): Tool[] => [
     _requiresConfirmation: false,
     category: 'lsp',
 
-    async execute(_params: unknown, context) {
+    async execute(params: unknown, context) {
       try {
         const typedParams = params as { language: string; file: string; line: number; _character: number };
         const filePath = path.resolve(context.workspaceRoot, typedParams.file);
@@ -366,12 +366,12 @@ export const createLSPTools = (): Tool[] => [
         );
 
         return {
-          _success: true,
+          success: true,
           data: { references, total: references.length }
         };
       } catch (error) {
         return {
-          _success: false,
+          success: false,
           error: error instanceof Error ? error.message : 'Unknown error'
         };
       }

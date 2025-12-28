@@ -22,6 +22,8 @@ import {
   registerAdapter,
 } from './types.js';
 import type { AuthenticationManager } from '../../auth/authentication-manager.js';
+import { logger } from '../../../shared/utils/logger.js';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -41,8 +43,8 @@ interface OpenRouterModel {
     max_completion_tokens?: number;
   };
   per_request_limits?: {
-    prompt_tokens: string;
-    completion_tokens: string;
+    prompttokens: string;
+    completiontokens: string;
   };
 }
 
@@ -51,9 +53,9 @@ interface OpenRouterModelsResponse {
 }
 
 interface OpenRouterUsage {
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
+  prompttokens: number;
+  completiontokens: number;
+  totaltokens: number;
 }
 
 interface OpenRouterChoice {
@@ -236,7 +238,7 @@ function emitToolCalls(accumulators: Map<number, ToolCallAccumulator>): StreamCh
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(_message: Message): string {
+function getMessageContent(message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -251,8 +253,8 @@ function getMessageContent(_message: Message): string {
  * Converts an assistant message to OpenRouter format.
  */
 function convertAssistantMessage(
-  _message: Message,
-  _content: string
+  message: Message,
+  content: string
 ): OpenRouterChatMessage {
   if (message.toolCalls !== undefined && message.toolCalls.length > 0) {
     return {
@@ -274,7 +276,7 @@ function convertAssistantMessage(
 /**
  * Converts tool result messages to OpenRouter format.
  */
-function convertToolMessage(_message: Message): OpenRouterChatMessage[] {
+function convertToolMessage(message: Message): OpenRouterChatMessage[] {
   if (message.toolResults === undefined) {
     return [];
   }
@@ -334,7 +336,7 @@ function convertTools(tools: UniversalToolDefinition[]): OpenRouterTool[] {
 /**
  * Maps API errors to StreamChunk error format.
  */
-function handleApiError(_error: unknown): StreamChunk {
+function handleApiError(error: unknown): StreamChunk {
   if (error instanceof Error && 'status' in error) {
     const apiError = error as Error & { status?: number };
     const code = ERROR_STATUS_MAP[apiError.status ?? 0] ?? 'API_ERROR';
@@ -369,7 +371,7 @@ class OpenRouterClient {
   private readonly baseUrl: string;
   private readonly appName: string;
 
-  constructor(_apiKey: string, baseUrl?: string, appName = 'theo-code') {
+  constructor(apiKey: string, baseUrl?: string, appName = 'theo-code') {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl ?? OPENROUTER_BASE_URL;
     this.appName = appName;
@@ -379,7 +381,7 @@ class OpenRouterClient {
    * Makes a request to the OpenRouter API.
    */
   private async makeRequest(
-    _endpoint: string,
+    endpoint: string,
     options: RequestInit = {}
   ): Promise<Response> {
     const url = `${this.baseUrl}${endpoint}`;
@@ -418,7 +420,7 @@ class OpenRouterClient {
   /**
    * Creates a chat completion request.
    */
-  async createChatCompletion(_request: OpenRouterChatRequest): Promise<OpenRouterResponse> {
+  async createChatCompletion(request: OpenRouterChatRequest): Promise<OpenRouterResponse> {
     const response = await this.makeRequest('/chat/completions', {
       method: 'POST',
       body: JSON.stringify(request),
@@ -430,7 +432,7 @@ class OpenRouterClient {
    * Creates a streaming chat completion request.
    */
   async createChatCompletionStream(
-    _request: OpenRouterChatRequest
+    request: OpenRouterChatRequest
   ): Promise<AsyncIterable<OpenRouterStreamChunk>> {
     const response = await this.makeRequest('/chat/completions', {
       method: 'POST',
@@ -461,7 +463,7 @@ class OpenRouterClient {
     break;
   }
 
-        buffer += decoder.decode(value, { _stream: true });
+        buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() ?? '';
 
@@ -523,7 +525,7 @@ export class OpenRouterAdapter implements IModelAdapter {
   /**
    * Creates a new OpenRouter adapter.
    */
-  constructor(_config: ModelConfig, authManager?: AuthenticationManager) {
+  constructor(config: ModelConfig, authManager?: AuthenticationManager) {
     this.config = config;
     this.model = config.model;
     this.contextLimit = config.contextLimit ?? DEFAULT_CONTEXT_LIMIT;
@@ -684,7 +686,7 @@ export class OpenRouterAdapter implements IModelAdapter {
    * Creates the OpenRouter streaming request.
    */
   private async createStream(
-    _client: OpenRouterClient,
+    client: OpenRouterClient,
     messages: OpenRouterChatMessage[],
     tools: OpenRouterTool[] | undefined,
     options?: GenerateOptions
@@ -700,7 +702,7 @@ export class OpenRouterAdapter implements IModelAdapter {
       model: this.model,
       messages,
       temperature: options?.temperature ?? 0.7,
-      max_tokens: options?.maxTokens ?? this.config.maxOutputTokens,
+      maxtokens: options?.maxTokens ?? this.config.maxOutputTokens,
       ...(tools !== undefined ? { tools } : {}),
       ...(options?.topP !== undefined ? { top_p: options.topP } : {}),
       ...(options?.stopSequences !== undefined ? { stop: options.stopSequences } : {}),
@@ -711,7 +713,7 @@ export class OpenRouterAdapter implements IModelAdapter {
       messageCount: request.messages.length,
       hasTools: 'tools' in request,
       temperature: request.temperature,
-      max_tokens: request.max_tokens
+      maxtokens: request.max_tokens
     });
 
     try {
@@ -776,7 +778,7 @@ export class OpenRouterAdapter implements IModelAdapter {
 /**
  * Creates an OpenRouter adapter from configuration.
  */
-function createOpenRouterAdapter(_config: ModelConfig, authManager?: AuthenticationManager): IModelAdapter {
+function createOpenRouterAdapter(config: ModelConfig, authManager?: AuthenticationManager): IModelAdapter {
   return new OpenRouterAdapter(config, authManager);
 }
 

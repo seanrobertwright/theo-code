@@ -203,7 +203,7 @@ describe('OpenAIAdapter', () => {
               delta: {},
               finish_reason: 'stop',
             }],
-            usage: { prompt_tokens: 10, completion_tokens: 5 },
+            usage: { prompttokens: 10, completiontokens: 5 },
           };
         },
       };

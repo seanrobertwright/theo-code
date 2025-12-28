@@ -114,7 +114,7 @@ const requestPatternArb = fc.record({
 /**
  * Simulate time passage for testing.
  */
-const advanceTime = (_ms: number): void => {
+const advanceTime = (ms: number): void => {
   vi.advanceTimersByTime(ms);
 };
 

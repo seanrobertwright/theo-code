@@ -34,17 +34,17 @@ import {
  */
 export interface UILayoutStore extends UILayoutState {
   // Layout actions
-  setContextAreaWidth: (_width: number) => void;
+  setContextAreaWidth: (width: number) => void;
   toggleTaskSidebar: () => void;
-  setTaskSidebarCollapsed: (_collapsed: boolean) => void;
+  setTaskSidebarCollapsed: (collapsed: boolean) => void;
   
   // Scroll actions
-  setContextScrollPosition: (_position: number) => void;
-  setTaskScrollPosition: (_position: number) => void;
+  setContextScrollPosition: (position: number) => void;
+  setTaskScrollPosition: (position: number) => void;
   
   // Configuration actions
-  setColorScheme: (_colorScheme: ColorScheme) => void;
-  setLayoutConfig: (_config: LayoutConfig) => void;
+  setColorScheme: (colorScheme: ColorScheme) => void;
+  setLayoutConfig: (config: LayoutConfig) => void;
   
   // Utility actions
   resetToDefaults: () => void;

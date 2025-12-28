@@ -11,6 +11,8 @@ import type { IModelAdapter, AdapterFactory } from './adapters/types.js';
 import { AdapterError, adapterFactories, createAdapter } from './adapters/types.js';
 import type { AuthenticationManager } from '../auth/authentication-manager.js';
 import { loadConfig, getAuthenticationConfig, isOAuthEnabled } from '../../config/index.js';
+import { logger } from '../../shared/utils/logger.js';
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -86,8 +88,8 @@ export interface ProviderManagerConfig {
  * ```typescript
  * const manager = new ProviderManager({
  *   fallbackChain: ['openai', 'anthropic', 'google'],
- *   _healthCheckInterval: 300000, // 5 minutes
- *   _authManager: authenticationManager,
+ *   healthCheckInterval: 300000, // 5 minutes
+ *   authManager: authenticationManager,
  * });
  *
  * const adapter = await manager.getAdapter(config);
@@ -104,8 +106,8 @@ export class ProviderManager {
   constructor(config: ProviderManagerConfig = {}) {
     this.config = {
       fallbackChain: [],
-      _healthCheckInterval: 300000, // 5 minutes
-      _enableHealthChecking: true,
+      healthCheckInterval: 300000, // 5 minutes
+      enableHealthChecking: true,
       ...config,
     };
 
@@ -128,7 +130,7 @@ export class ProviderManager {
   /**
    * Register a provider configuration.
    */
-  registerProvider(_config: ModelConfig): void {
+  registerProvider(config: ModelConfig): void {
     if (!config.enabled) {
       logger.debug(`[ProviderManager] Skipping disabled provider: ${config.provider}`);
       return;
@@ -144,10 +146,10 @@ export class ProviderManager {
     // Initialize rate limit state
     if (config.rateLimit) {
       this.rateLimitStates.set(config.provider, {
-        _requestCount: 0,
-        _tokenCount: 0,
+        requestCount: 0,
+        tokenCount: 0,
         windowStart: Date.now(),
-        _concurrentRequests: 0,
+        concurrentRequests: 0,
       });
     }
 
@@ -157,7 +159,7 @@ export class ProviderManager {
   /**
    * Unregister a provider.
    */
-  unregisterProvider(_provider: ModelProvider): void {
+  unregisterProvider(provider: ModelProvider): void {
     this.providerConfigs.delete(provider);
     this.providerHealth.delete(provider);
     this.rateLimitStates.delete(provider);
@@ -178,9 +180,9 @@ export class ProviderManager {
       if (this.authManager) {
         try {
           const status = await this.authManager.getProviderAuthStatus(provider);
-          const config = this.authManager.getProviderConfig(provider);
+          const authConfig = this.authManager.getProviderConfig(provider);
           authStatus = {
-            method: status.currentMethod !== 'none' ? status.currentMethod : (config?.preferredMethod || 'none'),
+            method: status.currentMethod !== 'none' ? status.currentMethod : (authConfig?.preferredMethod || 'none'),
             authenticated: status.authenticated,
             needsRefresh: status.needsRefresh,
             expiresAt: status.expiresAt,
@@ -191,7 +193,7 @@ export class ProviderManager {
       }
       
       providers.push({
-        _name: provider,
+        name: provider,
         enabled: config.enabled,
         healthy: health?.healthy ?? true,
         lastHealthCheck: health?.lastCheck ?? null,
@@ -199,11 +201,11 @@ export class ProviderManager {
         priority: config.priority,
         models: [config.model], // TODO: Expand to support multiple models per provider
         features: config.features ?? {
-          _toolCalling: true,
-          _streaming: true,
-          _multimodal: false,
-          _imageGeneration: false,
-          _reasoning: false,
+          toolCalling: true,
+          streaming: true,
+          multimodal: false,
+          imageGeneration: false,
+          reasoning: false,
         },
         authStatus,
       });
@@ -219,7 +221,7 @@ export class ProviderManager {
   /**
    * Get an adapter for the specified configuration with fallback support.
    */
-  async getAdapter(_config: ModelConfig): Promise<IModelAdapter> {
+  async getAdapter(config: ModelConfig): Promise<IModelAdapter> {
     const providers = this.buildProviderChain(config);
     
     for (const provider of providers) {
@@ -233,7 +235,7 @@ export class ProviderManager {
         }
 
         // Check health
-        if (!this.isProviderHealthy(provider) {
+        if (!this.isProviderHealthy(provider)) {
           logger.warn(`[ProviderManager] Provider unhealthy: ${provider}`);
           continue;
         }
@@ -306,7 +308,7 @@ export class ProviderManager {
   /**
    * Validate that a provider is properly configured and accessible.
    */
-  async validateProvider(_provider: ModelProvider): Promise<boolean> {
+  async validateProvider(provider: ModelProvider): Promise<boolean> {
     const config = this.providerConfigs.get(provider);
     if (!config) {
       return false;
@@ -380,13 +382,13 @@ export class ProviderManager {
   /**
    * Build the provider chain for fallback logic.
    */
-  private buildProviderChain(_config: ModelConfig): ModelProvider[] {
+  private buildProviderChain(config: ModelConfig): ModelProvider[] {
     const chain: ModelProvider[] = [config.provider];
     
     // Add config-specific fallbacks (avoid duplicates)
     if (config.fallbackProviders) {
       for (const provider of config.fallbackProviders) {
-        if (!chain.includes(provider) {
+        if (!chain.includes(provider)) {
           chain.push(provider);
         }
       }
@@ -395,7 +397,7 @@ export class ProviderManager {
     // Add global fallback chain (avoid duplicates)
     if (this.config.fallbackChain) {
       for (const provider of this.config.fallbackChain) {
-        if (!chain.includes(provider) {
+        if (!chain.includes(provider)) {
           chain.push(provider);
         }
       }
@@ -411,7 +413,7 @@ export class ProviderManager {
   /**
    * Get provider configuration, merging with base config.
    */
-  private getProviderConfig(_provider: ModelProvider, _baseConfig: ModelConfig): ModelConfig {
+  private getProviderConfig(provider: ModelProvider, baseConfig: ModelConfig): ModelConfig {
     const providerConfig = this.providerConfigs.get(provider);
     if (!providerConfig) {
       throw new AdapterError('INVALID_CONFIG', provider, `Provider not registered: ${provider}`);
@@ -435,9 +437,9 @@ export class ProviderManager {
   /**
    * Check if a provider is within rate limits.
    */
-  private checkRateLimit(_provider: ModelProvider): boolean {
-    const config = this.providerConfigs.get(provider);
-    const rateLimit = config?.rateLimit ?? this.config.defaultRateLimit;
+  private checkRateLimit(provider: ModelProvider): boolean {
+    const providerConfig = this.providerConfigs.get(provider);
+    const rateLimit = providerConfig?.rateLimit ?? this.config.defaultRateLimit;
     
     if (!rateLimit) {
       return true;
@@ -477,7 +479,7 @@ export class ProviderManager {
   /**
    * Update rate limit state.
    */
-  private updateRateLimit(_provider: ModelProvider, type: 'request' | 'tokens', count = 1): void {
+  private updateRateLimit(provider: ModelProvider, type: 'request' | 'tokens', count = 1): void {
     const state = this.rateLimitStates.get(provider);
     if (!state) {
       return;
@@ -493,7 +495,7 @@ export class ProviderManager {
   /**
    * Track concurrent request start.
    */
-  trackRequestStart(_provider: ModelProvider): void {
+  trackRequestStart(provider: ModelProvider): void {
     const state = this.rateLimitStates.get(provider);
     if (state) {
       state.concurrentRequests++;
@@ -503,7 +505,7 @@ export class ProviderManager {
   /**
    * Track concurrent request end.
    */
-  trackRequestEnd(_provider: ModelProvider): void {
+  trackRequestEnd(provider: ModelProvider): void {
     const state = this.rateLimitStates.get(provider);
     if (state && state.concurrentRequests > 0) {
       state.concurrentRequests--;
@@ -517,7 +519,7 @@ export class ProviderManager {
   /**
    * Check if a provider is healthy.
    */
-  private isProviderHealthy(_provider: ModelProvider): boolean {
+  private isProviderHealthy(provider: ModelProvider): boolean {
     const health = this.providerHealth.get(provider);
     return health?.healthy ?? true; // Assume healthy if no health check yet
   }
@@ -525,12 +527,12 @@ export class ProviderManager {
   /**
    * Update provider health status.
    */
-  private updateProviderHealth(_provider: ModelProvider, _healthy: boolean, error: string | null): void {
+  private updateProviderHealth(provider: ModelProvider, healthy: boolean, error: string | null): void {
     this.providerHealth.set(provider, {
       provider,
       healthy,
       lastCheck: new Date(),
-      _responseTimeMs: null, // TODO: Track response times
+      responseTimeMs: null, // TODO: Track response times
       error,
     });
   }
@@ -565,7 +567,7 @@ export class ProviderManager {
   /**
    * Perform comprehensive health check including OAuth status.
    */
-  private async performProviderHealthCheck(_provider: ModelProvider): Promise<void> {
+  private async performProviderHealthCheck(provider: ModelProvider): Promise<void> {
     try {
       // Check basic provider validation
       const isValid = await this.validateProvider(provider);
@@ -594,8 +596,8 @@ export class ProviderManager {
           logger.warn(`[ProviderManager] OAuth health check failed for ${provider}:`, error);
           
           // Don't mark as unhealthy if API key fallback is available
-          const config = this.providerConfigs.get(provider);
-          if (config?.apiKey) {
+          const providerConfig = this.providerConfigs.get(provider);
+          if (providerConfig?.apiKey) {
             logger.debug(`[ProviderManager] OAuth failed but API key available for ${provider}`);
             this.updateProviderHealth(provider, true, null);
           } else {
@@ -623,7 +625,7 @@ export class ProviderManager {
   /**
    * Set the authentication manager for OAuth support.
    */
-  setAuthenticationManager(_authManager: AuthenticationManager): void {
+  setAuthenticationManager(authManager: AuthenticationManager): void {
     (this as any).authManager = authManager;
     logger.info('[ProviderManager] Authentication manager configured');
   }
@@ -665,8 +667,8 @@ export class ProviderManager {
         return {
           provider,
           method: 'none' as const,
-          _authenticated: false,
-          _needsRefresh: false,
+          authenticated: false,
+          needsRefresh: false,
         };
       }
     });
@@ -702,7 +704,7 @@ export class ProviderManager {
   /**
    * Check if OAuth is supported for a provider.
    */
-  supportsOAuth(_provider: ModelProvider): boolean {
+  supportsOAuth(provider: ModelProvider): boolean {
     if (!this.authManager) {
       return false;
     }
@@ -723,21 +725,21 @@ export class ProviderManager {
     if (!this.authManager) {
       return Array.from(this.providerConfigs.keys()).map(provider => ({
         provider,
-        _supportsOAuth: false,
-        _hasApiKeyFallback: false,
+        supportsOAuth: false,
+        hasApiKeyFallback: false,
         preferredMethod: 'none' as const,
       }));
     }
 
     return Array.from(this.providerConfigs.keys()).map(provider => {
       const availableMethods = this.authManager!.getAvailableAuthMethods(provider);
-      const config = this.authManager!.getProviderConfig(provider);
+      const authConfig = this.authManager!.getProviderConfig(provider);
       
       return {
         provider,
         supportsOAuth: availableMethods.includes('oauth'),
         hasApiKeyFallback: availableMethods.includes('api_key'),
-        preferredMethod: config?.preferredMethod || 'none',
+        preferredMethod: authConfig?.preferredMethod || 'none',
       };
     });
   }
@@ -749,7 +751,7 @@ export class ProviderManager {
   /**
    * Initialize OAuth configurations from global config.
    */
-  initializeOAuthFromConfig(_workspaceRoot: string): void {
+  initializeOAuthFromConfig(workspaceRoot: string): void {
     if (!this.authManager) {
       logger.warn('[ProviderManager] No authentication manager available for OAuth initialization');
       return;
@@ -783,7 +785,7 @@ export class ProviderManager {
   /**
    * Update OAuth configuration for a specific provider.
    */
-  updateProviderOAuthConfig(_provider: ModelProvider, _workspaceRoot: string): void {
+  updateProviderOAuthConfig(provider: ModelProvider, workspaceRoot: string): void {
     if (!this.authManager) {
       logger.warn(`[ProviderManager] No authentication manager available for ${provider} OAuth update`);
       return;
@@ -815,7 +817,7 @@ export class ProviderManager {
   /**
    * Get OAuth configuration status for all providers.
    */
-  getOAuthConfigurationStatus(_workspaceRoot: string): Array<{
+  getOAuthConfigurationStatus(workspaceRoot: string): Array<{
     provider: ModelProvider;
     oauthEnabled: boolean;
     hasApiKey: boolean;
@@ -879,8 +881,8 @@ export function createProviderManager(config?: ProviderManagerConfig): ProviderM
  * Create a provider manager with OAuth integration.
  */
 export function createProviderManagerWithOAuth(
-  _authManager: AuthenticationManager,
-  _workspaceRoot: string,
+  authManager: AuthenticationManager,
+  workspaceRoot: string,
   config?: Omit<ProviderManagerConfig, 'authManager' | 'workspaceRoot'>
 ): ProviderManager {
   return new ProviderManager({

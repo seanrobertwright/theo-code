@@ -10,11 +10,8 @@ import {
   getProviderConfig, 
   getAvailableProviders,
   getApiKey,
-  getAuthenticationConfig,
-  isOAuthEnabled,
-  getPreferredAuthMethod
+  getAuthenticationConfig
 } from '../../../config/index.js';
-import { useAppStore } from '../../../shared/store/index.js';
 
 // =============================================================================
 // PROVIDER COMMAND HANDLER
@@ -76,7 +73,8 @@ export const providerCommandHandler: CommandHandler = async (args, context) => {
     default:
       context.addMessage({
         role: 'assistant',
-        content: `Unknown provider subcommand: ${subcommand}\n\nUse \`/provider help\` to see available commands.`
+        content: `Unknown provider subcommand: ${subcommand}\n\nUse \
+/provider help\n to see available commands.`
       });
   }
 };
@@ -88,7 +86,7 @@ export const providerCommandHandler: CommandHandler = async (args, context) => {
 /**
  * Lists all available providers with their status.
  */
-async function handleListProviders(args: string[], _context: CommandContext): Promise<void> {
+async function handleListProviders(args: string[], context: CommandContext): Promise<void> {
   try {
     const config = loadConfig(context.workspaceRoot);
     const providers = getAvailableProviders(config);
@@ -104,7 +102,7 @@ async function handleListProviders(args: string[], _context: CommandContext): Pr
     if (displayProviders.length === 0) {
       message += 'No providers configured or enabled.\n\n';
       message += 'Use `/provider help` for setup instructions.';
-      context.addMessage({ role: 'assistant', _content: message });
+      context.addMessage({ role: 'assistant', content: message });
       return;
     }
     
@@ -168,9 +166,9 @@ async function handleListProviders(args: string[], _context: CommandContext): Pr
     message += '\n**Current Provider:** ' + config.global.defaultProvider;
     message += '\n**Current Model:** ' + context.currentModel;
     
-    context.addMessage({ role: 'assistant', _content: message });
+    context.addMessage({ role: 'assistant', content: message });
     
-  } catch (_error: any) {
+  } catch (error: any) {
     context.setError(`Failed to list providers: ${error.message}`);
   }
 }
@@ -178,7 +176,7 @@ async function handleListProviders(args: string[], _context: CommandContext): Pr
 /**
  * Shows detailed status for a specific provider or all providers.
  */
-async function handleProviderStatus(args: string[], _context: CommandContext): Promise<void> {
+async function handleProviderStatus(args: string[], context: CommandContext): Promise<void> {
   try {
     const config = loadConfig(context.workspaceRoot);
     const targetProvider = args[0];
@@ -191,7 +189,7 @@ async function handleProviderStatus(args: string[], _context: CommandContext): P
       await showAllProvidersStatus(config, context);
     }
     
-  } catch (_error: any) {
+  } catch (error: any) {
     context.setError(`Failed to get provider status: ${error.message}`);
   }
 }
@@ -199,7 +197,7 @@ async function handleProviderStatus(args: string[], _context: CommandContext): P
 /**
  * Switches to a different provider.
  */
-async function handleSwitchProvider(args: string[], _context: CommandContext): Promise<void> {
+async function handleSwitchProvider(args: string[], context: CommandContext): Promise<void> {
   const targetProvider = args[0];
   
   if (!targetProvider) {
@@ -217,7 +215,8 @@ async function handleSwitchProvider(args: string[], _context: CommandContext): P
     if (!providerConfig) {
       context.addMessage({
         role: 'assistant',
-        content: `Provider "${targetProvider}" is not available.\n\nUse \`/provider list\` to see available providers.`
+        content: `Provider "${targetProvider}" is not available.\n\nUse 
+/provider list\n to see available providers.`
       });
       return;
     }
@@ -256,7 +255,6 @@ async function handleSwitchProvider(args: string[], _context: CommandContext): P
     }
     
     // TODO: Actually switch the provider in the session
-    // This would require integration with the model adapter system
     context.addMessage({
       role: 'assistant',
       content: `✅ Switched to provider: **${targetProvider}**\n\n` +
@@ -264,7 +262,7 @@ async function handleSwitchProvider(args: string[], _context: CommandContext): P
                `Current conversation will continue with the existing provider.`
     });
     
-  } catch (_error: any) {
+  } catch (error: any) {
     context.setError(`Failed to switch provider: ${error.message}`);
   }
 }
@@ -272,7 +270,7 @@ async function handleSwitchProvider(args: string[], _context: CommandContext): P
 /**
  * Validates a provider's configuration.
  */
-async function handleValidateProvider(args: string[], _context: CommandContext): Promise<void> {
+async function handleValidateProvider(args: string[], context: CommandContext): Promise<void> {
   const targetProvider = args[0];
   
   if (!targetProvider) {
@@ -322,9 +320,9 @@ async function handleValidateProvider(args: string[], _context: CommandContext):
       }
     }
     
-    context.addMessage({ role: 'assistant', _content: message });
+    context.addMessage({ role: 'assistant', content: message });
     
-  } catch (_error: any) {
+  } catch (error: any) {
     context.setError(`Failed to validate provider: ${error.message}`);
   }
 }
@@ -332,13 +330,11 @@ async function handleValidateProvider(args: string[], _context: CommandContext):
 /**
  * Shows provider selection UI.
  */
-async function handleProviderUI(_args: string[], _context: CommandContext): Promise<void> {
+async function handleProviderUI(_args: string[], context: CommandContext): Promise<void> {
   try {
     const config = loadConfig(context.workspaceRoot);
     const providers = getAvailableProviders(config);
     
-    // For now, show a text-based provider selection
-    // In a full implementation, this would trigger the UI component
     let message = '**Provider Selection UI**\n\n';
     message += 'Available providers:\n\n';
     
@@ -354,15 +350,14 @@ async function handleProviderUI(_args: string[], _context: CommandContext): Prom
     message += '\n💡 Use `/provider switch <provider>` to change providers\n';
     message += '💡 Use `/provider status` for detailed information\n';
     
-    // TODO: In a full implementation, this would show the ProviderSelection component
-    // For now, we'll show the information as a message
-    context.addMessage({ role: 'assistant', _content: message });
+    context.addMessage({ role: 'assistant', content: message });
     
-  } catch (_error: any) {
+  } catch (error: any) {
     context.setError(`Failed to show provider UI: ${error.message}`);
   }
 }
-async function handleTestProvider(args: string[], _context: CommandContext): Promise<void> {
+
+async function handleTestProvider(args: string[], context: CommandContext): Promise<void> {
   const targetProvider = args[0];
   
   if (!targetProvider) {
@@ -376,12 +371,12 @@ async function handleTestProvider(args: string[], _context: CommandContext): Pro
   try {
     const config = loadConfig(context.workspaceRoot);
     
-    // First validate configuration
     const validation = validateProviderConfig(targetProvider, config);
     if (!validation.valid) {
       context.addMessage({
         role: 'assistant',
-        content: `Cannot test "${targetProvider}" due to configuration errors:\n\n${validation.errors.map(e => `• ${e}`).join('\n')}\n\nUse \`/provider validate ${targetProvider}\` for more details.`
+        content: `Cannot test "${targetProvider}" due to configuration errors:\n\n${validation.errors.map(e => `• ${e}`).join('\n')}\n\nUse 
+/provider validate ${targetProvider}\n for more details.`
       });
       return;
     }
@@ -393,10 +388,7 @@ async function handleTestProvider(args: string[], _context: CommandContext): Pro
                `For now, this validates that the configuration is correct and API keys are available.`
     });
     
-    // TODO: Implement actual connectivity testing
-    // This would require integration with the provider adapters
-    
-  } catch (_error: any) {
+  } catch (error: any) {
     context.setError(`Failed to test provider: ${error.message}`);
   }
 }
@@ -408,64 +400,83 @@ async function handleTestProvider(args: string[], _context: CommandContext): Pro
 /**
  * Shows help for provider commands.
  */
-async function showProviderHelp(_context: CommandContext): Promise<void> {
+async function showProviderHelp(context: CommandContext): Promise<void> {
   const helpText = `**Provider Management Commands**
 
-**Usage:** \`/provider <subcommand> [options]\`
+**Usage:** 
+/provider <subcommand> [options]
 
 **Subcommands:**
-• \`list\` - Show all available providers
-  - \`--details\` or \`-d\`: Show detailed information
-  - \`--all\` or \`-a\`: Show disabled providers too
+• 
+/list\n - Show all available providers
+  - 
+--details\n or 
+-d\n: Show detailed information
+  - 
+--all\n or 
+-a\n: Show disabled providers too
 
-• \`status [provider]\` - Show provider status and health
+• 
+/status [provider]\n - Show provider status and health
   - Without provider: Show status for all providers
   - With provider: Show detailed status for specific provider
 
-• \`switch <provider>\` - Switch to a different provider
-  - Aliases: \`use\`
+• 
+/switch <provider>\n - Switch to a different provider
+  - Aliases: 
+use\
   - Validates configuration before switching
 
-• \`validate <provider>\` - Validate provider configuration
-  - Aliases: \`check\`
+• 
+/validate <provider>\n - Validate provider configuration
+  - Aliases: 
+check\
   - Checks API keys, URLs, and settings
 
-• \`test <provider>\` - Test provider connectivity
+• 
+/test <provider>\n - Test provider connectivity
   - Validates configuration and tests connection
 
-• \`ui\` - Show provider selection interface
-  - Aliases: \`select\`
+• 
+/ui\n - Show provider selection interface
+  - Aliases: 
+select\
   - Interactive provider selection and status
 
-• \`help\` - Show this help message
+• 
+/help\n - Show this help message
 
 **Examples:**
-\`/provider list --details\` - List all providers with details
-\`/provider ui\` - Show interactive provider selection
-\`/provider switch anthropic\` - Switch to Anthropic Claude
-\`/provider validate openai\` - Validate OpenAI configuration
-\`/provider status\` - Show status of all providers
+
+/provider list --details\n - List all providers with details
+/provider ui\n - Show interactive provider selection
+/provider switch anthropic\n - Switch to Anthropic Claude
+/provider validate openai\n - Validate OpenAI configuration
+/provider status\n - Show status of all providers
 
 **Configuration:**
-Providers are configured in your global config file (\`~/.theo-code/config.yaml\`) or via environment variables. Use \`/provider validate <provider>\` to check your setup.`;
+Providers are configured in your global config file (~
+/.theo-code/config.yaml\n) or via environment variables. Use 
+/provider validate <provider>\n to check your setup.`;
 
-  context.addMessage({ role: 'assistant', _content: helpText });
+  context.addMessage({ role: 'assistant', content: helpText });
 }
 
 /**
  * Shows status for a single provider.
  */
 async function showSingleProviderStatus(
-  _provider: string, 
-  _config: any, 
-  _context: CommandContext
+  provider: string, 
+  config: any, 
+  context: CommandContext
 ): Promise<void> {
   const providerConfig = getProviderConfig(provider, config);
   
   if (!providerConfig) {
     context.addMessage({
       role: 'assistant',
-      content: `Provider "${provider}" is not available.\n\nUse \`/provider list\` to see available providers.`
+      content: `Provider "${provider}" is not available.\n\nUse 
+/provider list\n to see available providers.`
     });
     return;
   }
@@ -476,16 +487,13 @@ async function showSingleProviderStatus(
   
   let message = `**Status for "${provider}":**\n\n`;
   
-  // Overall status
   const statusIcon = validation.valid && providerConfig.enabled ? '✅' : '❌';
   message += `${statusIcon} **Overall Status:** ${validation.valid && providerConfig.enabled ? 'Ready' : 'Not Ready'}\n\n`;
   
-  // Configuration details
   message += '**Configuration:**\n';
   message += `• Enabled: ${providerConfig.enabled ? 'Yes' : 'No'}\n`;
   message += `• Priority: ${providerConfig.priority || 0}\n`;
   
-  // Authentication details
   message += '**Authentication:**\n';
   if (authConfig.hasApiKey) {
     message += `• API Key: Configured ✅\n`;
@@ -516,12 +524,10 @@ async function showSingleProviderStatus(
     message += `• Rate Limits: ${rateLimit.requestsPerMinute || 'Default'} req/min, ${rateLimit.tokensPerMinute || 'Default'} tokens/min\n`;
   }
   
-  // Models
   if (providerConfig.models && Array.isArray(providerConfig.models) && providerConfig.models.length > 0) {
     message += `• Available Models: ${providerConfig.models.length}\n`;
   }
   
-  // Validation results
   if (!validation.valid) {
     message += '\n**Configuration Errors:**\n';
     message += validation.errors.map(e => `• ${e}`).join('\n') + '\n';
@@ -532,19 +538,18 @@ async function showSingleProviderStatus(
     message += validation.warnings.map(w => `• ${w}`).join('\n') + '\n';
   }
   
-  // Current usage
   const isCurrentProvider = config.global.defaultProvider === provider;
   if (isCurrentProvider) {
     message += '\n🎯 **This is your current default provider**\n';
   }
   
-  context.addMessage({ role: 'assistant', _content: message });
+  context.addMessage({ role: 'assistant', content: message });
 }
 
 /**
  * Shows status for all providers.
  */
-async function showAllProvidersStatus(_config: any, _context: CommandContext): Promise<void> {
+async function showAllProvidersStatus(config: any, context: CommandContext): Promise<void> {
   const providers = getAvailableProviders(config);
   
   let message = '**Provider Status Overview:**\n\n';
@@ -557,14 +562,12 @@ async function showAllProvidersStatus(_config: any, _context: CommandContext): P
     const hasApiKey = getApiKey(String(provider.name), config);
     const authConfig = getAuthenticationConfig(String(provider.name), config);
     
-    // Provider is ready if it's valid, enabled, and has some form of authentication (or doesn't need it)
     const hasAuth = authConfig.hasApiKey || authConfig.hasOAuth || String(provider.name) === 'ollama';
     const isReady = validation.valid && provider.enabled && hasAuth;
     
     const statusIcon = isReady ? '✅' : '❌';
     const currentIcon = config.global.defaultProvider === String(provider.name) ? ' 🎯' : '';
     
-    // OAuth status indicator
     let oauthStatus = '';
     if (authConfig.hasOAuth) {
       oauthStatus = authConfig.oauthEnabled ? ' 🔐' : ' 🔐❌';
@@ -577,17 +580,10 @@ async function showAllProvidersStatus(_config: any, _context: CommandContext): P
     } else {
       notReadyProviders.push(String(provider.name));
       
-      // Show why it's not ready
       const issues: string[] = [];
-      if (!provider.enabled) {
-    issues.push('disabled');
-  }
-      if (!validation.valid) {
-    issues.push('config errors');
-  }
-      if (String(provider.name) {
-    !== 'ollama' && !hasAuth) issues.push('missing authentication');
-  }
+      if (!provider.enabled) issues.push('disabled');
+      if (!validation.valid) issues.push('config errors');
+      if (String(provider.name) !== 'ollama' && !hasAuth) issues.push('missing authentication');
       
       if (issues.length > 0) {
         message += `  Issues: ${issues.join(', ')}\n`;
@@ -601,8 +597,9 @@ async function showAllProvidersStatus(_config: any, _context: CommandContext): P
   message += `• Current Default: ${config.global.defaultProvider} 🎯\n`;
   
   if (notReadyProviders.length > 0) {
-    message += `\n💡 Use \`/provider validate <provider>\` to see specific issues`;
+    message += `\n💡 Use 
+/provider validate <provider>\n to see specific issues`;
   }
   
-  context.addMessage({ role: 'assistant', _content: message });
+  context.addMessage({ role: 'assistant', content: message });
 }

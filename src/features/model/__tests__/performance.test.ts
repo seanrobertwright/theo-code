@@ -21,7 +21,7 @@ import type { ModelProvider } from '../../../shared/types/models.js';
 /**
  * Creates a mock HTTP response for testing.
  */
-function createMockResponse(_data: any, delay = 0): Promise<Response> {
+function createMockResponse(data: any, delay = 0): Promise<Response> {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(new Response(JSON.stringify(data), {
@@ -126,7 +126,7 @@ describe('PerformanceMonitor', () => {
       for (const requestId of requestIds) {
         monitor.recordTtfb(requestId, Math.random() * 200);
         monitor.recordTokenUsage(requestId, 100, 50);
-        monitor.endRequest(requestId, { _success: true });
+        monitor.endRequest(requestId, { success: true });
       }
       
       const totalTime = Date.now() - startTime;
@@ -176,7 +176,7 @@ describe('PerformanceMonitor', () => {
         // Complete requests
         for (const requestId of requestIds) {
           monitor.recordTokenUsage(requestId, 200, 100);
-          monitor.endRequest(requestId, { _success: true });
+          monitor.endRequest(requestId, { success: true });
         }
         
         // Force garbage collection if available
@@ -342,7 +342,7 @@ describe('HttpClient Performance', () => {
   describe('Request Performance', () => {
     it('should handle concurrent HTTP requests efficiently', async () => {
       const mockFetch = global.fetch as any;
-      mockFetch.mockImplementation(() => createMockResponse({ _success: true }, 50));
+      mockFetch.mockImplementation(() => createMockResponse({ success: true }, 50));
       
       const requestCount = 50;
       const concurrency = 10;
@@ -509,7 +509,7 @@ describe('Cache Performance', () => {
       // Fill cache with many entries
       for (let i = 0; i < entryCount; i++) {
         const requestData = { query: `test query ${i}`, temperature: 0.7 };
-        const response = { result: `response ${i}`, _tokens: 100 };
+        const response = { result: `response ${i}`, tokens: 100 };
         
         responseCache.setResponse('openai', 'gpt-4o', requestData, response);
       }
@@ -556,7 +556,7 @@ describe('Integration Performance', () => {
     
     // Mock fetch
     global.fetch = vi.fn().mockImplementation(() => 
-      createMockResponse({ _success: true }, Math.random() * 100)
+      createMockResponse({ success: true }, Math.random() * 100)
     );
     
     // Set up queue processor
@@ -568,11 +568,11 @@ describe('Integration Performance', () => {
         const result = await response.json();
         
         monitor.recordTokenUsage(requestId, 100, 50);
-        monitor.endRequest(requestId, { _success: true });
+        monitor.endRequest(requestId, { success: true });
         
         return result;
       } catch (error) {
-        monitor.endRequest(requestId, { _success: false, errorCode: 'API_ERROR' });
+        monitor.endRequest(requestId, { success: false, errorCode: 'API_ERROR' });
         throw error;
       }
     });

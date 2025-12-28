@@ -205,7 +205,7 @@ describe('Session Sharing Data Integrity Property Tests', () => {
               for (let i = 0; i < sessionExport.messages.length; i++) {
                 const message = sessionExport.messages[i];
                 const content = typeof message.content === 'string' ? message.content : 
-                               message.content.find((_block: any) => block.type === 'text')?.text ?? '';
+                               message.content.find((block: any) => block.type === 'text')?.text ?? '';
                 
                 if (content !== '[Content removed]') {
                   // Check if this specific message originally contained sensitive data

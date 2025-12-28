@@ -19,6 +19,8 @@ import type {
 import { createSessionId, createMessageId, SessionSchema } from '../../shared/types/index.js';
 import { SessionStorage, type ISessionStorage } from './storage.js';
 import { loadConfig, getSessionsDir } from '../../config/index.js';
+import { logOperation, getAuditLogger } from './audit.js';
+import { logger } from '../../shared/utils/logger.js';
 // =============================================================================
 // INTERFACES
 // =============================================================================
@@ -70,13 +72,13 @@ interface CleanupOptions {
   /** Maximum age in milliseconds (default: 30 days) */
   maxAgeMs?: number;
   
-  /** Whether to create backups before deletion (_default: true) */
+  /** Whether to create backups before deletion (default: true) */
   createBackups?: boolean;
   
-  /** Whether to show user notifications (_default: true) */
+  /** Whether to show user notifications (default: true) */
   showNotifications?: boolean;
   
-  /** Dry run mode - return what would be deleted without deleting (_default: false) */
+  /** Dry run mode - return what would be deleted without deleting (default: false) */
   dryRun?: boolean;
 }
 
@@ -97,7 +99,7 @@ interface CleanupResult {
   spaceFree: number;
   
   /** Any errors encountered during cleanup */
-  errors: Array<{ sessionId: SessionId; _error: string }>;
+  errors: Array<{ sessionId: SessionId; error: string }>;
 }
 
 /**
@@ -282,7 +284,7 @@ interface ConfigurationValidationResult {
   checkedSettings?: number;
   
   /** Configuration issues found */
-  issues?: Array<{ setting: string; _error: string }>;
+  issues?: Array<{ setting: string; error: string }>;
   
   /** Configuration warnings */
   warnings?: Array<{ setting: string; _message: string }>;
@@ -440,54 +442,54 @@ interface ImportResult {
  */
 interface ISessionManager {
   // Core lifecycle
-  createSession(_options: CreateSessionOptions): Promise<Session>;
-  saveSession(_session: Session): Promise<void>;
-  loadSession(_sessionId: SessionId, options?: LoadSessionOptions): Promise<Session>;
-  deleteSession(_sessionId: SessionId): Promise<void>;
+  createSession(options: CreateSessionOptions): Promise<Session>;
+  saveSession(session: Session): Promise<void>;
+  loadSession(sessionId: SessionId, options?: LoadSessionOptions): Promise<Session>;
+  deleteSession(sessionId: SessionId): Promise<void>;
   
   // Auto-save
-  enableAutoSave(_config: AutoSaveConfig): void;
+  enableAutoSave(config: AutoSaveConfig): void;
   disableAutoSave(): void;
   isAutoSaveEnabled(): boolean;
   forceAutoSave(): Promise<void>;
   getAutoSaveConfig(): AutoSaveConfig | null;
   
   // Session management
-  sessionExists(_sessionId: SessionId): Promise<boolean>;
+  sessionExists(sessionId: SessionId): Promise<boolean>;
   getCurrentSession(): Session | null;
   setCurrentSession(session: Session | null): void;
   listSessions(options?: ListSessionsOptions): Promise<SessionMetadata[]>;
   
   // Search and filtering
-  searchSessions(_query: string, options?: SearchSessionsOptions): Promise<SessionSearchResult[]>;
-  filterSessions(_filters: FilterSessionsOptions): Promise<SessionMetadata[]>;
+  searchSessions(query: string, options?: SearchSessionsOptions): Promise<SessionSearchResult[]>;
+  filterSessions(filters: FilterSessionsOptions): Promise<SessionMetadata[]>;
   
   // Session cleanup
   cleanupOldSessions(options?: CleanupOptions): Promise<CleanupResult>;
-  deleteSessionWithConfirmation(_sessionId: SessionId, force?: boolean): Promise<boolean>;
+  deleteSessionWithConfirmation(sessionId: SessionId, force?: boolean): Promise<boolean>;
   
   // Session restoration
-  restoreSession(_sessionId: SessionId): Promise<Session>;
-  validateSessionIntegrity(_session: Session): boolean;
-  restoreSessionWithContext(_sessionId: SessionId): Promise<{
+  restoreSession(sessionId: SessionId): Promise<Session>;
+  validateSessionIntegrity(session: Session): boolean;
+  restoreSessionWithContext(sessionId: SessionId): Promise<{
     session: Session;
     contextFilesFound: string[];
     contextFilesMissing: string[];
   }>;
   
   // Import/Export
-  exportSession(_sessionId: SessionId, options?: ExportSessionOptions): Promise<ExportResult>;
-  importSession(_data: string, options?: ImportSessionOptions): Promise<ImportResult>;
+  exportSession(sessionId: SessionId, options?: ExportSessionOptions): Promise<ExportResult>;
+  importSession(data: string, options?: ImportSessionOptions): Promise<ImportResult>;
   
   // Provider Management
-  switchProvider(_provider: string, model?: string): Promise<void>;
-  migrateSessionProvider(_sessionId: SessionId, _provider: string, model?: string): Promise<void>;
-  getSessionsByProvider(_provider: string): Promise<SessionMetadata[]>;
+  switchProvider(provider: string, model?: string): Promise<void>;
+  migrateSessionProvider(sessionId: SessionId, provider: string, model?: string): Promise<void>;
+  getSessionsByProvider(provider: string): Promise<SessionMetadata[]>;
   
   // Configuration Management
   getConfiguration(): Promise<SessionConfiguration>;
-  setConfiguration(_key: string, _value: string): Promise<void>;
-  validateConfigChange(_key: string, _value: string): Promise<ConfigurationValidationResult>;
+  setConfiguration(key: string, _value: string): Promise<void>;
+  validateConfigChange(key: string, _value: string): Promise<ConfigurationValidationResult>;
   resetConfiguration(key?: string): Promise<ConfigurationResetResult>;
   validateConfiguration(): Promise<ConfigurationValidationResult>;
   
@@ -528,7 +530,7 @@ export class SessionManager implements ISessionManager {
    * @returns Promise resolving to the created session
    * @throws {Error} If session creation fails
    */
-  async createSession(_options: CreateSessionOptions): Promise<Session> {
+  async createSession(options: CreateSessionOptions): Promise<Session> {
     return await logOperation(
       'session.create',
       async () => {
@@ -536,14 +538,14 @@ export class SessionManager implements ISessionManager {
         const sessionId = createSessionId();
         
         const session: Session = {
-          _id: sessionId,
+          id: sessionId,
           version: '1.0.0',
-          _created: now,
-          _lastModified: now,
+          created: now,
+          lastModified: now,
           model: options.model,
           provider: options.provider,
           workspaceRoot: options.workspaceRoot,
-          tokenCount: { _total: 0, _input: 0, _output: 0 },
+          tokenCount: { total: 0, input: 0, output: 0 },
           filesAccessed: [],
           messages: [],
           contextFiles: [],
@@ -582,7 +584,7 @@ export class SessionManager implements ISessionManager {
    * @param session - Session to save
    * @throws {Error} If save operation fails
    */
-  async saveSession(_session: Session): Promise<void> {
+  async saveSession(session: Session): Promise<void> {
     await logOperation(
       'session.save',
       async () => {
@@ -620,7 +622,7 @@ export class SessionManager implements ISessionManager {
    * @throws {Error} If session not found or load fails
    */
   async loadSession(
-    _sessionId: SessionId, 
+    sessionId: SessionId, 
     options: LoadSessionOptions = {}
   ): Promise<Session> {
     return await logOperation(
@@ -664,7 +666,7 @@ export class SessionManager implements ISessionManager {
    * @param sessionId - Session identifier to delete
    * @throws {Error} If deletion fails
    */
-  async deleteSession(_sessionId: SessionId): Promise<void> {
+  async deleteSession(sessionId: SessionId): Promise<void> {
     await logOperation(
       'session.delete',
       async () => {
@@ -690,7 +692,7 @@ export class SessionManager implements ISessionManager {
    * @param config - Auto-save configuration
    * @throws {Error} If configuration is invalid
    */
-  enableAutoSave(_config: AutoSaveConfig): void {
+  enableAutoSave(config: AutoSaveConfig): void {
     // Validate configuration
     if (config.enabled && config.intervalMs <= 0) {
       throw new Error('Auto-save interval must be positive');
@@ -836,7 +838,7 @@ export class SessionManager implements ISessionManager {
    * @param sessionId - Session identifier to check
    * @returns Promise resolving to true if session exists
    */
-  async sessionExists(_sessionId: SessionId): Promise<boolean> {
+  async sessionExists(sessionId: SessionId): Promise<boolean> {
     return await this.storage.sessionExists(sessionId);
   }
   
@@ -945,7 +947,7 @@ export class SessionManager implements ISessionManager {
    * @returns Promise resolving to array of search results with relevance scores
    */
   async searchSessions(
-    _query: string, 
+    query: string, 
     options: SearchSessionsOptions = {}
   ): Promise<SessionSearchResult[]> {
     if (!query.trim()) {
@@ -1008,7 +1010,7 @@ export class SessionManager implements ISessionManager {
    * @param filters - Filter criteria
    * @returns Promise resolving to filtered session metadata
    */
-  async filterSessions(_filters: FilterSessionsOptions): Promise<SessionMetadata[]> {
+  async filterSessions(filters: FilterSessionsOptions): Promise<SessionMetadata[]> {
     try {
       const index = await this.storage.getIndex();
       let sessions = Object.values(index.sessions).filter((session): session is SessionMetadata => session !== undefined);
@@ -1043,7 +1045,7 @@ export class SessionManager implements ISessionManager {
    * @param fuzzyMatch - Whether to enable fuzzy matching
    * @returns Array of search terms
    */
-  private parseSearchQuery(_query: string, _caseSensitive: boolean, _fuzzyMatch: boolean): string[] {
+  private parseSearchQuery(query: string, _caseSensitive: boolean, _fuzzyMatch: boolean): string[] {
     let processedQuery = query.trim();
     
     if (!caseSensitive) {
@@ -1071,7 +1073,7 @@ export class SessionManager implements ISessionManager {
    * @returns Search result or null if no matches
    */
   private async searchSingleSession(
-    _session: SessionMetadata,
+    session: SessionMetadata,
     searchTerms: string[],
     options: {
       includeContent: boolean;
@@ -1157,9 +1159,9 @@ export class SessionManager implements ISessionManager {
    * @returns Array of metadata matches
    */
   private searchSessionMetadata(
-    _session: SessionMetadata,
+    session: SessionMetadata,
     searchTerms: string[],
-    _caseSensitive: boolean
+    caseSensitive: boolean
   ): SearchMatch[] {
     const matches: SearchMatch[] = [];
 
@@ -1211,9 +1213,9 @@ export class SessionManager implements ISessionManager {
    * @returns Array of filename matches
    */
   private searchSessionFilenames(
-    _session: SessionMetadata,
+    session: SessionMetadata,
     searchTerms: string[],
-    _caseSensitive: boolean
+    caseSensitive: boolean
   ): SearchMatch[] {
     const matches: SearchMatch[] = [];
 
@@ -1241,9 +1243,9 @@ export class SessionManager implements ISessionManager {
    * @returns Array of content matches
    */
   private searchSessionContent(
-    _session: Session,
+    session: Session,
     searchTerms: string[],
-    _caseSensitive: boolean
+    caseSensitive: boolean
   ): SearchMatch[] {
     const matches: SearchMatch[] = [];
 
@@ -1277,11 +1279,11 @@ export class SessionManager implements ISessionManager {
    * @returns Array of match positions
    */
   private findMatches(
-    _text: string,
+    text: string,
     searchTerms: string[],
-    _caseSensitive: boolean
-  ): Array<{ term: string; _position: number }> {
-    const matches: Array<{ term: string; _position: number }> = [];
+    caseSensitive: boolean
+  ): Array<{ term: string; position: number }> {
+    const matches: Array<{ term: string; position: number }> = [];
     const searchText = caseSensitive ? text : text.toLowerCase();
 
     for (const term of searchTerms) {
@@ -1291,10 +1293,10 @@ export class SessionManager implements ISessionManager {
       while (true) {
         const index = searchText.indexOf(searchTerm, position);
         if (index === -1) {
-    break;
-  }
+          break;
+        }
         
-        matches.push({ _term: searchTerm, _position: index });
+        matches.push({ term: searchTerm, position: index });
         position = index + 1;
       }
     }
@@ -1310,7 +1312,7 @@ export class SessionManager implements ISessionManager {
    * @param caseSensitive - Case sensitivity
    * @returns Text with highlight markers
    */
-  private highlightMatch(_text: string, _term: string, _caseSensitive: boolean): string {
+  private highlightMatch(text: string, term: string, caseSensitive: boolean): string {
     const searchText = caseSensitive ? text : text.toLowerCase();
     // Use the term as-is since parseSearchQuery already handles case conversion
     const searchTerm = term;
@@ -1336,18 +1338,18 @@ export class SessionManager implements ISessionManager {
    * @param contextLength - Length of context to include
    * @returns Context string
    */
-  private getContext(_text: string, _position: number, _contextLength: number): string {
+  private getContext(text: string, position: number, contextLength: number): string {
     const start = Math.max(0, position - contextLength);
     const end = Math.min(text.length, position + contextLength);
     
     let context = text.slice(start, end);
     
     if (start > 0) {
-    context = '...' + context;
-  }
+      context = '...' + context;
+    }
     if (end < text.length) {
-    context = context + '...';
-  }
+      context = context + '...';
+    }
     
     return context;
   }
@@ -1363,7 +1365,7 @@ export class SessionManager implements ISessionManager {
    * @param filters - Filter criteria
    * @returns True if session matches all filters
    */
-  private sessionMatchesAllFilters(_session: SessionMetadata, _filters: FilterSessionsOptions): boolean {
+  private sessionMatchesAllFilters(session: SessionMetadata, filters: FilterSessionsOptions): boolean {
     // Model filter
     if (filters.model && session.model !== filters.model) {
       return false;
@@ -1413,7 +1415,7 @@ export class SessionManager implements ISessionManager {
    * @param filters - Filter criteria
    * @returns True if session matches any filter
    */
-  private sessionMatchesAnyFilter(_session: SessionMetadata, _filters: FilterSessionsOptions): boolean {
+  private sessionMatchesAnyFilter(session: SessionMetadata, filters: FilterSessionsOptions): boolean {
     // Model filter
     if (filters.model && session.model === filters.model) {
       return true;
@@ -1575,7 +1577,7 @@ export class SessionManager implements ISessionManager {
         }
       }
       
-    } catch (_error: any) {
+    } catch (error: any) {
       console.error('Session cleanup failed:', error);
       result.errors.push({
         sessionId: '' as SessionId,
@@ -1593,7 +1595,7 @@ export class SessionManager implements ISessionManager {
    * @param force - Skip confirmation if true
    * @returns Promise resolving to true if deleted, false if cancelled
    */
-  async deleteSessionWithConfirmation(_sessionId: SessionId, force: boolean = false): Promise<boolean> {
+  async deleteSessionWithConfirmation(sessionId: SessionId, force: boolean = false): Promise<boolean> {
     try {
       // Check if session exists
       if (!await this.sessionExists(sessionId)) {
@@ -1628,7 +1630,7 @@ export class SessionManager implements ISessionManager {
       try {
         await this.storage.createBackup(sessionId);
         console.warn(`Backup created for session ${sessionId}`);
-      } catch (_backupError: any) {
+      } catch (backupError: any) {
         console.warn(`Failed to create backup: ${backupError.message}`);
       }
       
@@ -1638,7 +1640,7 @@ export class SessionManager implements ISessionManager {
       console.warn(`Session ${sessionId} deleted successfully`);
       return true;
       
-    } catch (_error: any) {
+    } catch (error: any) {
       console.error(`Failed to delete session ${sessionId}:`, error.message);
       return false;
     }
@@ -1653,7 +1655,7 @@ export class SessionManager implements ISessionManager {
    * @returns Promise resolving to the restored session
    * @throws {Error} If session not found or restoration fails
    */
-  async restoreSession(_sessionId: SessionId): Promise<Session> {
+  async restoreSession(sessionId: SessionId): Promise<Session> {
     const session = await this.loadSession(sessionId, {
       _validateIntegrity: true,
       _updateTimestamp: true, // Update timestamp to mark as recently accessed
@@ -1671,7 +1673,7 @@ export class SessionManager implements ISessionManager {
    * @param session - Session to validate
    * @returns True if session is valid, false otherwise
    */
-  validateSessionIntegrity(_session: Session): boolean {
+  validateSessionIntegrity(session: Session): boolean {
     try {
       this.validateSessionIntegrityInternal(session);
       return true;
@@ -1690,7 +1692,7 @@ export class SessionManager implements ISessionManager {
    * @returns Promise resolving to restoration result with context file status
    * @throws {Error} If session not found or restoration fails
    */
-  async restoreSessionWithContext(_sessionId: SessionId): Promise<{
+  async restoreSessionWithContext(sessionId: SessionId): Promise<{
     session: Session;
     contextFilesFound: string[];
     contextFilesMissing: string[];
@@ -1736,7 +1738,7 @@ export class SessionManager implements ISessionManager {
    * @throws {Error} If session not found or export fails
    */
   async exportSession(
-    _sessionId: SessionId, 
+    sessionId: SessionId, 
     options: ExportSessionOptions = {}
   ): Promise<ExportResult> {
     const {
@@ -1797,8 +1799,7 @@ export class SessionManager implements ISessionManager {
         type: 'session-full',
         version: '1.0.0',
         exported: Date.now(),
-        originalWorkspace: preserveWorkspacePaths ? session.workspaceRoot : '[Workspace path removed]',
-        _session: sessionToExport,
+        originalWorkspace: preserveWorkspacePaths ? session.workspaceRoot : '[Workspace path removed]', session: sessionToExport,
       };
     }
     
@@ -1816,7 +1817,7 @@ export class SessionManager implements ISessionManager {
     }
     
     return {
-      _data: formattedData,
+      data: formattedData,
       format,
       _sanitized: sanitize,
       size: Buffer.byteLength(formattedData, 'utf8'),
@@ -1833,7 +1834,7 @@ export class SessionManager implements ISessionManager {
    * @throws {Error} If data is invalid or import fails
    */
   async importSession(
-    _data: string, 
+    data: string, 
     options: ImportSessionOptions = {}
   ): Promise<ImportResult> {
     const {
@@ -1851,7 +1852,7 @@ export class SessionManager implements ISessionManager {
     let importData: any;
     try {
       importData = JSON.parse(data);
-    } catch (_error: any) {
+    } catch (error: any) {
       throw new Error(`Invalid JSON format: ${error.message}`);
     }
     
@@ -1877,7 +1878,7 @@ export class SessionManager implements ISessionManager {
       try {
         sessionData = SessionSchema.parse(rawSession);
         originalId = sessionData.id;
-      } catch (_error: any) {
+      } catch (error: any) {
         if (strictValidation) {
           throw new Error(`Invalid session data: ${error.message}`);
         }
@@ -1964,8 +1965,8 @@ export class SessionManager implements ISessionManager {
    * @returns Sanitized session data
    */
   private sanitizeSessionData(
-    _session: Session, 
-    _preserveWorkspacePaths: boolean,
+    session: Session, 
+    preserveWorkspacePaths: boolean,
     customPatterns: string[]
   ): Session {
     const sanitized = { ...session };
@@ -2000,8 +2001,8 @@ export class SessionManager implements ISessionManager {
    * @returns Sanitized session metadata
    */
   private sanitizeSessionMetadata(
-    _metadata: SessionMetadata,
-    _preserveWorkspacePaths: boolean,
+    metadata: SessionMetadata,
+    preserveWorkspacePaths: boolean,
     customPatterns: string[]
   ): SessionMetadata {
     const sanitized = { ...metadata };
@@ -2035,7 +2036,7 @@ export class SessionManager implements ISessionManager {
    * @param customPatterns - Custom sanitization patterns
    * @returns Sanitized message
    */
-  private sanitizeMessage(_message: Message, customPatterns: string[]): Message {
+  private sanitizeMessage(message: Message, customPatterns: string[]): Message {
     const sanitized = { ...message };
     
     // Sanitize content
@@ -2077,7 +2078,7 @@ export class SessionManager implements ISessionManager {
    * @param customPatterns - Custom sanitization patterns
    * @returns Sanitized text
    */
-  private sanitizeText(_text: string, customPatterns: string[]): string {
+  private sanitizeText(text: string, customPatterns: string[]): string {
     let sanitized = text;
     
     // Default sanitization patterns (comprehensive for edge cases)
@@ -2148,7 +2149,7 @@ export class SessionManager implements ISessionManager {
    * @param filePath - File path to sanitize
    * @returns Sanitized file path
    */
-  private sanitizeFilePath(_filePath: string): string {
+  private sanitizeFilePath(filePath: string): string {
     // Keep only the filename and immediate parent directory
     const parts = filePath.split(/[/\\]/);
     if (parts.length <= 2) {
@@ -2163,7 +2164,7 @@ export class SessionManager implements ISessionManager {
    * @param rawSession - Raw session data to repair
    * @returns Repaired session data
    */
-  private repairSessionData(_rawSession: any): Session {
+  private repairSessionData(rawSession: any): Session {
     const repaired = { ...rawSession };
     
     // Ensure required fields exist
@@ -2204,7 +2205,7 @@ export class SessionManager implements ISessionManager {
     }
     
     // Ensure messages have IDs
-    repaired.messages = repaired.messages.map((_msg: any) => ({
+    repaired.messages = repaired.messages.map((msg: any) => ({
       ...msg,
       id: msg.id || createMessageId(),
     }));
@@ -2222,7 +2223,7 @@ export class SessionManager implements ISessionManager {
    * @param session - Session to validate
    * @throws {Error} If session is invalid
    */
-  private validateSessionIntegrityInternal(_session: Session): void {
+  private validateSessionIntegrityInternal(session: Session): void {
     // Check required fields
     if (!session.id || !session.model || !session.workspaceRoot) {
       throw new Error('Session missing required fields');
@@ -2255,7 +2256,7 @@ export class SessionManager implements ISessionManager {
    * @param _filePath - Path to check (unused in current implementation)
    * @returns Promise resolving to true if file exists
    */
-  private async checkFileExists(_filePath: string): Promise<boolean> {
+  private async checkFileExists(filePath: string): Promise<boolean> {
     try {
       // This is a placeholder implementation
       // In a real implementation, you would use fs.access or similar
@@ -2304,7 +2305,7 @@ export class SessionManager implements ISessionManager {
    * @param value - Value to set
    * @throws {Error} If configuration update fails
    */
-  async setConfiguration(_key: string, _value: string): Promise<void> {
+  async setConfiguration(key: string, _value: string): Promise<void> {
     await logOperation(
       'session.config.set',
       async () => {
@@ -2384,7 +2385,7 @@ export class SessionManager implements ISessionManager {
    * @param value - Value to validate
    * @returns Promise resolving to validation result
    */
-  async validateConfigChange(_key: string, _value: string): Promise<ConfigurationValidationResult> {
+  async validateConfigChange(key: string, _value: string): Promise<ConfigurationValidationResult> {
     try {
       const currentConfig = await this.getConfiguration();
       const currentValue = this.getCurrentConfigValue(currentConfig, key);
@@ -2425,7 +2426,7 @@ export class SessionManager implements ISessionManager {
       
       return result;
       
-    } catch (_error: any) {
+    } catch (error: any) {
       return {
         _valid: false,
         error: error.message || 'Validation failed',
@@ -2496,7 +2497,7 @@ export class SessionManager implements ISessionManager {
    * @returns Promise resolving to validation result
    */
   async validateConfiguration(): Promise<ConfigurationValidationResult> {
-    const issues: Array<{ setting: string; _error: string }> = [];
+    const issues: Array<{ setting: string; error: string }> = [];
     const warnings: Array<{ setting: string; _message: string }> = [];
     let checkedSettings = 0;
     
@@ -2566,7 +2567,7 @@ export class SessionManager implements ISessionManager {
       
       return result;
       
-    } catch (_error: any) {
+    } catch (error: any) {
       return {
         _valid: false,
         currentValue: 'N/A',
@@ -2590,7 +2591,7 @@ export class SessionManager implements ISessionManager {
    * @param value - String value to parse
    * @returns Parsed value
    */
-  private parseConfigurationValue(_key: string, _value: string): any {
+  private parseConfigurationValue(key: string, value: string): any {
     switch (key) {
       case 'max-sessions':
       case 'max-age-days':
@@ -2623,7 +2624,7 @@ export class SessionManager implements ISessionManager {
    * @param value - Parsed value to validate
    * @returns Validation result
    */
-  private validateConfigurationValue(_key: string, _value: any): { valid: boolean; error?: string; suggestions?: string[] } {
+  private validateConfigurationValue(key: string, value: any): { valid: boolean; error?: string; suggestions?: string[] } {
     switch (key) {
       case 'max-sessions':
         if (typeof value !== 'number' || value < 1 || value > 10000) {
@@ -2692,7 +2693,7 @@ export class SessionManager implements ISessionManager {
    * @param key - Configuration key
    * @returns Current value
    */
-  private getCurrentConfigValue(_config: SessionConfiguration, _key: string): any {
+  private getCurrentConfigValue(config: SessionConfiguration, key: string): any {
     switch (key) {
       case 'max-sessions':
         return config.maxSessions;
@@ -2719,7 +2720,7 @@ export class SessionManager implements ISessionManager {
    * @param key - Configuration key
    * @returns Default value
    */
-  private getDefaultConfigValue(_key: string): any {
+  private getDefaultConfigValue(key: string): any {
     switch (key) {
       case 'max-sessions':
         return 50;
@@ -2748,7 +2749,7 @@ export class SessionManager implements ISessionManager {
    * @param currentValue - Current value
    * @returns True if confirmation is required
    */
-  private configChangeRequiresConfirmation(_key: string, _newValue: any, _currentValue: any): boolean {
+  private configChangeRequiresConfirmation(key: string, newValue: any, currentValue: any): boolean {
     switch (key) {
       case 'max-sessions':
         // Require confirmation if significantly reducing max sessions
@@ -2776,7 +2777,7 @@ export class SessionManager implements ISessionManager {
    * @param newValue - New value
    * @returns Warning message
    */
-  private getConfigChangeWarning(_key: string, _newValue: any): string {
+  private getConfigChangeWarning(key: string, newValue: any): string {
     switch (key) {
       case 'max-sessions':
         return 'Reducing max sessions may trigger immediate cleanup of existing sessions.';
@@ -2795,7 +2796,7 @@ export class SessionManager implements ISessionManager {
    * @param key - Configuration key
    * @returns True if restart is required
    */
-  private configChangeRequiresRestart(_key: string): boolean {
+  private configChangeRequiresRestart(key: string): boolean {
     switch (key) {
       case 'sessions-dir':
         return true; // Directory changes typically require restart
@@ -2956,7 +2957,7 @@ export class SessionManager implements ISessionManager {
    * @param provider - New provider to switch to
    * @param model - Optional new model (defaults to provider's default)
    */
-  async switchProvider(_provider: string, model?: string): Promise<void> {
+  async switchProvider(provider: string, model?: string): Promise<void> {
     if (!this.currentSession) {
       throw new Error('No current session to switch provider for');
     }
@@ -2980,7 +2981,7 @@ export class SessionManager implements ISessionManager {
    * @param provider - New provider
    * @param model - Optional new model
    */
-  async migrateSessionProvider(_sessionId: SessionId, _provider: string, model?: string): Promise<void> {
+  async migrateSessionProvider(sessionId: SessionId, provider: string, model?: string): Promise<void> {
     // Load the session
     const session = await this.loadSession(sessionId);
 
@@ -3007,7 +3008,7 @@ export class SessionManager implements ISessionManager {
    * @param provider - Provider to filter by
    * @returns Array of session metadata for the provider
    */
-  async getSessionsByProvider(_provider: string): Promise<SessionMetadata[]> {
+  async getSessionsByProvider(provider: string): Promise<SessionMetadata[]> {
     const allSessions = await this.listSessions();
     return allSessions.filter(session => session.provider === provider);
   }
@@ -3018,7 +3019,7 @@ export class SessionManager implements ISessionManager {
    * @param session - Session metadata
    * @returns Estimated size in bytes
    */
-  private estimateSessionSize(_session: SessionMetadata): number {
+  private estimateSessionSize(session: SessionMetadata): number {
     // Base size for metadata
     let size = 1000; // 1KB base
     
@@ -3045,7 +3046,7 @@ export class SessionManager implements ISessionManager {
  * @param workspaceRoot - Workspace root for loading configuration
  * @returns Configured SessionManager instance
  */
-export function createSessionManager(_workspaceRoot: string): SessionManager {
+export function createSessionManager(workspaceRoot: string): SessionManager {
   const config = loadConfig(workspaceRoot);
   
   // Create storage with configuration

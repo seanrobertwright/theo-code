@@ -11,7 +11,7 @@ import { createDefaultColorScheme, deriveProjectName } from './utils.js';
 /**
  * Format session duration from created timestamp to human-readable string.
  */
-function formatSessionDuration(_createdTimestamp: number): string {
+function formatSessionDuration(createdTimestamp: number): string {
   const now = Date.now();
   const elapsed = now - createdTimestamp;
   

@@ -58,7 +58,7 @@ export class ConfirmationService {
    * @param details - Optional additional details (e.g., diff preview)
    * @returns Promise resolving to true if confirmed, false if rejected
    */
-  async requestConfirmation(_message: string, details?: string): Promise<boolean> {
+  async requestConfirmation(message: string, details?: string): Promise<boolean> {
     const id = this.generateRequestId();
     const request: ConfirmationRequest = {
       id,

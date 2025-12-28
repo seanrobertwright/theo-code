@@ -23,7 +23,7 @@ export interface ProviderSelectionProps {
   currentProvider?: string;
   
   /** Callback when a provider is selected */
-  onProviderSelected: (_provider: string) => void;
+  onProviderSelected: (provider: string) => void;
   
   /** Callback to cancel selection */
   onCancel: () => void;
@@ -339,7 +339,7 @@ export interface ProviderConfigWizardProps {
   currentConfig?: ProviderConfig;
   
   /** Callback when configuration is saved */
-  onConfigSaved: (_config: ProviderConfig) => void;
+  onConfigSaved: (config: ProviderConfig) => void;
   
   /** Callback to cancel configuration */
   onCancel: () => void;
@@ -365,7 +365,7 @@ export const ProviderConfigWizard = ({
   useInput(
     useCallback(
       (input, key) => {
-        if (key.escape || (key.ctrl && input === 'c') {
+        if (key.escape || (key.ctrl && input === 'c')) {
           onCancel();
         }
       },

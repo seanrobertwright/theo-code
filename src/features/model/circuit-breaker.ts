@@ -242,7 +242,7 @@ export class CircuitBreaker {
   private halfOpenSuccesses = 0;
   private windowStart = Date.now();
 
-  constructor(_provider: ModelProvider, customConfig?: Partial<CircuitBreakerConfig>) {
+  constructor(provider: ModelProvider, customConfig?: Partial<CircuitBreakerConfig>) {
     this.provider = provider;
     this.config = {
       ...DEFAULT_CIRCUIT_BREAKER_CONFIGS[provider],
@@ -322,7 +322,7 @@ export class CircuitBreaker {
 
       case 'OPEN':
         // Check if we should transition to half-open
-        if (this.shouldTransitionToHalfOpen() {
+        if (this.shouldTransitionToHalfOpen()) {
           this.transitionToHalfOpen();
           return true;
         }
@@ -356,7 +356,7 @@ export class CircuitBreaker {
   /**
    * Force the circuit breaker to a specific state.
    */
-  forceState(_state: CircuitBreakerState): void {
+  forceState(state: CircuitBreakerState): void {
     logger.info(`[CircuitBreaker] Forcing state change from ${this.state} to ${state} for ${this.provider}`);
     
     this.state = state;
@@ -400,7 +400,7 @@ export class CircuitBreaker {
   /**
    * Record a successful operation.
    */
-  private recordSuccess(_responseTimeMs: number): void {
+  private recordSuccess(responseTimeMs: number): void {
     this.metrics.totalRequests++;
     this.metrics.successCount++;
     this.metrics.lastSuccessTime = Date.now();
@@ -424,14 +424,14 @@ export class CircuitBreaker {
   /**
    * Record a failed operation.
    */
-  private recordFailure(_error: ExtendedAdapterError, _responseTimeMs: number): void {
+  private recordFailure(error: ExtendedAdapterError, responseTimeMs: number): void {
     this.metrics.totalRequests++;
     this.metrics.failureCount++;
     this.metrics.lastFailureTime = Date.now();
     this.metrics.windowRequests++;
 
     // Only count as window failure if it's a circuit-breaking error
-    if (this.isCircuitBreakingError(error) {
+    if (this.isCircuitBreakingError(error)) {
       this.metrics.windowFailures++;
     }
 
@@ -443,7 +443,7 @@ export class CircuitBreaker {
       this.transitionToOpen();
     } else if (this.state === 'CLOSED') {
       // Check if we should open the circuit
-      if (this.shouldTransitionToOpen(error) {
+      if (this.shouldTransitionToOpen(error)) {
         this.transitionToOpen();
       }
     }
@@ -454,16 +454,16 @@ export class CircuitBreaker {
   /**
    * Check if an error should cause the circuit to break.
    */
-  private isCircuitBreakingError(_error: ExtendedAdapterError): boolean {
+  private isCircuitBreakingError(error: ExtendedAdapterError): boolean {
     return this.config.failureErrors.has(error.code) || this.config.criticalErrors.has(error.code);
   }
 
   /**
    * Check if the circuit should transition to open state.
    */
-  private shouldTransitionToOpen(_error: ExtendedAdapterError): boolean {
+  private shouldTransitionToOpen(error: ExtendedAdapterError): boolean {
     // Critical errors immediately open the circuit
-    if (this.config.criticalErrors.has(error.code) {
+    if (this.config.criticalErrors.has(error.code)) {
       return true;
     }
 
@@ -547,7 +547,7 @@ export class CircuitBreaker {
   /**
    * Adapt generic errors to ExtendedAdapterError.
    */
-  private adaptError(_error: unknown): ExtendedAdapterError {
+  private adaptError(error: unknown): ExtendedAdapterError {
     if (error instanceof ExtendedAdapterError) {
       return error;
     }
@@ -572,7 +572,7 @@ export class CircuitBreakerManager {
   /**
    * Get or create a circuit breaker for a provider.
    */
-  getCircuitBreaker(_provider: ModelProvider, customConfig?: Partial<CircuitBreakerConfig>): CircuitBreaker {
+  getCircuitBreaker(provider: ModelProvider, customConfig?: Partial<CircuitBreakerConfig>): CircuitBreaker {
     let circuitBreaker = this.circuitBreakers.get(provider);
     
     if (!circuitBreaker) {
@@ -640,7 +640,7 @@ export class CircuitBreakerManager {
   /**
    * Reset a specific circuit breaker.
    */
-  reset(_provider: ModelProvider): void {
+  reset(provider: ModelProvider): void {
     const circuitBreaker = this.circuitBreakers.get(provider);
     if (circuitBreaker) {
       circuitBreaker.reset();
@@ -650,7 +650,7 @@ export class CircuitBreakerManager {
   /**
    * Force a specific circuit breaker to a state.
    */
-  forceState(_provider: ModelProvider, _state: CircuitBreakerState): void {
+  forceState(provider: ModelProvider, state: CircuitBreakerState): void {
     const circuitBreaker = this.circuitBreakers.get(provider);
     if (circuitBreaker) {
       circuitBreaker.forceState(state);
@@ -686,6 +686,6 @@ export async function withCircuitBreaker<T>(
 /**
  * Get default circuit breaker configuration for a provider.
  */
-export function getDefaultCircuitBreakerConfig(_provider: ModelProvider): CircuitBreakerConfig {
+export function getDefaultCircuitBreakerConfig(provider: ModelProvider): CircuitBreakerConfig {
   return { ...DEFAULT_CIRCUIT_BREAKER_CONFIGS[provider] };
 }

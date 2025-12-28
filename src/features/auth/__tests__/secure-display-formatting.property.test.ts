@@ -88,7 +88,7 @@ const oauthConfigArb = fc.record({
   redirectUri: fc.constant('http://localhost:8080/callback'),
   additionalParams: fc.option(fc.record({
     client_secret: fc.option(sensitiveStringArb),
-    api_key: fc.option(sensitiveStringArb),
+    apikey: fc.option(sensitiveStringArb),
     non_sensitive_param: fc.option(nonSensitiveStringArb),
   })),
 });
@@ -117,7 +117,7 @@ const providerConfigArb = fc.record({
 /**
  * Check if a string contains sensitive data patterns.
  */
-function containsSensitiveData(_text: string): boolean {
+function containsSensitiveData(text: string): boolean {
   const sensitivePatterns = [
     /sk-[a-zA-Z0-9]{32,}/,     // OpenAI API keys
     /sk-ant-[a-zA-Z0-9]{32,}/, // Anthropic API keys
@@ -147,7 +147,7 @@ function containsSensitiveData(_text: string): boolean {
 /**
  * Check if text contains masked sensitive data (safe for display).
  */
-function containsMaskedSensitiveData(_text: string): boolean {
+function containsMaskedSensitiveData(text: string): boolean {
   const maskedPatterns = [
     /\[REDACTED\]/,
     /\*{3,}/,

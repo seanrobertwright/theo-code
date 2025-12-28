@@ -37,7 +37,7 @@ import {
  */
 export const sessionsCommandHandler: CommandHandler = async (
   args: string[],
-  _context: CommandContext
+  context: CommandContext
 ): Promise<void> => {
   const { addMessage, setError } = context;
   
@@ -222,7 +222,7 @@ async function handleSessionsDelete(
     
     // Get session metadata for confirmation
     const sessions = await sessionManager.listSessions({ _limit: 1000 });
-    const sessionMetadata = sessions.find((_s: SessionMetadata) => s.id === sessionId);
+    const sessionMetadata = sessions.find((s: SessionMetadata) => s.id === sessionId);
     
     if (!sessionMetadata) {
       throw new Error(`Session metadata not found for ${sessionId}`);
@@ -327,7 +327,7 @@ async function handleSessionsExport(
                   `🔧 **Format:** ${exportResult.format}\n` +
                   `🔒 **Sanitized:** ${exportResult.sanitized ? 'Yes' : 'No'}\n\n` +
                   `${exportResult.warnings.length > 0 ? 
-                    `⚠️ **Warnings:**\n${exportResult.warnings.map((_w: string) => `• ${w}`).join('\n')}\n\n` : 
+                    `⚠️ **Warnings:**\n${exportResult.warnings.map((w: string) => `• ${w}`).join('\n')}\n\n` : 
                     ''
                   }` +
                   `💡 **Tip:** The exported file can be shared or imported into another theo-code instance.`;
@@ -567,7 +567,7 @@ async function handleSessionsCleanup(
                  `✅ Deleted: ${cleanupResult.deletedSessions.length - cleanupResult.errors.length} sessions\n` +
                  `❌ Errors: ${cleanupResult.errors.length} sessions\n` +
                  `💾 Space freed: ~${formatFileSize(cleanupResult.spaceFree)}\n\n` +
-                 `**Errors:**\n${cleanupResult.errors.map((_e: any) => `• ${e.sessionId}: ${e.error}`).join('\n')}`,
+                 `**Errors:**\n${cleanupResult.errors.map((e: any) => `• ${e.sessionId}: ${e.error}`).join('\n')}`,
       });
     } else {
       addMessage({
@@ -654,7 +654,7 @@ async function handleSessionsConfig(
  * 
  * @param context - Command execution context
  */
-async function showCurrentConfig(_context: CommandContext): Promise<void> {
+async function showCurrentConfig(context: CommandContext): Promise<void> {
   const { addMessage, sessionActions } = context;
   
   try {
@@ -845,7 +845,7 @@ async function resetConfig(args: string[], _context: CommandContext): Promise<vo
  * 
  * @param context - Command execution context
  */
-async function validateConfig(_context: CommandContext): Promise<void> {
+async function validateConfig(context: CommandContext): Promise<void> {
   const { addMessage, sessionActions } = context;
   
   try {
@@ -871,7 +871,7 @@ async function validateConfig(_context: CommandContext): Promise<void> {
       
       if (issues.length > 0) {
         message += `**Errors:**\n`;
-        issues.forEach((_issue: any) => {
+        issues.forEach((issue: any) => {
           message += `• ${issue.setting}: ${issue.error}\n`;
         });
         message += '\n';
@@ -879,7 +879,7 @@ async function validateConfig(_context: CommandContext): Promise<void> {
       
       if (warnings.length > 0) {
         message += `**Warnings:**\n`;
-        warnings.forEach((_warning: any) => {
+        warnings.forEach((warning: any) => {
           message += `• ${warning.setting}: ${warning.message}\n`;
         });
         message += '\n';
@@ -907,7 +907,7 @@ async function validateConfig(_context: CommandContext): Promise<void> {
  * 
  * @param context - Command execution context
  */
-async function handleSessionsHelp(_context: CommandContext): Promise<void> {
+async function handleSessionsHelp(context: CommandContext): Promise<void> {
   const { addMessage } = context;
   
   const helpMessage = `📚 **Sessions Commands Help**\n\n` +
@@ -1130,7 +1130,7 @@ function parseCleanupOptions(args: string[]): {
  * @param limitResult - Storage limit check result
  * @returns Formatted notification message
  */
-function formatStorageLimitNotification(_limitResult: any): string {
+function formatStorageLimitNotification(limitResult: any): string {
   if (limitResult.withinLimits && !limitResult.warningThresholdReached) {
     return '';
   }
@@ -1158,7 +1158,7 @@ function formatStorageLimitNotification(_limitResult: any): string {
   // Add suggested actions
   if (limitResult.suggestedActions && limitResult.suggestedActions.length > 0) {
     message += '\n**Suggested actions:**\n';
-    limitResult.suggestedActions.forEach((_action: string) => {
+    limitResult.suggestedActions.forEach((action: string) => {
       message += `• ${action}\n`;
     });
     

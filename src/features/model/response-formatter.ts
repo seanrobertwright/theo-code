@@ -111,7 +111,7 @@ export class ResponsePrettyPrinter {
   /**
    * Formats a complete response for display.
    */
-  formatResponse(_response: FormattedResponse): string {
+  formatResponse(response: FormattedResponse): string {
     const lines: string[] = [];
     const indent = ' '.repeat(this.options.indentSize || 2);
 
@@ -159,7 +159,7 @@ export class ResponsePrettyPrinter {
   /**
    * Formats streaming chunks for real-time display.
    */
-  formatStreamChunk(_chunk: StreamChunk, _accumulated: FormattedResponse): string {
+  formatStreamChunk(chunk: StreamChunk, _accumulated: FormattedResponse): string {
     switch (chunk.type) {
       case 'text':
         return this.formatTextChunk(chunk);
@@ -178,8 +178,7 @@ export class ResponsePrettyPrinter {
    * Formats provider-specific responses consistently.
    */
   formatProviderResponse(
-    _provider: string,
-    _response: any,
+    _provider: string, response: any,
     options?: Partial<FormattingOptions>
   ): string {
     const mergedOptions = { ...this.options, ...options };
@@ -197,11 +196,11 @@ export class ResponsePrettyPrinter {
   // CHUNK FORMATTERS
   // =============================================================================
 
-  private formatTextChunk(_chunk: TextStreamChunk): string {
+  private formatTextChunk(chunk: TextStreamChunk): string {
     return chunk.text;
   }
 
-  private formatToolCallChunk(_chunk: ToolCallStreamChunk): string {
+  private formatToolCallChunk(chunk: ToolCallStreamChunk): string {
     const lines: string[] = [];
     const indent = ' '.repeat(this.options.indentSize || 2);
 
@@ -223,7 +222,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatDoneChunk(_chunk: DoneStreamChunk, _accumulated: FormattedResponse): string {
+  private formatDoneChunk(chunk: DoneStreamChunk, _accumulated: FormattedResponse): string {
     const lines: string[] = [];
 
     if (chunk.usage && this.options.includeUsage) {
@@ -233,7 +232,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatErrorChunk(_chunk: ErrorStreamChunk): string {
+  private formatErrorChunk(chunk: ErrorStreamChunk): string {
     return `\n❌ Error [${chunk.error.code}]: ${chunk.error.message}`;
   }
 
@@ -241,8 +240,8 @@ export class ResponsePrettyPrinter {
   // SECTION FORMATTERS
   // =============================================================================
 
-  private formatContent(_content: string): string {
-    if (content === undefined ?? content === null) {
+  private formatContent(content: string): string {
+    if (content === undefined || content === null) {
     return '';
   }
 
@@ -302,7 +301,7 @@ export class ResponsePrettyPrinter {
     return `⏱️  Timing: ${duration}ms`;
   }
 
-  private formatMetadata(_metadata: ProviderMetadata): string {
+  private formatMetadata(metadata: ProviderMetadata): string {
     const lines: string[] = [];
     const indent = ' '.repeat(this.options.indentSize || 2);
 
@@ -348,7 +347,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatObject(_obj: any, _indentLevel: number): string {
+  private formatObject(obj: any, _indentLevel: number): string {
     const indent = ' '.repeat(indentLevel);
     const lines: string[] = [];
 
@@ -368,7 +367,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatGenericResponse(_response: any): string {
+  private formatGenericResponse(response: any): string {
     try {
       return JSON.stringify(response, null, this.options.indentSize || 2);
     } catch (error) {
@@ -380,8 +379,8 @@ export class ResponsePrettyPrinter {
   // PROVIDER-SPECIFIC FORMATTERS
   // =============================================================================
 
-  private getProviderFormatter(_provider: string): ((_response: any, _options: FormattingOptions) => string) | null {
-    const formatters: Record<string, (_response: any, _options: FormattingOptions) => string> = {
+  private getProviderFormatter(provider: string): ((response: any, _options: FormattingOptions) => string) | null {
+    const formatters: Record<string, (response: any, _options: FormattingOptions) => string> = {
       openai: this.formatOpenAIResponse.bind(this),
       anthropic: this.formatAnthropicResponse.bind(this),
       google: this.formatGoogleResponse.bind(this),
@@ -396,7 +395,7 @@ export class ResponsePrettyPrinter {
     return formatters[provider] || null;
   }
 
-  private formatOpenAIResponse(_response: any, _options: FormattingOptions): string {
+  private formatOpenAIResponse(response: any, _options: FormattingOptions): string {
     const lines: string[] = [];
 
     // Check multiple possible content fields, using same priority as test
@@ -432,7 +431,7 @@ export class ResponsePrettyPrinter {
       const choice = response.choices[0];
       if (choice.message?.tool_calls) {
         lines.push('');
-        lines.push(this.formatToolCalls(choice.message.tool_calls.map((_tc: any) => ({
+        lines.push(this.formatToolCalls(choice.message.tool_calls.map((tc: any) => ({
           id: tc.id,
           name: tc.function.name,
           arguments: JSON.parse(tc.function.arguments || '{}'),
@@ -462,7 +461,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatAnthropicResponse(_response: any, _options: FormattingOptions): string {
+  private formatAnthropicResponse(response: any, _options: FormattingOptions): string {
     const lines: string[] = [];
 
     // Check multiple possible content fields, using same priority as test
@@ -485,9 +484,7 @@ export class ResponsePrettyPrinter {
       content = response.content;
     }
     // Check Anthropic-specific content array format
-    else if (response.content && Array.isArray(response.content) {
-    && response.content.length > 0) {
-  }
+    else if (response.content && Array.isArray(response.content) && response.content.length > 0) {
       for (const contentItem of response.content) {
         if (contentItem.type === 'text') {
           lines.push(this.formatContent(contentItem.text));
@@ -533,7 +530,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatGoogleResponse(_response: any, _options: FormattingOptions): string {
+  private formatGoogleResponse(response: any, _options: FormattingOptions): string {
     const lines: string[] = [];
 
     // Check multiple possible content fields, using same priority as test
@@ -588,7 +585,7 @@ export class ResponsePrettyPrinter {
       let usage = null;
       
       // Check standard usage format first
-      if (response.usage && (response.usage.prompt_tokens || response.usage.completion_tokens) {
+      if (response.usage && (response.usage.prompt_tokens || response.usage.completion_tokens)) {
         usage = {
           inputTokens: response.usage.prompt_tokens || 0,
           outputTokens: response.usage.completion_tokens || 0,
@@ -620,7 +617,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatOpenRouterResponse(_response: any, _options: FormattingOptions): string {
+  private formatOpenRouterResponse(response: any, _options: FormattingOptions): string {
     // OpenRouter uses OpenAI-compatible format
     const formatted = this.formatOpenAIResponse(response, options);
     
@@ -641,7 +638,7 @@ export class ResponsePrettyPrinter {
     return formatted;
   }
 
-  private formatCohereResponse(_response: any, _options: FormattingOptions): string {
+  private formatCohereResponse(response: any, _options: FormattingOptions): string {
     const lines: string[] = [];
 
     // Check multiple possible content fields, using same priority as test
@@ -673,7 +670,7 @@ export class ResponsePrettyPrinter {
 
     if (response.tool_calls && response.tool_calls.length > 0) {
       lines.push('');
-      lines.push(this.formatToolCalls(response.tool_calls.map((_tc: any) => ({
+      lines.push(this.formatToolCalls(response.tool_calls.map((tc: any) => ({
         id: `cohere_${tc.name}_${Date.now()}`,
         name: tc.name,
         arguments: tc.parameters,
@@ -684,7 +681,7 @@ export class ResponsePrettyPrinter {
       let usage = null;
       
       // Check standard usage format first
-      if (response.usage && (response.usage.prompt_tokens || response.usage.completion_tokens) {
+      if (response.usage && (response.usage.prompt_tokens || response.usage.completion_tokens)) {
         usage = {
           inputTokens: response.usage.prompt_tokens || 0,
           outputTokens: response.usage.completion_tokens || 0,
@@ -717,7 +714,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatMistralResponse(_response: any, _options: FormattingOptions): string {
+  private formatMistralResponse(response: any, _options: FormattingOptions): string {
     // Mistral uses OpenAI-compatible format
     const formatted = this.formatOpenAIResponse(response, options);
     
@@ -738,7 +735,7 @@ export class ResponsePrettyPrinter {
     return formatted;
   }
 
-  private formatTogetherResponse(_response: any, _options: FormattingOptions): string {
+  private formatTogetherResponse(response: any, _options: FormattingOptions): string {
     // Together uses OpenAI-compatible format
     const formatted = this.formatOpenAIResponse(response, options);
     
@@ -759,7 +756,7 @@ export class ResponsePrettyPrinter {
     return formatted;
   }
 
-  private formatPerplexityResponse(_response: any, _options: FormattingOptions): string {
+  private formatPerplexityResponse(response: any, _options: FormattingOptions): string {
     const lines: string[] = [];
 
     if (response.choices && response.choices.length > 0) {
@@ -791,7 +788,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatOllamaResponse(_response: any, _options: FormattingOptions): string {
+  private formatOllamaResponse(response: any, _options: FormattingOptions): string {
     const lines: string[] = [];
 
     // Check multiple possible content fields, using same priority as test
@@ -829,7 +826,7 @@ export class ResponsePrettyPrinter {
       let usage = null;
       
       // Check standard usage format first
-      if (response.usage && (response.usage.prompt_tokens || response.usage.completion_tokens) {
+      if (response.usage && (response.usage.prompt_tokens || response.usage.completion_tokens)) {
         usage = {
           inputTokens: response.usage.prompt_tokens || 0,
           outputTokens: response.usage.completion_tokens || 0,
@@ -876,7 +873,7 @@ export function createPrettyPrinter(options?: Partial<FormattingOptions>): Respo
 /**
  * Formats a response using default formatting options.
  */
-export function formatResponse(_response: FormattedResponse, options?: Partial<FormattingOptions>): string {
+export function formatResponse(response: FormattedResponse, options?: Partial<FormattingOptions>): string {
   const printer = createPrettyPrinter(options);
   return printer.formatResponse(response);
 }
@@ -897,8 +894,7 @@ export function formatStreamChunk(
  * Formats a provider-specific response using default formatting options.
  */
 export function formatProviderResponse(
-  _provider: string,
-  _response: any,
+  _provider: string, response: any,
   options?: Partial<FormattingOptions>
 ): string {
   const printer = createPrettyPrinter(options);
@@ -913,7 +909,7 @@ export function accumulateStreamChunks(chunks: StreamChunk[]): FormattedResponse
     content: '',
     toolCalls: [],
     errors: [],
-    _usage: null,
+    usage: null,
   };
 
   for (const chunk of chunks) {
@@ -938,7 +934,7 @@ export function accumulateStreamChunks(chunks: StreamChunk[]): FormattedResponse
         result.toolCalls!.push({
           id: createToolCallId(chunk.id),
           name: chunk.name,
-          _arguments: parsedArguments,
+          arguments: parsedArguments,
         });
         break;
         

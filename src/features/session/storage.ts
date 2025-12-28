@@ -49,25 +49,25 @@ import {
  */
 export interface ISessionStorage {
   // File operations
-  writeSession(_sessionId: SessionId, _session: Session): Promise<void>;
-  readSession(_sessionId: SessionId): Promise<Session>;
-  deleteSession(_sessionId: SessionId): Promise<void>;
-  sessionExists(_sessionId: SessionId): Promise<boolean>;
+  writeSession(sessionId: SessionId, session: Session): Promise<void>;
+  readSession(sessionId: SessionId): Promise<Session>;
+  deleteSession(sessionId: SessionId): Promise<void>;
+  sessionExists(sessionId: SessionId): Promise<boolean>;
   
   // Index management
-  updateIndex(_metadata: SessionMetadata): Promise<void>;
+  updateIndex(metadata: SessionMetadata): Promise<void>;
   getIndex(): Promise<SessionIndex>;
   rebuildIndex(): Promise<void>;
   
   // Backup and recovery
-  createBackup(_sessionId: SessionId): Promise<string>;
-  restoreFromBackup(_backupPath: string): Promise<SessionId>;
+  createBackup(sessionId: SessionId): Promise<string>;
+  restoreFromBackup(backupPath: string): Promise<SessionId>;
   
   // Cleanup
-  cleanupOldSessions(_maxCount: number, _maxAgeMs: number): Promise<SessionId[]>;
+  cleanupOldSessions(maxCount: number, _maxAgeMs: number): Promise<SessionId[]>;
   
   // Migration
-  migrateSession(_sessionId: SessionId): Promise<MigrationResult>;
+  migrateSession(sessionId: SessionId): Promise<MigrationResult>;
   migrateAllSessions(): Promise<MigrationResult[]>;
 }
 
@@ -88,7 +88,7 @@ export interface SessionStorageOptions {
   /** Create backups before risky operations */
   createBackups: boolean;
   
-  /** Maximum file size in bytes (_default: 10MB) */
+  /** Maximum file size in bytes (default: 10MB) */
   maxFileSize: number;
 }
 
@@ -132,7 +132,7 @@ export class SessionStorage implements ISessionStorage {
    * @param session - Session data to write
    * @throws {Error} If write operation fails
    */
-  async writeSession(_sessionId: SessionId, _session: Session): Promise<void> {
+  async writeSession(sessionId: SessionId, session: Session): Promise<void> {
     await logOperation(
       'storage.write',
       async () => {
@@ -206,7 +206,7 @@ export class SessionStorage implements ISessionStorage {
    * @returns Promise resolving to session data
    * @throws {Error} If read operation fails or data is invalid
    */
-  async readSession(_sessionId: SessionId): Promise<Session> {
+  async readSession(sessionId: SessionId): Promise<Session> {
     const filePath = getSessionFilePath(sessionId);
     
     // Read file content
@@ -219,7 +219,7 @@ export class SessionStorage implements ISessionStorage {
     try {
       const parsed = JSON.parse(content);
       versionedSession = VersionedSessionSchema.parse(parsed);
-    } catch (_error: any) {
+    } catch (error: any) {
       const errorMessage = error?.message || String(error);
       throw new Error(`Invalid session file format: ${errorMessage}`);
     }
@@ -250,7 +250,7 @@ export class SessionStorage implements ISessionStorage {
       try {
         await this.writeSession(sessionId, versionedSession.data as Session);
         console.warn(`Session ${sessionId} migrated successfully`);
-      } catch (_writeError: any) {
+      } catch (writeError: any) {
         console.warn(`Failed to write migrated session ${sessionId}: ${writeError.message}`);
       }
     }
@@ -285,7 +285,7 @@ export class SessionStorage implements ISessionStorage {
     try {
       const parsed = JSON.parse(sessionData);
       session = SessionSchema.parse(parsed);
-    } catch (_error: any) {
+    } catch (error: any) {
       throw new Error(`Invalid session data: ${error.message}`);
     }
     
@@ -298,7 +298,7 @@ export class SessionStorage implements ISessionStorage {
    * @param sessionId - Session identifier
    * @throws {Error} If deletion fails
    */
-  async deleteSession(_sessionId: SessionId): Promise<void> {
+  async deleteSession(sessionId: SessionId): Promise<void> {
     await logOperation(
       'storage.delete',
       async () => {
@@ -325,7 +325,7 @@ export class SessionStorage implements ISessionStorage {
    * @param sessionId - Session identifier
    * @returns Promise resolving to true if session exists
    */
-  async sessionExists(_sessionId: SessionId): Promise<boolean> {
+  async sessionExists(sessionId: SessionId): Promise<boolean> {
     const filePath = getSessionFilePath(sessionId);
     return await fileExists(filePath);
   }
@@ -340,7 +340,7 @@ export class SessionStorage implements ISessionStorage {
    * @param metadata - Session metadata to add/update
    * @throws {Error} If index update fails
    */
-  async updateIndex(_metadata: SessionMetadata): Promise<void> {
+  async updateIndex(metadata: SessionMetadata): Promise<void> {
     const indexPath = getSessionIndexPath();
     
     // Load existing index or create new one
@@ -357,7 +357,7 @@ export class SessionStorage implements ISessionStorage {
           sessions: {},
         };
       }
-    } catch (_error: any) {
+    } catch (error: any) {
       // If index is corrupted, rebuild it
       console.warn(`Index corrupted, rebuilding: ${error.message}`);
       await this.rebuildIndex();
@@ -393,7 +393,7 @@ export class SessionStorage implements ISessionStorage {
       const content = await safeReadFile(indexPath);
       const parsed = JSON.parse(content);
       return SessionIndexSchema.parse(parsed);
-    } catch (_error: any) {
+    } catch (error: any) {
       // Index is corrupted, rebuild it
       console.warn(`Index corrupted, rebuilding: ${error.message}`);
       await this.rebuildIndex();
@@ -423,7 +423,7 @@ export class SessionStorage implements ISessionStorage {
         const session = await this.readSession(sessionId);
         const metadata = this.createSessionMetadata(session);
         index.sessions[sessionId] = metadata;
-      } catch (_error: any) {
+      } catch (error: any) {
         console.warn(`Failed to process session file ${filePath}: ${error.message}`);
         // Continue with other files
       }
@@ -441,7 +441,7 @@ export class SessionStorage implements ISessionStorage {
    * 
    * @param sessionId - Session identifier to remove
    */
-  private async removeFromIndex(_sessionId: SessionId): Promise<void> {
+  private async removeFromIndex(sessionId: SessionId): Promise<void> {
     const index = await this.getIndex();
     delete index.sessions[sessionId];
     index.lastUpdated = Date.now();
@@ -514,7 +514,7 @@ export class SessionStorage implements ISessionStorage {
       
       const session = SessionSchema.parse(sessionData);
       sessionId = session.id;
-    } catch (_error: any) {
+    } catch (error: any) {
       throw new Error(`Invalid backup file format: ${error.message}`);
     }
     
@@ -544,7 +544,7 @@ export class SessionStorage implements ISessionStorage {
    * @returns Promise resolving to array of deleted session IDs
    * @throws {Error} If cleanup fails
    */
-  async cleanupOldSessions(_maxCount: number, _maxAgeMs: number): Promise<SessionId[]> {
+  async cleanupOldSessions(maxCount: number, _maxAgeMs: number): Promise<SessionId[]> {
     const index = await this.getIndex();
     const sessions = Object.values(index.sessions);
     const now = Date.now();
@@ -559,7 +559,7 @@ export class SessionStorage implements ISessionStorage {
         try {
           await this.deleteSession(session.id);
           deletedIds.push(session.id);
-        } catch (_error: any) {
+        } catch (error: any) {
           console.warn(`Failed to delete old session ${session.id}: ${error.message}`);
         }
       }
@@ -582,7 +582,7 @@ export class SessionStorage implements ISessionStorage {
           try {
             await this.deleteSession(session.id);
             deletedIds.push(session.id);
-          } catch (_error: any) {
+          } catch (error: any) {
             console.warn(`Failed to delete excess session ${session.id}: ${error.message}`);
           }
         }
@@ -617,14 +617,14 @@ export class SessionStorage implements ISessionStorage {
     let sessionData: any;
     try {
       sessionData = JSON.parse(content);
-    } catch (_error: any) {
+    } catch (error: any) {
       throw new Error(`Invalid JSON in session file: ${error.message}`);
     }
     
     // Check if migration is needed
-    if (!this.migrationFramework.needsMigration(sessionData) {
+    if (!this.migrationFramework.needsMigration(sessionData)) {
       return {
-        _success: true,
+        success: true,
         fromVersion: this.migrationFramework.getDataVersion(sessionData),
         toVersion: this.migrationFramework.getCurrentVersion(),
         migrationPath: [this.migrationFramework.getDataVersion(sessionData)],
@@ -647,7 +647,7 @@ export class SessionStorage implements ISessionStorage {
         }
         
         await this.writeSession(sessionId, migratedSession);
-      } catch (_writeError: any) {
+      } catch (writeError: any) {
         result.warnings.push(`Failed to write migrated session: ${writeError.message}`);
       }
     }
@@ -673,10 +673,10 @@ export class SessionStorage implements ISessionStorage {
         if (result.success && result.fromVersion !== result.toVersion) {
           console.warn(`Migrated session ${sessionId}: ${result.fromVersion} -> ${result.toVersion}`);
         }
-      } catch (_error: any) {
+      } catch (error: any) {
         console.error(`Failed to migrate session from ${filePath}:`, error.message);
         results.push({
-          _success: false,
+          success: false,
           fromVersion: 'unknown',
           toVersion: this.migrationFramework.getCurrentVersion(),
           migrationPath: [],
@@ -699,7 +699,7 @@ export class SessionStorage implements ISessionStorage {
    * @param session - Full session data
    * @returns Session metadata
    */
-  private createSessionMetadata(_session: Session): SessionMetadata {
+  private createSessionMetadata(session: Session): SessionMetadata {
     // Get preview from first user message or first message
     let preview: string | undefined;
     const firstUserMessage = session.messages.find(m => m.role === 'user');

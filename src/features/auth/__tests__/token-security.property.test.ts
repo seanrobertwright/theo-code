@@ -17,25 +17,25 @@ import type { ModelProvider } from '../../../shared/types/models.js';
 const mockStorage = new Map<string, string>();
 
 vi.mock('keytar', () => ({
-  setPassword: vi.fn().mockImplementation(async (_service: string, _account: string, _password: string) => {
+  setPassword: vi.fn().mockImplementation(async (service: string, _account: string, _password: string) => {
     const key = `${service}:${account}`;
     mockStorage.set(key, password);
     return undefined;
   }),
-  getPassword: vi.fn().mockImplementation(async (_service: string, _account: string) => {
+  getPassword: vi.fn().mockImplementation(async (service: string, _account: string) => {
     const key = `${service}:${account}`;
     return mockStorage.get(key) || null;
   }),
-  deletePassword: vi.fn().mockImplementation(async (_service: string, _account: string) => {
+  deletePassword: vi.fn().mockImplementation(async (service: string, _account: string) => {
     const key = `${service}:${account}`;
     const existed = mockStorage.has(key);
     mockStorage.delete(key);
     return existed;
   }),
-  findCredentials: vi.fn().mockImplementation(async (_service: string) => {
+  findCredentials: vi.fn().mockImplementation(async (service: string) => {
     const credentials: Array<{ account: string; _password: string }> = [];
     for (const [key, password] of mockStorage.entries()) {
-      if (key.startsWith(`${service}:`) {
+      if (key.startsWith(`${service}:`)) {
         const account = key.substring(service.length + 1);
         credentials.push({ account, password });
       }
@@ -75,8 +75,8 @@ const providerArb = fc.constantFrom('google', 'openrouter', 'anthropic');
  * Generates secure token sets.
  */
 const secureTokenSetArb = fc.record({
-  _accessToken: secureAccessTokenArb,
-  _refreshToken: secureRefreshTokenArb,
+  accessToken: secureAccessTokenArb,
+  refreshToken: secureRefreshTokenArb,
   expiresAt: fc.date({ 
     min: new Date(Date.now() + 60000), 
     max: new Date(Date.now() + 3600000) 
@@ -266,7 +266,7 @@ describe('Token Security Property Tests', () => {
           
           // Create token set with malicious data
           const maliciousTokenSet: TokenSet = {
-            _accessToken: maliciousToken,
+            accessToken: maliciousToken,
             refreshToken: 'safe_refresh_token',
             expiresAt: new Date(Date.now() + 3600000),
             tokenType: 'Bearer',

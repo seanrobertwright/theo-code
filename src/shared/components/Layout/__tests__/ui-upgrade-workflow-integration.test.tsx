@@ -50,13 +50,6 @@ vi.mock('../../../../registerTools.js', () => ({
   registerAllTools: vi.fn(),
 }));
 
-vi.mock('../../../hooks/useArchonMCP.js', () => ({
-  useUIUpgradeArchonTasks: vi.fn(() => ({
-    tasks: mockTasks,
-    connectionStatus: 'connected' as const,
-  })),
-}));
-
 // Mock session detection
 vi.mock('../../../../features/session/startup.js', () => ({
   detectAvailableSessions: vi.fn().mockResolvedValue({
@@ -65,67 +58,35 @@ vi.mock('../../../../features/session/startup.js', () => ({
   }),
   restoreSessionOnStartup: vi.fn().mockResolvedValue({
     success: true,
-    session: mockSession,
+    session: {
+      id: 'session-123',
+      workspaceRoot: '/test/workspace',
+      model: 'gpt-4o',
+      messages: [
+        {
+          id: 'msg-1',
+          role: 'user' as const,
+          content: 'Hello, I need help with my project',
+          timestamp: Date.now() - 60000,
+        },
+        {
+          id: 'msg-2',
+          role: 'assistant' as const,
+          content: 'I\'d be happy to help! What would you like to work on?',
+          timestamp: Date.now() - 30000,
+        },
+      ],
+      tokenCount: { total: 150, input: 75, output: 75 },
+      contextFiles: ['src/app.tsx', 'package.json'],
+      lastModified: Date.now() - 30000,
+      tags: ['development', 'ui'],
+      notes: 'Working on UI upgrade',
+    },
     contextFilesMissing: [],
   }),
 }));
 
-// Mock console to prevent noise in tests
-const originalConsole = console;
-beforeEach(() => {
-  global.console = {
-    ...console,
-    error: vi.fn(),
-    warn: vi.fn(),
-    log: vi.fn(),
-  };
-});
-
-afterEach(() => {
-  global.console = originalConsole;
-});
-
 // Test data
-const mockConfig: MergedConfig = {
-  global: {
-    defaultProvider: 'openai',
-    maxTokens: 4096,
-    temperature: 0.7,
-  },
-  providers: {
-    openai: {
-      apiKey: 'sk-test-key',
-      baseUrl: 'https://api.openai.com/v1',
-    },
-  },
-  agentsInstructions: 'You are a helpful AI assistant for software development.',
-};
-
-const mockSession = {
-  id: 'session-123',
-  workspaceRoot: '/test/workspace',
-  model: 'gpt-4o',
-  messages: [
-    {
-      id: 'msg-1',
-      role: 'user' as const,
-      content: 'Hello, I need help with my project',
-      timestamp: Date.now() - 60000,
-    },
-    {
-      id: 'msg-2',
-      role: 'assistant' as const,
-      content: 'I\'d be happy to help! What would you like to work on?',
-      timestamp: Date.now() - 30000,
-    },
-  ],
-  tokenCount: { total: 150, input: 75, output: 75 },
-  contextFiles: ['src/app.tsx', 'package.json'],
-  lastModified: Date.now() - 30000,
-  tags: ['development', 'ui'],
-  notes: 'Working on UI upgrade',
-};
-
 const mockTasks = [
   {
     id: 'task-1',
@@ -147,6 +108,43 @@ const mockTasks = [
   },
 ];
 
+vi.mock('../../../hooks/useArchonMCP.js', () => ({
+  useUIUpgradeArchonTasks: vi.fn(() => ({
+    tasks: mockTasks,
+    connectionStatus: 'connected' as const,
+  })),
+}));
+
+// Mock console to prevent noise in tests
+const originalConsole = console;
+beforeEach(() => {
+  global.console = {
+    ...console,
+    error: vi.fn(),
+    warn: vi.fn(),
+    log: vi.fn(),
+  };
+});
+
+afterEach(() => {
+  global.console = originalConsole;
+});
+
+const mockConfig: MergedConfig = {
+  global: {
+    defaultProvider: 'openai',
+    maxTokens: 4096,
+    temperature: 0.7,
+  },
+  providers: {
+    openai: {
+      apiKey: 'sk-test-key',
+      baseUrl: 'https://api.openai.com/v1',
+    },
+  },
+  agentsInstructions: 'You are a helpful AI assistant for software development.',
+};
+
 // =============================================================================
 // COMPLETE USER WORKFLOW TESTS
 // =============================================================================
@@ -155,7 +153,7 @@ describe('UI Upgrade - Complete User Workflows', () => {
   beforeEach(() => {
     // Reset stores before each test
     useAppStore.getState().reset();
-    useUILayoutStore.getState().reset();
+    useUILayoutStore.getState().resetToDefaults();
   });
 
   it('should handle complete new session workflow', async () => {
@@ -345,7 +343,7 @@ describe('UI Upgrade - Complete User Workflows', () => {
 describe('UI Upgrade - Multi-Component Coordination', () => {
   beforeEach(() => {
     useAppStore.getState().reset();
-    useUILayoutStore.getState().reset();
+    useUILayoutStore.getState().resetToDefaults();
   });
 
   it('should coordinate message display with task updates', async () => {

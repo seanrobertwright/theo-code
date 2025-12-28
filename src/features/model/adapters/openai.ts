@@ -130,7 +130,7 @@ function emitToolCalls(accumulators: Map<number, ToolCallAccumulator>): StreamCh
 /**
  * Extracts text content from a message.
  */
-function getMessageContent(_message: Message): string {
+function getMessageContent(message: Message): string {
   if (typeof message.content === 'string') {
     return message.content;
   }
@@ -168,7 +168,7 @@ function convertAssistantMessage(
 /**
  * Converts tool result messages to OpenAI format.
  */
-function convertToolMessage(_message: Message): ChatCompletionMessageParam[] {
+function convertToolMessage(message: Message): ChatCompletionMessageParam[] {
   if (message.toolResults === undefined) {
     return [];
   }
@@ -228,7 +228,7 @@ function convertTools(tools: UniversalToolDefinition[]): ChatCompletionTool[] {
 /**
  * Maps API errors to StreamChunk error format.
  */
-function handleApiError(_error: unknown): StreamChunk {
+function handleApiError(error: unknown): StreamChunk {
   if (error instanceof Error && 'status' in error) {
     const apiError = error as Error & { status?: number };
     const code = ERROR_STATUS_MAP[apiError.status ?? 0] ?? 'API_ERROR';
@@ -262,10 +262,10 @@ function getTiktokenModel(model: string): TiktokenModel {
   if (model.startsWith('gpt-4o') || model.startsWith('o1')) {
     return 'gpt-4o';
   }
-  if (model.startsWith('gpt-4') {
+  if (model.startsWith('gpt-4')) {
     return 'gpt-4';
   }
-  if (model.startsWith('gpt-3.5') {
+  if (model.startsWith('gpt-3.5')) {
     return 'gpt-3.5-turbo';
   }
   return 'gpt-4o';
@@ -334,14 +334,14 @@ export class OpenAIAdapter implements IModelAdapter {
   /**
    * Creates a new OpenAI adapter.
    */
-  constructor(_config: ModelConfig) {
+  constructor(config: ModelConfig) {
     this.config = config;
     this.model = config.model;
     this.contextLimit = config.contextLimit ?? MODEL_CONTEXT_LIMITS[config.model] ?? 128000;
     this.supportsToolCalling = TOOL_CALLING_MODELS.has(config.model);
 
     const apiKey = config.apiKey ?? process.env['OPENAI_API_KEY'];
-    if (apiKey === undefined ?? apiKey === '') {
+    if (apiKey === undefined || apiKey === '') {
       throw new AdapterError(
         'INVALID_CONFIG',
         'openai',
@@ -421,7 +421,7 @@ export class OpenAIAdapter implements IModelAdapter {
       messages,
       _stream: true,
       temperature: options?.temperature ?? 0.7,
-      max_tokens: options?.maxTokens ?? this.config.maxOutputTokens,
+      maxtokens: options?.maxTokens ?? this.config.maxOutputTokens,
       ...(tools !== undefined ? { tools } : {}),
       ...(options?.topP !== undefined ? { top_p: options.topP } : {}),
       ...(options?.stopSequences !== undefined ? { stop: options.stopSequences } : {}),
@@ -432,7 +432,7 @@ export class OpenAIAdapter implements IModelAdapter {
       messageCount: requestParams.messages.length,
       hasTools: 'tools' in requestParams,
       temperature: requestParams.temperature,
-      max_tokens: requestParams.max_tokens
+      maxtokens: requestParams.max_tokens
     });
 
     try {
@@ -498,7 +498,7 @@ export class OpenAIAdapter implements IModelAdapter {
 /**
  * Creates an OpenAI adapter from configuration.
  */
-function createOpenAIAdapter(_config: ModelConfig): IModelAdapter {
+function createOpenAIAdapter(config: ModelConfig): IModelAdapter {
   return new OpenAIAdapter(config);
 }
 
