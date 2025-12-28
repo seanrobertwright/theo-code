@@ -60,12 +60,12 @@ function mapModelToEncoding(_model: string): Parameters<typeof encodingForModel>
   }
 
   // GPT-3.5 family
-  if (normalizedModel.includes('gpt-3.5') {
+  if (normalizedModel.includes('gpt-3.5')) {
     return 'gpt-3.5-turbo';
   }
 
   // Claude models (use GPT-4 tokenizer as approximation)
-  if (normalizedModel.includes('claude') {
+  if (normalizedModel.includes('claude')) {
     return 'gpt-4o';
   }
 

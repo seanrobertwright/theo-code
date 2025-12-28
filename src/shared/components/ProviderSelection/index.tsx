@@ -261,7 +261,7 @@ export const ProviderStatus = ({
   useInput(
     useCallback(
       (input, key) => {
-        if (key.escape || key.return || (key.ctrl && input === 'c') {
+        if (key.escape || key.return || (key.ctrl && input === 'c')) {
           onClose();
         }
       },

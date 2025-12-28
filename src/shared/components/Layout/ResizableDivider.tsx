@@ -10,7 +10,6 @@ import { createDefaultColorScheme, clamp } from './utils.js';
 import { safeLayoutCalculation } from './error-handling.js';
 import { logger } from '../../utils/logger.js';
 import {
-  useStableCallback,
   createMemoComponent,
   useThrottle,
   useDeepMemo,
@@ -91,80 +90,86 @@ const ResizableDividerComponent: React.FC<ResizableDividerProps> = ({
     }
   }, [propValidation.error, currentContextWidth, minContextWidth, maxContextWidth, height]);
   
-  // Throttled resize handler with validation and error handling
-  const throttledResize = useThrottle(
-    useStableCallback((newWidth: number) => {
-      const { result: success, error } = safeLayoutCalculation(
-        () => {
-          // Validate new width
-          if (!Number.isFinite(newWidth)) {
-            throw new Error(`Invalid resize width: ${newWidth}`);
-          }
-          
-          // Clamp to valid range
-          const clampedWidth = clamp(newWidth, minContextWidth, maxContextWidth);
-          
-          // Only call onResize if the width actually changed
-          if (Math.abs(clampedWidth - currentContextWidth) > 0.1) {
-            onResize(clampedWidth);
-          }
-          
-          return true;
-        },
-        false,
-        'resize operation'
-      );
-      
-      if (error) {
-        setResizeError(`Resize failed: ${error.message}`);
-        logger.warn('ResizableDivider resize operation failed', { 
-          error: error.message,
-          newWidth,
-          currentContextWidth,
-          minContextWidth,
-          maxContextWidth,
-        });
+  // Resize handler with validation and error handling
+  const handleResize = React.useCallback((newWidth: number) => {
+    const { error } = safeLayoutCalculation(
+      () => {
+        // Validate new width
+        if (!Number.isFinite(newWidth)) {
+          throw new Error(`Invalid resize width: ${newWidth}`);
+        }
         
-        // Clear error after a delay
-        setTimeout(() => setResizeError(null), 3000);
-      }
-    }, [currentContextWidth, minContextWidth, maxContextWidth, onResize]),
+        // Clamp to valid range
+        const clampedWidth = clamp(newWidth, minContextWidth, maxContextWidth);
+        
+        // Only call onResize if the width actually changed
+        if (Math.abs(clampedWidth - currentContextWidth) > 0.1) {
+          onResize(clampedWidth);
+        }
+        
+        return true;
+      },
+      false,
+      'resize operation'
+    );
+    
+    if (error) {
+      setResizeError(`Resize failed: ${error.message}`);
+      logger.warn('ResizableDivider resize operation failed', { 
+        error: error.message,
+        newWidth,
+        currentContextWidth,
+        minContextWidth,
+        maxContextWidth,
+      });
+      
+      // Clear error after a delay
+      setTimeout(() => setResizeError(null), 3000);
+    }
+  }, [currentContextWidth, minContextWidth, maxContextWidth, onResize]);
+
+  // Throttled version of the resize handler
+  const throttledResize = useThrottle(
+    React.useCallback((...args: unknown[]) => {
+      const newWidth = args[0] as number;
+      handleResize(newWidth);
+    }, [handleResize]),
     50 // 50ms throttling for resize operations
   );
   
   // Handle keyboard input for resize operations with throttling
-  useInput(
-    useThrottle((input, key) => {
-      if (!isActive || resizeError) {
-        return;
+  const handleInput = React.useCallback((input: string, key: { leftArrow?: boolean; rightArrow?: boolean; escape?: boolean; return?: boolean }) => {
+    if (!isActive || resizeError) {
+      return;
+    }
+    
+    try {
+      // Handle arrow keys for resize
+      if (key.leftArrow) {
+        const newWidth = Math.max(minContextWidth, currentContextWidth - 2);
+        throttledResize(newWidth);
+      } else if (key.rightArrow) {
+        const newWidth = Math.min(maxContextWidth, currentContextWidth + 2);
+        throttledResize(newWidth);
+      } else if (key.escape) {
+        setIsActive(false);
+        setIsDragging(false);
+      } else if (input === ' ' || key.return) {
+        setIsActive(!isActive);
       }
+    } catch (error) {
+      setResizeError(`Input handling error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      logger.error('ResizableDivider input handling failed', { error });
       
-      try {
-        // Handle arrow keys for resize
-        if (key.leftArrow) {
-          const newWidth = Math.max(minContextWidth, currentContextWidth - 2);
-          throttledResize(newWidth);
-        } else if (key.rightArrow) {
-          const newWidth = Math.min(maxContextWidth, currentContextWidth + 2);
-          throttledResize(newWidth);
-        } else if (key.escape) {
-          setIsActive(false);
-          setIsDragging(false);
-        } else if (input === ' ' || key.return) {
-          setIsActive(!isActive);
-        }
-      } catch (error) {
-        setResizeError(`Input handling error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        logger.error('ResizableDivider input handling failed', { error });
-        
-        // Clear error after a delay
-        setTimeout(() => setResizeError(null), 3000);
-      }
-    }, 100) // 100ms throttling for keyboard input
-  );
+      // Clear error after a delay
+      setTimeout(() => setResizeError(null), 3000);
+    }
+  }, [isActive, resizeError, minContextWidth, maxContextWidth, currentContextWidth, throttledResize]);
+
+  useInput(handleInput);
   
   // Visual feedback based on state with error handling (memoized)
-  const getDividerChar = useStableCallback((index: number): string => {
+  const getDividerChar = React.useCallback((index: number): string => {
     try {
       if (resizeError) {
         return '!'; // Error indicator
@@ -182,7 +187,7 @@ const ResizableDividerComponent: React.FC<ResizableDividerProps> = ({
     }
   }, [isDragging, isActive, resizeError]);
   
-  const getDividerColor = useStableCallback((): string => {
+  const getDividerColor = React.useCallback((): string => {
     try {
       if (resizeError) {
         return colorScheme.colors.errorMessage;

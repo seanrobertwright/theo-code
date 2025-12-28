@@ -9,6 +9,7 @@
  */
 
 import { promises as fs } from 'fs';
+import { dirname } from 'path';
 import type { Session, SessionMetadata, Message } from '../../shared/types/index.js';
 
 // =============================================================================
@@ -157,7 +158,7 @@ export class SensitiveDataFilter {
   private readonly config: SensitiveDataConfig;
   private readonly auditLogger?: AuditLogger;
   
-  constructor(_config: SensitiveDataConfig, auditLogger?: AuditLogger) {
+  constructor(config: SensitiveDataConfig, auditLogger?: AuditLogger) {
     this.config = config;
     if (auditLogger !== undefined) {
       this.auditLogger = auditLogger;
@@ -170,25 +171,25 @@ export class SensitiveDataFilter {
    * @param session - Session to filter
    * @returns Filtered session and operation result
    */
-  async filterSession(_session: Session): Promise<{ session: Session; _result: FilterResult }> {
+  async filterSession(session: Session): Promise<{ session: Session; result: FilterResult }> {
     if (!this.config.enabled) {
       return {
         session,
         result: {
-          _filtered: false,
-          _matchCount: 0,
+          filtered: false,
+          matchCount: 0,
           dataTypes: [],
-          _content: session,
+          content: session,
           warnings: [],
         },
       };
     }
     
     const result: FilterResult = {
-      _filtered: false,
-      _matchCount: 0,
+      filtered: false,
+      matchCount: 0,
       dataTypes: [],
-      _content: session,
+      content: session,
       warnings: [],
     };
     
@@ -263,7 +264,7 @@ export class SensitiveDataFilter {
       });
     }
     
-    return { _session: filteredSession, result };
+    return { session: filteredSession, result };
   }
   
   /**
@@ -272,25 +273,25 @@ export class SensitiveDataFilter {
    * @param metadata - Session metadata to filter
    * @returns Filtered metadata and operation result
    */
-  async filterSessionMetadata(_metadata: SessionMetadata): Promise<{ metadata: SessionMetadata; _result: FilterResult }> {
+  async filterSessionMetadata(metadata: SessionMetadata): Promise<{ metadata: SessionMetadata; result: FilterResult }> {
     if (!this.config.enabled) {
       return {
         metadata,
         result: {
-          _filtered: false,
-          _matchCount: 0,
+          filtered: false,
+          matchCount: 0,
           dataTypes: [],
-          _content: metadata,
+          content: metadata,
           warnings: [],
         },
       };
     }
     
     const result: FilterResult = {
-      _filtered: false,
-      _matchCount: 0,
+      filtered: false,
+      matchCount: 0,
       dataTypes: [],
-      _content: metadata,
+      content: metadata,
       warnings: [],
     };
     
@@ -341,7 +342,7 @@ export class SensitiveDataFilter {
     
     result.content = filteredMetadata;
     
-    return { _metadata: filteredMetadata, result };
+    return { metadata: filteredMetadata, result };
   }
   
   /**
@@ -350,12 +351,12 @@ export class SensitiveDataFilter {
    * @param message - Message to filter
    * @returns Filtered message and operation result
    */
-  private async filterMessage(_message: Message): Promise<{ message: Message; _result: FilterResult }> {
+  private async filterMessage(message: Message): Promise<{ message: Message; result: FilterResult }> {
     const result: FilterResult = {
-      _filtered: false,
-      _matchCount: 0,
+      filtered: false,
+      matchCount: 0,
       dataTypes: [],
-      _content: message,
+      content: message,
       warnings: [],
     };
     
@@ -429,7 +430,7 @@ export class SensitiveDataFilter {
     
     result.content = filteredMessage;
     
-    return { _message: filteredMessage, result };
+    return { message: filteredMessage, result };
   }
   
   /**
@@ -438,8 +439,8 @@ export class SensitiveDataFilter {
    * @param text - Text to filter
    * @returns Filtering result
    */
-  private filterText(_text: string): FilterResult {
-    const filteredText = text;
+  private filterText(text: string): FilterResult {
+    let filteredText = text;
     let matchCount = 0;
     const dataTypes: string[] = [];
     
@@ -489,7 +490,7 @@ export class SensitiveDataFilter {
     for (const patternStr of this.config.customPatterns) {
       try {
         // Skip empty patterns
-        if (length === 0) {
+        if (patternStr.length === 0) {
           continue;
         }
         
@@ -498,7 +499,7 @@ export class SensitiveDataFilter {
         if (matches) {
           filteredText = filteredText.replace(regex, this.config.redactionText);
           matchCount += matches.length;
-          if (!dataTypes.includes('custom') {
+          if (!dataTypes.includes('custom')) {
             dataTypes.push('custom');
           }
         }
@@ -511,7 +512,7 @@ export class SensitiveDataFilter {
       filtered: matchCount > 0,
       matchCount,
       dataTypes,
-      _content: filteredText,
+      content: filteredText,
       warnings: [],
     };
   }
@@ -522,16 +523,16 @@ export class SensitiveDataFilter {
    * @param obj - Object to filter
    * @returns Filtering result
    */
-  private filterObject(_obj: any): FilterResult {
+  private filterObject(obj: any): FilterResult {
     if (typeof obj === 'string') {
       return this.filterText(obj);
-    } else if (Array.isArray(obj) {
+    } else if (Array.isArray(obj)) {
       const filtered = obj.map(item => this.filterObject(item).content);
       return {
-        _filtered: false, // Simplified for now
-        _matchCount: 0,
+        filtered: false, // Simplified for now
+        matchCount: 0,
         dataTypes: [],
-        _content: filtered,
+        content: filtered,
         warnings: [],
       };
     } else if (obj && typeof obj === 'object') {
@@ -540,19 +541,19 @@ export class SensitiveDataFilter {
         filtered[key] = this.filterObject(value).content;
       }
       return {
-        _filtered: false, // Simplified for now
-        _matchCount: 0,
+        filtered: false, // Simplified for now
+        matchCount: 0,
         dataTypes: [],
-        _content: filtered,
+        content: filtered,
         warnings: [],
       };
     }
     
     return {
-      _filtered: false,
-      _matchCount: 0,
+      filtered: false,
+      matchCount: 0,
       dataTypes: [],
-      _content: obj,
+      content: obj,
       warnings: [],
     };
   }
@@ -563,7 +564,7 @@ export class SensitiveDataFilter {
    * @param filePath - File path to sanitize
    * @returns Sanitized file path
    */
-  private sanitizeFilePath(_filePath: string): string {
+  private sanitizeFilePath(filePath: string): string {
     // Keep only the filename and immediate parent directory
     const parts = filePath.split(/[/\\]/);
     if (parts.length <= 2) {
@@ -584,7 +585,7 @@ export class FilePermissionManager {
   private readonly config: FilePermissionConfig;
   private readonly auditLogger?: AuditLogger;
   
-  constructor(_config: FilePermissionConfig, auditLogger?: AuditLogger) {
+  constructor(config: FilePermissionConfig, auditLogger?: AuditLogger) {
     this.config = config;
     if (auditLogger !== undefined) {
       this.auditLogger = auditLogger;
@@ -598,7 +599,7 @@ export class FilePermissionManager {
    * @param content - File content
    * @throws {Error} If file creation fails
    */
-  async createSecureFile(_filePath: string, _content: string): Promise<void> {
+  async createSecureFile(filePath: string, content: string): Promise<void> {
     try {
       // Ensure directory exists with proper permissions
       const dir = dirname(filePath);
@@ -615,7 +616,7 @@ export class FilePermissionManager {
         }
       }
       
-    } catch (_error: any) {
+    } catch (error: any) {
       if (this.auditLogger) {
         await this.auditLogger.log({
           timestamp: Date.now(),
@@ -639,16 +640,16 @@ export class FilePermissionManager {
    * 
    * @param dirPath - Directory path to create
    */
-  async ensureSecureDirectory(_dirPath: string): Promise<void> {
+  async ensureSecureDirectory(dirPath: string): Promise<void> {
     try {
       await fs.mkdir(dirPath, { 
-        _recursive: true, 
+        recursive: true, 
         mode: this.config.directoryMode 
       });
-    } catch (_error: any) {
+    } catch (error: any) {
       // Directory might already exist, check permissions
       const stats = await fs.stat(dirPath).catch(() => null);
-      if (stats && stats.isDirectory() {
+      if (stats && stats.isDirectory()) {
         // Directory exists, check permissions
         const currentMode = stats.mode & parseInt('777', 8);
         if (currentMode !== this.config.directoryMode && this.config.autoRepair) {
@@ -666,7 +667,7 @@ export class FilePermissionManager {
    * @param filePath - File path to check
    * @returns Permission check result
    */
-  async checkFilePermissions(_filePath: string): Promise<PermissionCheckResult> {
+  async checkFilePermissions(filePath: string): Promise<PermissionCheckResult> {
     try {
       const stats = await fs.stat(filePath);
       const currentMode = stats.mode & parseInt('777', 8);
@@ -698,13 +699,13 @@ export class FilePermissionManager {
         writable,
       };
       
-    } catch (_error: any) {
+    } catch (error: any) {
       return {
-        _valid: false,
-        _currentMode: 0,
+        valid: false,
+        currentMode: 0,
         expectedMode: this.config.sessionFileMode,
-        _readable: false,
-        _writable: false,
+        readable: false,
+        writable: false,
         error: error.message,
       };
     }
@@ -716,7 +717,7 @@ export class FilePermissionManager {
    * @param filePath - File path to repair
    * @throws {Error} If repair fails
    */
-  async repairFilePermissions(_filePath: string): Promise<void> {
+  async repairFilePermissions(filePath: string): Promise<void> {
     try {
       await fs.chmod(filePath, this.config.sessionFileMode);
       
@@ -733,7 +734,7 @@ export class FilePermissionManager {
         });
       }
       
-    } catch (_error: any) {
+    } catch (error: any) {
       if (this.auditLogger) {
         await this.auditLogger.log({
           timestamp: Date.now(),
@@ -758,7 +759,7 @@ export class FilePermissionManager {
    * @param filePath - File path to validate
    * @throws {Error} If validation fails and auto-repair is disabled
    */
-  async validateFilePermissions(_filePath: string): Promise<void> {
+  async validateFilePermissions(filePath: string): Promise<void> {
     if (!this.config.validateOnRead) {
       return;
     }
@@ -791,7 +792,7 @@ export class AuditLogger {
   private logBuffer: AuditLogEntry[] = [];
   private flushTimer?: NodeJS.Timeout;
   
-  constructor(_config: AuditLogConfig) {
+  constructor(config: AuditLogConfig) {
     this.config = config;
     
     // Schedule periodic log flushing
@@ -807,7 +808,7 @@ export class AuditLogger {
    * 
    * @param entry - Audit log entry
    */
-  async log(_entry: AuditLogEntry): Promise<void> {
+  async log(entry: AuditLogEntry): Promise<void> {
     if (!this.config.enabled) {
       return;
     }
@@ -860,7 +861,7 @@ export class AuditLogger {
     try {
       // Ensure log directory exists
       const logDir = dirname(this.config.logFile);
-      await fs.mkdir(logDir, { _recursive: true });
+      await fs.mkdir(logDir, { recursive: true });
       
       // Check if log rotation is needed
       await this.rotateLogsIfNeeded();
@@ -921,7 +922,7 @@ export class AuditLogger {
    * @param entry - Log entry to format
    * @returns Formatted log string
    */
-  private formatLogEntry(_entry: AuditLogEntry): string {
+  private formatLogEntry(entry: AuditLogEntry): string {
     const timestamp = new Date(entry.timestamp).toISOString();
     const details = JSON.stringify(entry.details);
     
@@ -964,11 +965,11 @@ export class AuditLogger {
  */
 export function createDefaultSensitiveDataConfig(): SensitiveDataConfig {
   return {
-    _enabled: true,
+    enabled: true,
     customPatterns: [],
-    _preserveWorkspacePaths: false,
+    preserveWorkspacePaths: false,
     redactionText: '[REDACTED]',
-    _logRedactions: true,
+    logRedactions: true,
   };
 }
 
@@ -979,10 +980,10 @@ export function createDefaultSensitiveDataConfig(): SensitiveDataConfig {
  */
 export function createDefaultFilePermissionConfig(): FilePermissionConfig {
   return {
-    _sessionFileMode: 0o600, // Read/write for owner only
-    _directoryMode: 0o700,   // Read/write/execute for owner only
-    _validateOnRead: true,
-    _autoRepair: true,
+    sessionFileMode: 0o600, // Read/write for owner only
+    directoryMode: 0o700,   // Read/write/execute for owner only
+    validateOnRead: true,
+    autoRepair: true,
   };
 }
 
@@ -992,14 +993,14 @@ export function createDefaultFilePermissionConfig(): FilePermissionConfig {
  * @param logFile - Path to log file
  * @returns Default configuration
  */
-export function createDefaultAuditLogConfig(_logFile: string): AuditLogConfig {
+export function createDefaultAuditLogConfig(logFile: string): AuditLogConfig {
   return {
-    _enabled: false, // Disabled by default
+    enabled: false, // Disabled by default
     logFile,
     logLevel: 'info',
     maxFileSize: 10 * 1024 * 1024, // 10MB
-    _maxFiles: 5,
-    _logToConsole: false,
+    maxFiles: 5,
+    logToConsole: false,
   };
 }
 

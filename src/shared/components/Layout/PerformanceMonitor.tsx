@@ -37,7 +37,7 @@ interface PerformanceMonitorProps {
  * Only enabled in development mode for performance reasons.
  */
 const PerformanceMonitorComponent: React.FC<PerformanceMonitorProps> = ({
-  enabled = process.env.NODE_ENV === 'development',
+  enabled = process.env['NODE_ENV'] === 'development',
   position = 'top-right',
   width = 25,
   height = 6,

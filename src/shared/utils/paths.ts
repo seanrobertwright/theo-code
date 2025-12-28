@@ -257,7 +257,7 @@ export function getDirectoryTree(
 
       const itemPath = path.join(dirPath, item.name);
 
-      if (item.isDirectory() {
+      if (item.isDirectory()) {
         entries.push({
           name: item.name,
           _path: itemPath,
