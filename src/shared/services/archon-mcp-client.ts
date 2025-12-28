@@ -146,7 +146,7 @@ export class ArchonMCPClient {
   /**
    * Update task status in Archon MCP server
    */
-  async updateTaskStatus(taskId: string, status: TaskStatus): Promise<boolean> {
+  async updateTaskStatus(_taskId: string, _status: TaskStatus): Promise<boolean> {
     if (!this.config.enabled) {
       return false;
     }

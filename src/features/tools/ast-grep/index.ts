@@ -62,7 +62,7 @@ export const createAstGrepTool = (): Tool => ({
     }).optional(),
     error: z.string().optional()
   }),
-  _requiresConfirmation: false,
+  requiresConfirmation: false,
   category: 'search',
 
   async execute(params: unknown, context) {
@@ -90,7 +90,7 @@ export const createAstGrepTool = (): Tool => ({
       logger.debug('Executing ast-grep', { cmd: cmd.join(' ') });
 
       const result = execSync(cmd.join(' '), {
-        _cwd: workspaceRoot,
+        cwd: workspaceRoot,
         encoding: 'utf8',
         maxBuffer: 1024 * 1024 * 10 // 10MB
       });
@@ -149,7 +149,7 @@ export const createAstGrepRewriteTool = (): Tool => ({
         },
         dryRun: {
           type: 'boolean',
-          _default: true,
+          default: true,
           description: 'Preview changes without applying'
         }
       },
@@ -173,7 +173,7 @@ export const createAstGrepRewriteTool = (): Tool => ({
     }).optional(),
     error: z.string().optional()
   }),
-  _requiresConfirmation: true,
+  requiresConfirmation: true,
   category: 'search',
 
   async execute(params: unknown, context) {

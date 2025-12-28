@@ -22,6 +22,7 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
+import { logger } from '../../../shared/utils/logger.js';
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -117,7 +118,7 @@ function convertMessages(messages: Message[]): {
         for (const result of message.toolResults) {
           chatHistory.push({
             role: 'USER',
-            message: `Tool result from ${result.toolCallId}: ${result.content}`,
+            _message: `Tool result from ${result.toolCallId}: ${result.content}`,
           });
         }
       }
@@ -125,7 +126,7 @@ function convertMessages(messages: Message[]): {
   }
 
   return {
-    _message: currentMessage,
+    message: currentMessage,
     ...(chatHistory.length > 0 ? { chatHistory } : {}),
     ...(preamble ? { preamble } : {}),
   };
@@ -170,7 +171,7 @@ function convertTools(tools: UniversalToolDefinition[]): Array<{
 /**
  * Validates and parses tool call arguments.
  */
-function parseToolCallArguments(parameters: any, _toolName: string): any {
+function parseToolCallArguments(parameters: any, toolName: string): any {
   if (!parameters) {
     return {};
   }
@@ -387,7 +388,7 @@ export class CohereAdapter implements IModelAdapter {
    * Creates the Cohere streaming request.
    */
   private async createStream(
-    _message: string,
+    message: string,
     chatHistory: Array<{ role: string; _message: string }> | undefined,
     preamble: string | undefined,
     tools: Array<{ name: string; description: string; parameterDefinitions: Record<string, any> }> | undefined,

@@ -40,6 +40,7 @@ import {
   type MigrationResult,
   type IMigrationFramework,
 } from './migration.js';
+import { logOperation } from './audit.js';
 // =============================================================================
 // INTERFACES
 // =============================================================================
@@ -96,9 +97,9 @@ export interface SessionStorageOptions {
  * Default storage options.
  */
 const DEFAULT_OPTIONS: SessionStorageOptions = {
-  _enableCompression: true,
-  _enableChecksum: true,
-  _createBackups: true,
+  enableCompression: true,
+  enableChecksum: true,
+  createBackups: true,
   maxFileSize: 10 * 1024 * 1024, // 10MB
 };
 
@@ -432,7 +433,7 @@ export class SessionStorage implements ISessionStorage {
     // Write rebuilt index
     const content = JSON.stringify(index, null, 2);
     await atomicWriteFile(indexPath, content, {
-      _createBackup: false, // Don't backup during rebuild
+      createBackup: false, // Don't backup during rebuild
     });
   }
   
@@ -477,7 +478,7 @@ export class SessionStorage implements ISessionStorage {
     
     // Write backup
     await atomicWriteFile(backupPath, content, {
-      _createBackup: false, // Don't create backup of backup
+      createBackup: false, // Don't create backup of backup
     });
     
     return backupPath;
@@ -521,7 +522,7 @@ export class SessionStorage implements ISessionStorage {
     // Restore to original location
     const filePath = getSessionFilePath(sessionId);
     await atomicWriteFile(filePath, content, {
-      _createBackup: false, // Don't backup during restore
+      createBackup: false, // Don't backup during restore
     });
     
     // Update index
@@ -544,7 +545,7 @@ export class SessionStorage implements ISessionStorage {
    * @returns Promise resolving to array of deleted session IDs
    * @throws {Error} If cleanup fails
    */
-  async cleanupOldSessions(maxCount: number, _maxAgeMs: number): Promise<SessionId[]> {
+  async cleanupOldSessions(maxCount: number, maxAgeMs: number): Promise<SessionId[]> {
     const index = await this.getIndex();
     const sessions = Object.values(index.sessions);
     const now = Date.now();

@@ -15,6 +15,7 @@ import type {
 } from '../../shared/types/models.js';
 import type { ToolCall } from '../../shared/types/index.js';
 import { createToolCallId } from '../../shared/types/schemas.js';
+import { logger } from '../../shared/utils/logger.js';
 // =============================================================================
 // FORMATTING CONFIGURATION
 // =============================================================================
@@ -45,13 +46,13 @@ export interface FormattingOptions {
  * Default formatting options.
  */
 export const DEFAULT_FORMATTING_OPTIONS: FormattingOptions = {
-  _includeMetadata: false,
-  _includeUsage: true,
-  _includeTiming: false,
-  _maxWidth: 80,
-  _indentSize: 2,
-  _colorize: false,
-  _debug: false,
+  includeMetadata: false,
+  includeUsage: true,
+  includeTiming: false,
+  maxWidth: 80,
+  indentSize: 2,
+  colorize: false,
+  debug: false,
 };
 
 // =============================================================================
@@ -159,7 +160,7 @@ export class ResponsePrettyPrinter {
   /**
    * Formats streaming chunks for real-time display.
    */
-  formatStreamChunk(chunk: StreamChunk, _accumulated: FormattedResponse): string {
+  formatStreamChunk(chunk: StreamChunk, accumulated: FormattedResponse): string {
     switch (chunk.type) {
       case 'text':
         return this.formatTextChunk(chunk);
@@ -178,7 +179,7 @@ export class ResponsePrettyPrinter {
    * Formats provider-specific responses consistently.
    */
   formatProviderResponse(
-    _provider: string, response: any,
+    provider: string, response: any,
     options?: Partial<FormattingOptions>
   ): string {
     const mergedOptions = { ...this.options, ...options };
@@ -282,7 +283,7 @@ export class ResponsePrettyPrinter {
     for (const toolCall of toolCalls) {
       lines.push(`${indent}• ${toolCall.name}`);
       
-      if (length > 0) {
+      if (toolCall.arguments && Object.keys(toolCall.arguments).length > 0) {
         lines.push(`${indent}  Arguments:`);
         lines.push(this.formatObject(toolCall.arguments, (this.options.indentSize || 2) * 2));
       }
@@ -296,7 +297,7 @@ export class ResponsePrettyPrinter {
     return `📊 Token Usage: ${usage.inputTokens} input + ${usage.outputTokens} output = ${total} total`;
   }
 
-  private formatTiming(timing: { startTime: number; endTime: number; _duration: number }): string {
+  private formatTiming(timing: { startTime: number; endTime: number; duration: number }): string {
     const duration = timing.duration || (timing.endTime - timing.startTime);
     return `⏱️  Timing: ${duration}ms`;
   }
@@ -334,7 +335,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatErrors(errors: Array<{ code: string; _message: string }>): string {
+  private formatErrors(errors: Array<{ code: string; message: string }>): string {
     const lines: string[] = [];
     const indent = ' '.repeat(this.options.indentSize || 2);
 
@@ -347,7 +348,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatObject(obj: any, _indentLevel: number): string {
+  private formatObject(obj: any, indentLevel: number): string {
     const indent = ' '.repeat(indentLevel);
     const lines: string[] = [];
 
@@ -379,8 +380,8 @@ export class ResponsePrettyPrinter {
   // PROVIDER-SPECIFIC FORMATTERS
   // =============================================================================
 
-  private getProviderFormatter(provider: string): ((response: any, _options: FormattingOptions) => string) | null {
-    const formatters: Record<string, (response: any, _options: FormattingOptions) => string> = {
+  private getProviderFormatter(provider: string): ((response: any, options: FormattingOptions) => string) | null {
+    const formatters: Record<string, (response: any, options: FormattingOptions) => string> = {
       openai: this.formatOpenAIResponse.bind(this),
       anthropic: this.formatAnthropicResponse.bind(this),
       google: this.formatGoogleResponse.bind(this),
@@ -395,7 +396,7 @@ export class ResponsePrettyPrinter {
     return formatters[provider] || null;
   }
 
-  private formatOpenAIResponse(response: any, _options: FormattingOptions): string {
+  private formatOpenAIResponse(response: any, options: FormattingOptions): string {
     const lines: string[] = [];
 
     // Check multiple possible content fields, using same priority as test
@@ -461,7 +462,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatAnthropicResponse(response: any, _options: FormattingOptions): string {
+  private formatAnthropicResponse(response: any, options: FormattingOptions): string {
     const lines: string[] = [];
 
     // Check multiple possible content fields, using same priority as test
@@ -530,7 +531,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatGoogleResponse(response: any, _options: FormattingOptions): string {
+  private formatGoogleResponse(response: any, options: FormattingOptions): string {
     const lines: string[] = [];
 
     // Check multiple possible content fields, using same priority as test
@@ -617,7 +618,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatOpenRouterResponse(response: any, _options: FormattingOptions): string {
+  private formatOpenRouterResponse(response: any, options: FormattingOptions): string {
     // OpenRouter uses OpenAI-compatible format
     const formatted = this.formatOpenAIResponse(response, options);
     
@@ -638,7 +639,7 @@ export class ResponsePrettyPrinter {
     return formatted;
   }
 
-  private formatCohereResponse(response: any, _options: FormattingOptions): string {
+  private formatCohereResponse(response: any, options: FormattingOptions): string {
     const lines: string[] = [];
 
     // Check multiple possible content fields, using same priority as test
@@ -714,7 +715,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatMistralResponse(response: any, _options: FormattingOptions): string {
+  private formatMistralResponse(response: any, options: FormattingOptions): string {
     // Mistral uses OpenAI-compatible format
     const formatted = this.formatOpenAIResponse(response, options);
     
@@ -735,7 +736,7 @@ export class ResponsePrettyPrinter {
     return formatted;
   }
 
-  private formatTogetherResponse(response: any, _options: FormattingOptions): string {
+  private formatTogetherResponse(response: any, options: FormattingOptions): string {
     // Together uses OpenAI-compatible format
     const formatted = this.formatOpenAIResponse(response, options);
     
@@ -756,7 +757,7 @@ export class ResponsePrettyPrinter {
     return formatted;
   }
 
-  private formatPerplexityResponse(response: any, _options: FormattingOptions): string {
+  private formatPerplexityResponse(response: any, options: FormattingOptions): string {
     const lines: string[] = [];
 
     if (response.choices && response.choices.length > 0) {
@@ -788,7 +789,7 @@ export class ResponsePrettyPrinter {
     return lines.join('\n');
   }
 
-  private formatOllamaResponse(response: any, _options: FormattingOptions): string {
+  private formatOllamaResponse(response: any, options: FormattingOptions): string {
     const lines: string[] = [];
 
     // Check multiple possible content fields, using same priority as test
@@ -882,8 +883,8 @@ export function formatResponse(response: FormattedResponse, options?: Partial<Fo
  * Formats a stream chunk using default formatting options.
  */
 export function formatStreamChunk(
-  _chunk: StreamChunk,
-  _accumulated: FormattedResponse,
+  chunk: StreamChunk,
+  accumulated: FormattedResponse,
   options?: Partial<FormattingOptions>
 ): string {
   const printer = createPrettyPrinter(options);
@@ -894,7 +895,7 @@ export function formatStreamChunk(
  * Formats a provider-specific response using default formatting options.
  */
 export function formatProviderResponse(
-  _provider: string, response: any,
+  provider: string, response: any,
   options?: Partial<FormattingOptions>
 ): string {
   const printer = createPrettyPrinter(options);

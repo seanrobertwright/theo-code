@@ -51,7 +51,7 @@ describe('Error Mapping', () => {
   });
 
   it('should map Anthropic authentication errors correctly', () => {
-    const error = new Error('authenticationerror: Invalid API key');
+    const error = new Error('authentication_error: Invalid API key');
     const mappedError = mapProviderError('anthropic', error);
 
     expect(mappedError.code).toBe('AUTH_FAILED');

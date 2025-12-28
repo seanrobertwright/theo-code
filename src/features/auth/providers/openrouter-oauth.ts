@@ -22,7 +22,7 @@ const OPENROUTER_OAUTH_CONFIG = {
  * OpenRouter OAuth token response interface.
  */
 interface OpenRouterTokenResponse {
-  accesstoken: string;
+  access_token: string;
   refresh_token?: string;
   expires_in: number;
   token_type: string;
@@ -59,7 +59,7 @@ export class OpenRouterOAuthAdapter implements IOAuthProviderAdapter {
       clientId: OPENROUTER_OAUTH_CONFIG.clientId,
       authorizationEndpoint: OPENROUTER_OAUTH_CONFIG.authorizationEndpoint,
       tokenEndpoint: OPENROUTER_OAUTH_CONFIG.tokenEndpoint,
-      scopes: OPENROUTER_OAUTH_CONFIG.scopes,
+      scopes: [...OPENROUTER_OAUTH_CONFIG.scopes],
       redirectUri: OPENROUTER_OAUTH_CONFIG.redirectUri,
       additionalParams: {
         response_type: 'code',
@@ -125,7 +125,7 @@ export class OpenRouterOAuthAdapter implements IOAuthProviderAdapter {
     const refreshRequest = {
       grant_type: 'refresh_token',
       client_id: config.clientId,
-      _refreshtoken: refreshToken,
+      refresh_token: refreshToken,
     };
 
     try {

@@ -41,7 +41,7 @@ export class AnthropicOAuthAdapter implements IOAuthProviderAdapter {
       clientId: ANTHROPIC_OAUTH_CONFIG.clientId,
       authorizationEndpoint: ANTHROPIC_OAUTH_CONFIG.authorizationEndpoint,
       tokenEndpoint: ANTHROPIC_OAUTH_CONFIG.tokenEndpoint,
-      scopes: ANTHROPIC_OAUTH_CONFIG.scopes,
+      scopes: [...ANTHROPIC_OAUTH_CONFIG.scopes],
       redirectUri: ANTHROPIC_OAUTH_CONFIG.redirectUri,
       additionalParams: {
         response_type: 'code',
@@ -58,7 +58,7 @@ export class AnthropicOAuthAdapter implements IOAuthProviderAdapter {
    * @returns Promise that rejects with not supported error
    * @throws Error indicating OAuth is not yet supported
    */
-  async exchangeCodeForTokens(code: string, _codeVerifier: string): Promise<TokenSet> {
+  async exchangeCodeForTokens(_code: string, _codeVerifier: string): Promise<TokenSet> {
     throw new Error(
       'Anthropic OAuth is not yet supported. Please use API key authentication instead. ' +
       'Visit https://console.anthropic.com/settings/keys to generate an API key.'
@@ -72,7 +72,7 @@ export class AnthropicOAuthAdapter implements IOAuthProviderAdapter {
    * @returns Promise that rejects with not supported error
    * @throws Error indicating OAuth is not yet supported
    */
-  async refreshAccessToken(refreshToken: string): Promise<TokenSet> {
+  async refreshAccessToken(_refreshToken: string): Promise<TokenSet> {
     throw new Error(
       'Anthropic OAuth is not yet supported. Please use API key authentication instead. ' +
       'Visit https://console.anthropic.com/settings/keys to generate an API key.'
@@ -86,7 +86,7 @@ export class AnthropicOAuthAdapter implements IOAuthProviderAdapter {
    * @returns Promise that rejects with not supported error
    * @throws Error indicating OAuth is not yet supported
    */
-  async revokeTokens(tokens: TokenSet): Promise<void> {
+  async revokeTokens(_tokens: TokenSet): Promise<void> {
     throw new Error(
       'Anthropic OAuth is not yet supported. No tokens to revoke. ' +
       'If using API keys, you can revoke them at https://console.anthropic.com/settings/keys'
@@ -99,7 +99,7 @@ export class AnthropicOAuthAdapter implements IOAuthProviderAdapter {
    * @param _tokens - Token set (unused)
    * @returns Always false since OAuth is not supported
    */
-  validateTokens(tokens: TokenSet): boolean {
+  validateTokens(_tokens: TokenSet): boolean {
     // Always return false since Anthropic OAuth is not yet supported
     return false;
   }

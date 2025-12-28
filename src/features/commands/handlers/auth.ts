@@ -346,7 +346,7 @@ class OAuthErrorHandler {
   /**
    * Format configuration errors.
    */
-  private static formatConfigurationError(error: any, provider: ModelProvider, operation: string): string {
+  private static formatConfigurationError(error: any, provider: ModelProvider, _operation: string): string {
     return `⚙️ **Configuration Error**\n\n` +
            `OAuth is not properly configured for ${provider}.\n\n` +
            `**Error details:** ${error.message}\n\n` +
@@ -366,7 +366,7 @@ class OAuthErrorHandler {
    */
   private static formatTokenError(error: any, provider: ModelProvider, operation: string): string {
     return `🔑 **Token Error**\n\n` +
-           `There was an issue with your authentication tokens for ${provider}.\n\n` +
+           `There was an issue with your authentication tokens for ${provider} during ${operation.toLowerCase()}.\n\n` +
            `**Error details:** ${error.message}\n\n` +
            `**Common causes:**\n` +
            `• Tokens have expired\n` +
@@ -374,11 +374,7 @@ class OAuthErrorHandler {
            `• Account permissions have changed\n` +
            `• Provider has revoked access\n\n` +
            `**To fix:**\n` +
-           `1. Log out and log back in: 
-/auth logout ${provider}
- then 
-/auth login ${provider}
-` +
+           `1. Log out and log back in: /auth logout ${provider} then /auth login ${provider}\n` +
            `2. Check your account status with ${provider}\n` +
            `3. Ensure your account has the necessary permissions\n` +
            `4. Contact ${provider} support if issues persist`;
@@ -832,7 +828,7 @@ ${provider}
 /**
  * Handles /auth status command.
  */
-async function handleAuthStatus(args: string[], context: CommandContext): Promise<void> {
+async function handleAuthStatus(_args: string[], context: CommandContext): Promise<void> {
   const { addMessage, setError } = context;
   
   try {
@@ -1059,7 +1055,7 @@ ${provider}
 /**
  * Handles /auth list command.
  */
-async function handleAuthList(args: string[], context: CommandContext): Promise<void> {
+async function handleAuthList(_args: string[], context: CommandContext): Promise<void> {
   const { addMessage, setError } = context;
   
   try {

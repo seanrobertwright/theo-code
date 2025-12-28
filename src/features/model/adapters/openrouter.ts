@@ -53,9 +53,9 @@ interface OpenRouterModelsResponse {
 }
 
 interface OpenRouterUsage {
-  prompttokens: number;
-  completiontokens: number;
-  totaltokens: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
 }
 
 interface OpenRouterChoice {
@@ -436,7 +436,7 @@ class OpenRouterClient {
   ): Promise<AsyncIterable<OpenRouterStreamChunk>> {
     const response = await this.makeRequest('/chat/completions', {
       method: 'POST',
-      body: JSON.stringify({ ...request, _stream: true }),
+      body: JSON.stringify({ ...request, stream: true }),
     });
 
     if (!response.body) {
@@ -517,9 +517,9 @@ export class OpenRouterAdapter implements IModelAdapter {
   readonly contextLimit: number;
   readonly supportsToolCalling: boolean;
 
-  private readonly client: OpenRouterClient;
+  private readonly _client: OpenRouterClient;
   private readonly config: ModelConfig;
-  private readonly authManager?: AuthenticationManager;
+  private readonly authManager: AuthenticationManager | undefined;
   private modelInfo: OpenRouterModel | null = null;
 
   /**
@@ -542,7 +542,7 @@ export class OpenRouterAdapter implements IModelAdapter {
       );
     }
 
-    this.client = new OpenRouterClient(apiKey || 'placeholder', config.baseUrl); // Use placeholder if auth manager will provide credentials
+    this._client = new OpenRouterClient(apiKey || 'placeholder', config.baseUrl); // Use placeholder if auth manager will provide credentials
   }
 
   /**
@@ -702,7 +702,7 @@ export class OpenRouterAdapter implements IModelAdapter {
       model: this.model,
       messages,
       temperature: options?.temperature ?? 0.7,
-      maxtokens: options?.maxTokens ?? this.config.maxOutputTokens,
+      max_tokens: options?.maxTokens ?? this.config.maxOutputTokens,
       ...(tools !== undefined ? { tools } : {}),
       ...(options?.topP !== undefined ? { top_p: options.topP } : {}),
       ...(options?.stopSequences !== undefined ? { stop: options.stopSequences } : {}),

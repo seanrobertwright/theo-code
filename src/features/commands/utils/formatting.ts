@@ -95,7 +95,7 @@ export function formatSessionList(
  * @returns Formatted session string
  */
 export function formatSingleSession(
-  _session: SessionMetadata,
+  session: SessionMetadata,
   options: {
     showDetails?: boolean;
     showPreviews?: boolean;
@@ -205,7 +205,7 @@ export function formatSearchResults(
       context: string;
     }>;
   }>,
-  _query: string,
+  query: string,
   options: SessionSearchDisplayOptions = {}
 ): string {
   const { highlightMatches = true, contextLength = 100 } = options;

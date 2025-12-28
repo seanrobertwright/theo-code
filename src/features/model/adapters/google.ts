@@ -42,6 +42,7 @@ import {
   registerAdapter,
 } from './types.js';
 import type { AuthenticationManager } from '../../auth/authentication-manager.js';
+import { logger } from '../../../shared/utils/logger.js';
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -174,7 +175,7 @@ function convertMultimodalContent(
   _mediaResolution?: 'low' | 'medium' | 'high' | 'ultra_high'
 ): Part[] {
   if (typeof content === 'string') {
-    return [{ _text: content }];
+    return [{ text: content }];
   }
 
   const parts: Part[] = [];
@@ -237,8 +238,8 @@ function convertMultimodalContent(
  * Gets optimal media resolution based on content type and model capabilities.
  */
 function getOptimalMediaResolution(
-  _mediaType: MediaType,
-  _model: string,
+  mediaType: MediaType,
+  model: string,
   userPreference?: 'low' | 'medium' | 'high' | 'ultra_high'
 ): 'low' | 'medium' | 'high' | 'ultra_high' {
   // Use user preference if provided
@@ -269,14 +270,14 @@ function getOptimalMediaResolution(
  * Estimates token allocation for different media resolutions.
  */
 function estimateMediaTokens(
-  _mediaType: MediaType,
+  mediaType: MediaType,
   resolution: 'low' | 'medium' | 'high' | 'ultra_high',
   durationOrSize?: number
 ): number {
   const baseTokens = {
-    image: { _low: 85, _medium: 258, _high: 516, _ultra_high: 1032 },
-    video: { _low: 150, _medium: 300, _high: 600, _ultra_high: 1200 },
-    audio: { _low: 100, _medium: 200, _high: 400, _ultra_high: 800 },
+    image: { low: 85, medium: 258, high: 516, ultra_high: 1032 },
+    video: { low: 150, medium: 300, high: 600, ultra_high: 1200 },
+    audio: { low: 100, medium: 200, high: 400, ultra_high: 800 },
   };
   
   const base = baseTokens[mediaType][resolution];
@@ -319,7 +320,7 @@ function convertMessages(
       // Add text content if present
       const textContent = getMessageContent(message);
       if (textContent.length > 0) {
-        parts.push({ _text: textContent });
+        parts.push({ text: textContent });
       }
       
       // Add function calls if present
@@ -398,7 +399,7 @@ function convertTools(tools: UniversalToolDefinition[]): Tool[] {
       description: tool.description,
       parameters: {
         type: SchemaType.OBJECT,
-        _properties: convertedProperties,
+        properties: convertedProperties,
         required: tool.parameters.required ?? [],
       },
     };
@@ -508,7 +509,7 @@ function mergeWithBuiltInTools(userTools: Tool[], includeBuiltIn: boolean = fals
 /**
  * Validates and parses function call arguments.
  */
-function parseFunctionCallArguments(args: any, _functionName: string): any {
+function parseFunctionCallArguments(args: any, functionName: string): any {
   if (!args) {
     return {};
   }
@@ -531,8 +532,8 @@ function parseFunctionCallArguments(args: any, _functionName: string): any {
  */
 function handleApiError(error: unknown): StreamChunk {
   if (error && typeof error === 'object' && 'status' in error) {
-    const status = (error as any).status;
-    const message = (error as any).message || 'Unknown Google API error';
+    const status = (error as any).status as string;
+    const message = (error as any).message as string || 'Unknown Google API error';
     const code = ERROR_CODE_MAP[status] ?? 'API_ERROR';
     
     return {
@@ -562,7 +563,7 @@ function handleApiError(error: unknown): StreamChunk {
  * Counts tokens using Google's countTokens API (when available).
  */
 async function countTokensWithAPI(
-  _model: GenerativeModel, 
+  model: GenerativeModel, 
   messages: Message[], 
   mediaResolution?: 'low' | 'medium' | 'high' | 'ultra_high'
 ): Promise<number> {
@@ -573,7 +574,7 @@ async function countTokensWithAPI(
     // Use Google's countTokens API
     const result = await model.countTokens({ contents });
     
-    if (result.totalTokens !== undefined) {
+    if (result && 'totalTokens' in result && typeof result.totalTokens === 'number') {
       logger.debug('[Google] Token count from API:', result.totalTokens);
       return result.totalTokens;
     }
@@ -591,7 +592,7 @@ async function countTokensWithAPI(
  * Enhanced token counting cache with TTL and size limits.
  */
 class TokenCountCache {
-  private cache = new Map<string, { count: number; _timestamp: number }>();
+  private cache = new Map<string, { count: number; timestamp: number }>();
   private readonly maxSize = 1000;
   private readonly ttlMs = 5 * 60 * 1000; // 5 minutes
 
@@ -1082,7 +1083,7 @@ export class GoogleAdapter implements IModelAdapter {
    */
   async optimizeTokenUsage(
     messages: Message[],
-    _maxTokens: number,
+    maxTokens: number,
     options?: {
       preserveLatestMessages?: number;
       allowResolutionReduction?: boolean;
@@ -1099,8 +1100,8 @@ export class GoogleAdapter implements IModelAdapter {
     
     if (currentTokens <= maxTokens) {
       return {
-        _optimizedMessages: currentMessages,
-        _tokenCount: currentTokens,
+        optimizedMessages: currentMessages,
+        tokenCount: currentTokens,
         optimizations: [],
       };
     }
@@ -1196,8 +1197,8 @@ export class GoogleAdapter implements IModelAdapter {
     }
     
     return {
-      _optimizedMessages: currentMessages,
-      _tokenCount: currentTokens,
+      optimizedMessages: currentMessages,
+      tokenCount: currentTokens,
       optimizations,
     };
   }
@@ -1213,7 +1214,7 @@ export class GoogleAdapter implements IModelAdapter {
     return {
       cacheSize: this.tokenCountCache.size(),
       // Note: Hit rate tracking would require additional instrumentation
-      _estimationFallbacks: 0, // Would need to track this
+      estimationFallbacks: 0, // Would need to track this
     };
   }
 
@@ -1257,7 +1258,7 @@ export class GoogleAdapter implements IModelAdapter {
   estimateMultimodalTokens(
     messages: Message[],
     mediaResolutionOverride?: 'low' | 'medium' | 'high' | 'ultra_high'
-  ): { textTokens: number; mediaTokens: number; _totalTokens: number } {
+  ): { textTokens: number; mediaTokens: number; totalTokens: number } {
     let textTokens = 0;
     let mediaTokens = 0;
     
@@ -1338,7 +1339,6 @@ export class GoogleAdapter implements IModelAdapter {
     const processedMessages = messages.map(message => ({
       ...message,
       // Add resolution metadata for internal tracking
-      _mediaResolution: currentResolution,
     }));
     
     const finalEstimate = this.estimateMultimodalTokens(processedMessages, currentResolution);
@@ -1346,7 +1346,7 @@ export class GoogleAdapter implements IModelAdapter {
     return {
       processedMessages,
       tokenEstimate: finalEstimate.totalTokens,
-      _resolution: currentResolution,
+      resolution: currentResolution,
     };
   }
 
@@ -1487,7 +1487,7 @@ export class GoogleAdapter implements IModelAdapter {
               toolCalls: [{
                 id: createToolCallId(`call_${index}`),
                 name: call.name,
-                arguments: call.arguments,
+                arguments: call._arguments,
               }],
             },
           ];
@@ -1535,7 +1535,7 @@ export class GoogleAdapter implements IModelAdapter {
    * Generates images using Gemini 3.0 Pro Image model.
    */
   async generateImage(
-    _prompt: string,
+    prompt: string,
     options?: {
       aspectRatio?: string;
       imageSize?: '1K' | '2K' | '4K';
@@ -1581,7 +1581,7 @@ export class GoogleAdapter implements IModelAdapter {
       // Create generation config with image-specific settings
       const generationConfig: GenerationConfig = {
         temperature: 0.7,
-        _maxOutputTokens: 1024, // Images don't need many output tokens
+        maxOutputTokens: 1024, // Images don't need many output tokens
       };
 
       // Add image generation specific config
@@ -1597,7 +1597,7 @@ export class GoogleAdapter implements IModelAdapter {
       const contents: Content[] = [
         {
           role: 'user',
-          parts: [{ _text: fullPrompt }],
+          parts: [{ text: fullPrompt }],
         },
       ];
 
@@ -1670,9 +1670,9 @@ export class GoogleAdapter implements IModelAdapter {
    * Edits an existing image using conversational instructions.
    */
   async editImage(
-    _imageData: string,
-    _mimeType: string,
-    _editInstructions: string,
+    imageData: string,
+    mimeType: string,
+    editInstructions: string,
     options?: {
       preserveAspectRatio?: boolean;
       style?: string;
@@ -1727,7 +1727,7 @@ export class GoogleAdapter implements IModelAdapter {
               },
             },
             {
-              _text: fullPrompt,
+              text: fullPrompt,
             },
           ],
         },
@@ -1737,7 +1737,7 @@ export class GoogleAdapter implements IModelAdapter {
         contents,
         generationConfig: {
           temperature: 0.7,
-          _maxOutputTokens: 1024,
+          maxOutputTokens: 1024,
         },
       };
 
@@ -1791,7 +1791,7 @@ export class GoogleAdapter implements IModelAdapter {
    * Generates images with Google Search grounding for enhanced context.
    */
   async generateImageWithGrounding(
-    _prompt: string,
+    prompt: string,
     searchQuery?: string,
     options?: {
       aspectRatio?: string;
@@ -1827,7 +1827,7 @@ export class GoogleAdapter implements IModelAdapter {
       // Use the regular image generation with search grounding enabled
       const result = await this.generateImage(fullPrompt, {
         ...options,
-        _includeSearchGrounding: true,
+        includeSearchGrounding: true,
       });
 
       const returnValue: {
@@ -1844,7 +1844,7 @@ export class GoogleAdapter implements IModelAdapter {
         ...result,
         metadata: {
           ...result.metadata!,
-          _searchGrounded: true,
+          searchGrounded: true,
         },
       };
       
@@ -1886,7 +1886,7 @@ export class GoogleAdapter implements IModelAdapter {
       .join('|');
     
     return {
-      _signature: mergedSignature,
+      signature: mergedSignature,
       turnId: `merged_${Date.now()}`,
     };
   }
@@ -2031,7 +2031,7 @@ export class GoogleAdapter implements IModelAdapter {
     let accumulatedThoughtSignature = '';
 
     try {
-      for await (const chunk of stream.stream) {
+      for await (const chunk of _stream.stream) {
         hasStarted = true;
         
         // Handle streaming errors
@@ -2056,8 +2056,8 @@ export class GoogleAdapter implements IModelAdapter {
           
           // Handle safety ratings and blocks
           if (candidate.safetyRatings) {
-            const blockedRating = candidate.safetyRatings.find(rating => 
-              (rating as any).blocked === true
+            const blockedRating = candidate.safetyRatings.find((rating: any) => 
+              rating.blocked === true
             );
             if (blockedRating) {
               logger.warn('[Google] Content blocked by safety filter:', blockedRating.category);
@@ -2085,7 +2085,7 @@ export class GoogleAdapter implements IModelAdapter {
                 if (functionCall.args === undefined || functionCall.args === null) {
                   // Start accumulating this function call
                   toolCallAccumulators.set(toolCallId, {
-                    _id: toolCallId,
+                    id: toolCallId,
                     name: functionCall.name,
                     args: '',
                   });
@@ -2100,7 +2100,7 @@ export class GoogleAdapter implements IModelAdapter {
                     const parsedArgs = parseFunctionCallArguments(functionCall.args, functionCall.name);
                     yield {
                       type: 'tool_call',
-                      _id: toolCallId,
+                      id: toolCallId,
                       name: functionCall.name,
                       arguments: JSON.stringify(parsedArgs),
                     };
@@ -2143,7 +2143,7 @@ export class GoogleAdapter implements IModelAdapter {
             // Store final thought signature for next turn
             if (this.config.gemini?.thoughtSignatures && accumulatedThoughtSignature) {
               this.thoughtSignature = {
-                _signature: accumulatedThoughtSignature,
+                signature: accumulatedThoughtSignature,
                 turnId: `turn_${Date.now()}`,
               };
               logger.debug('[Google] Thought signature stored for next turn');

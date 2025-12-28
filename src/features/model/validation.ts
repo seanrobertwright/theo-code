@@ -8,6 +8,7 @@
 
 import type { ModelConfig, ModelProvider } from '../../shared/types/models.js';
 import { AdapterError } from './adapters/types.js';
+import { logger } from '../../shared/utils/logger.js';
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -283,15 +284,15 @@ function validateOllamaConfig(config: ModelConfig): string[] {
  * Provider-specific validation functions.
  */
 const PROVIDER_VALIDATORS: Record<ModelProvider, (config: ModelConfig) => string[]> = {
-  _openai: validateOpenAIConfig,
-  _anthropic: validateAnthropicConfig,
-  _google: validateGoogleConfig,
-  _openrouter: validateOpenRouterConfig,
-  _cohere: validateCohereConfig,
-  _mistral: validateMistralConfig,
-  _together: validateTogetherConfig,
-  _perplexity: validatePerplexityConfig,
-  _ollama: validateOllamaConfig,
+  openai: validateOpenAIConfig,
+  anthropic: validateAnthropicConfig,
+  google: validateGoogleConfig,
+  openrouter: validateOpenRouterConfig,
+  cohere: validateCohereConfig,
+  mistral: validateMistralConfig,
+  together: validateTogetherConfig,
+  perplexity: validatePerplexityConfig,
+  ollama: validateOllamaConfig,
 };
 
 /**
@@ -306,9 +307,7 @@ export function validateProviderConfig(config: ModelConfig): ValidationResult {
     errors.push('Provider is required');
   }
 
-  if (!config.model || config.model.trim()) {
-    === '') {
-  }
+  if (!config.model || config.model.trim() === '') {
     errors.push('Model is required');
   }
 
@@ -389,12 +388,12 @@ export function validateProviderConfigs(configs: ModelConfig[]): ValidationResul
 /**
  * Validate API key format for a provider.
  */
-export function validateApiKey(provider: ModelProvider, _apiKey: string): ApiKeyValidationResult {
+export function validateApiKey(provider: ModelProvider, apiKey: string): ApiKeyValidationResult {
   const result: ApiKeyValidationResult = {
     provider,
-    _valid: false,
+    valid: false,
     error: null,
-    _hasPermissions: false, // TODO: Implement permission checking
+    hasPermissions: false, // TODO: Implement permission checking
   };
 
   try {
@@ -461,8 +460,8 @@ export function validateApiKey(provider: ModelProvider, _apiKey: string): ApiKey
 export async function testProviderConnectivity(config: ModelConfig): Promise<ConnectivityResult> {
   const result: ConnectivityResult = {
     provider: config.provider,
-    _connected: false,
-    _responseTimeMs: null,
+    connected: false,
+    responseTimeMs: null,
     error: null,
   };
 
@@ -512,9 +511,9 @@ export async function testMultipleProviderConnectivity(configs: ModelConfig[]): 
  * Create a configuration validation utilities object.
  */
 export const configValidation = {
-  _validateConfig: validateProviderConfig,
-  _validateConfigs: validateProviderConfigs,
+  validateConfig: validateProviderConfig,
+  validateConfigs: validateProviderConfigs,
   validateApiKey,
-  _testConnectivity: testProviderConnectivity,
-  _testMultipleConnectivity: testMultipleProviderConnectivity,
+  testConnectivity: testProviderConnectivity,
+  testMultipleConnectivity: testMultipleProviderConnectivity,
 } as const;

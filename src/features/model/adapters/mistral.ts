@@ -22,6 +22,7 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
+import { logger } from '../../../shared/utils/logger.js';
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -196,7 +197,7 @@ function convertTools(tools: UniversalToolDefinition[]): Array<{
 /**
  * Validates and parses tool call arguments.
  */
-function parseToolCallArguments(argumentsJson: string, _toolName: string): any {
+function parseToolCallArguments(argumentsJson: string, toolName: string): any {
   if (!argumentsJson.trim()) {
     return {};
   }
@@ -447,7 +448,7 @@ export class MistralAdapter implements IModelAdapter {
     const requestParams: any = {
       model: this.model,
       messages,
-      _stream: true,
+      stream: true,
       maxTokens: options?.maxTokens ?? this.config.maxOutputTokens ?? 4096,
       temperature: options?.temperature ?? 0.7,
       ...(tools !== undefined ? { tools } : {}),

@@ -15,6 +15,7 @@ import type {
 } from '../../shared/types/models.js';
 import type { ToolCall } from '../../shared/types/index.js';
 import { createToolCallId } from '../../shared/types/schemas.js';
+import { logger } from '../../shared/utils/logger.js';
 // =============================================================================
 // PROVIDER-SPECIFIC RESPONSE TYPES
 // =============================================================================
@@ -35,11 +36,11 @@ export interface OpenAIStreamChunk {
         };
       }>;
     };
-    finish_reason?: string | null;
+    finish_reason?: string;
   }>;
   usage?: {
-    prompttokens: number;
-    completiontokens: number;
+    prompt_tokens: number;
+    completion_tokens: number;
   };
 }
 
@@ -61,8 +62,8 @@ export interface AnthropicStreamEvent {
     stop_reason?: string;
   };
   usage?: {
-    inputtokens: number;
-    outputtokens: number;
+    input_tokens: number;
+    output_tokens: number;
   };
   error?: {
     type: string;
@@ -121,8 +122,8 @@ export interface CohereStreamChunk {
     text: string;
     meta?: {
       tokens?: {
-        inputtokens: number;
-        outputtokens: number;
+        input_tokens: number;
+        output_tokens: number;
       };
     };
   };
@@ -147,8 +148,8 @@ export interface MistralStreamChunk {
     finish_reason?: string;
   }>;
   usage?: {
-    prompttokens: number;
-    completiontokens: number;
+    prompt_tokens: number;
+    completion_tokens: number;
   };
 }
 
@@ -171,8 +172,8 @@ export interface TogetherStreamChunk {
     finish_reason?: string;
   }>;
   usage?: {
-    prompttokens: number;
-    completiontokens: number;
+    prompt_tokens: number;
+    completion_tokens: number;
   };
 }
 
@@ -187,8 +188,8 @@ export interface PerplexityStreamChunk {
     finish_reason?: string;
   }>;
   usage?: {
-    prompttokens: number;
-    completiontokens: number;
+    prompt_tokens: number;
+    completion_tokens: number;
   };
 }
 
@@ -233,10 +234,10 @@ export class ToolCallAccumulatorManager {
    * Adds or updates a tool call accumulator.
    */
   addOrUpdate(
-    _id: string,
-    _name: string,
-    _argumentsFragment: string,
-    _provider: string
+    id: string,
+    name: string,
+    argumentsFragment: string,
+    provider: string
   ): void {
     const existing = this.accumulators.get(id);
     if (existing) {
@@ -245,7 +246,7 @@ export class ToolCallAccumulatorManager {
       this.accumulators.set(id, {
         id,
         name,
-        _arguments: argumentsFragment,
+        arguments: argumentsFragment,
         provider,
       });
     }
@@ -294,8 +295,8 @@ export class ToolCallAccumulatorManager {
  * Converts OpenAI streaming response to standardized StreamChunk.
  */
 export function convertOpenAIResponse(
-  _chunk: OpenAIStreamChunk,
-  _accumulators: ToolCallAccumulatorManager
+  chunk: OpenAIStreamChunk,
+  accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const chunks: StreamChunk[] = [];
   
@@ -352,8 +353,8 @@ export function convertOpenAIResponse(
  * Converts Anthropic streaming response to standardized StreamChunk.
  */
 export function convertAnthropicResponse(
-  _event: AnthropicStreamEvent,
-  _accumulators: ToolCallAccumulatorManager
+  event: AnthropicStreamEvent,
+  accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const chunks: StreamChunk[] = [];
   
@@ -427,8 +428,8 @@ export function convertAnthropicResponse(
  * Converts Google streaming response to standardized StreamChunk.
  */
 export function convertGoogleResponse(
-  _chunk: GoogleStreamChunk,
-  _accumulators: ToolCallAccumulatorManager
+  chunk: GoogleStreamChunk,
+  accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const chunks: StreamChunk[] = [];
   
@@ -484,7 +485,7 @@ export function convertGoogleResponse(
           type: 'tool_call',
           id,
           name: part.functionCall.name,
-          _arguments: args,
+          arguments: args,
         });
       }
     }
@@ -514,8 +515,8 @@ export function convertGoogleResponse(
  * Uses OpenAI format since OpenRouter is OpenAI-compatible.
  */
 export function convertOpenRouterResponse(
-  _chunk: OpenRouterStreamChunk,
-  _accumulators: ToolCallAccumulatorManager
+  chunk: OpenRouterStreamChunk,
+  accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   return convertOpenAIResponse(chunk, accumulators);
 }
@@ -524,8 +525,8 @@ export function convertOpenRouterResponse(
  * Converts Cohere streaming response to standardized StreamChunk.
  */
 export function convertCohereResponse(
-  _chunk: CohereStreamChunk,
-  _accumulators: ToolCallAccumulatorManager
+  chunk: CohereStreamChunk,
+  accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const chunks: StreamChunk[] = [];
   
@@ -577,8 +578,8 @@ export function convertCohereResponse(
  * Converts Mistral streaming response to standardized StreamChunk.
  */
 export function convertMistralResponse(
-  _chunk: MistralStreamChunk,
-  _accumulators: ToolCallAccumulatorManager
+  chunk: MistralStreamChunk,
+  accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   // Mistral uses OpenAI-compatible format
   return convertOpenAIResponse(chunk as OpenAIStreamChunk, accumulators);
@@ -588,8 +589,8 @@ export function convertMistralResponse(
  * Converts Together streaming response to standardized StreamChunk.
  */
 export function convertTogetherResponse(
-  _chunk: TogetherStreamChunk,
-  _accumulators: ToolCallAccumulatorManager
+  chunk: TogetherStreamChunk,
+  accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   // Together uses OpenAI-compatible format
   return convertOpenAIResponse(chunk as OpenAIStreamChunk, accumulators);
@@ -599,8 +600,8 @@ export function convertTogetherResponse(
  * Converts Perplexity streaming response to standardized StreamChunk.
  */
 export function convertPerplexityResponse(
-  _chunk: PerplexityStreamChunk,
-  _accumulators: ToolCallAccumulatorManager
+  chunk: PerplexityStreamChunk,
+  accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const chunks: StreamChunk[] = [];
   
@@ -646,8 +647,8 @@ export function convertPerplexityResponse(
  * Converts Ollama streaming response to standardized StreamChunk.
  */
 export function convertOllamaResponse(
-  _chunk: OllamaStreamChunk,
-  _accumulators: ToolCallAccumulatorManager
+  chunk: OllamaStreamChunk,
+  accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const chunks: StreamChunk[] = [];
   
@@ -709,9 +710,9 @@ export const responseConverters = new Map<string, ResponseConverter>([
  * Converts provider-specific response to standardized StreamChunk format.
  */
 export function convertProviderResponse(
-  _provider: string,
-  _chunk: any,
-  _accumulators: ToolCallAccumulatorManager
+  provider: string,
+  chunk: any,
+  accumulators: ToolCallAccumulatorManager
 ): StreamChunk[] {
   const converter = responseConverters.get(provider);
   
@@ -748,11 +749,11 @@ export function convertProviderResponse(
  * Standardizes tool call format across providers.
  */
 export function standardizeToolCall(
-  _toolCall: any,
-  _provider: string
+  toolCall: any,
+  provider: string
 ): ToolCall {
   // Helper function to ensure we always have a valid ID
-  const ensureValidId = (id: any, _fallbackName: string): string => {
+  const ensureValidId = (id: any, fallbackName: string): string => {
     if (id && typeof id === 'string' && id.length > 0) {
       return id;
     }
@@ -767,7 +768,7 @@ export function standardizeToolCall(
       const openaiName = toolCall.function?.name || toolCall.name || 'unknown';
       return {
         id: createToolCallId(ensureValidId(toolCall.id, openaiName)),
-        _name: openaiName,
+        name: openaiName,
         arguments: parseToolCallArguments(toolCall.function?.arguments || toolCall.arguments),
       };
       
@@ -775,7 +776,7 @@ export function standardizeToolCall(
       const anthropicName = toolCall.name || 'unknown';
       return {
         id: createToolCallId(ensureValidId(toolCall.id, anthropicName)),
-        _name: anthropicName,
+        name: anthropicName,
         arguments: parseToolCallArguments(toolCall.input || toolCall.arguments),
       };
       
@@ -783,7 +784,7 @@ export function standardizeToolCall(
       const googleName = toolCall.name || 'unknown';
       return {
         id: createToolCallId(ensureValidId(toolCall.id, googleName)),
-        _name: googleName,
+        name: googleName,
         arguments: parseToolCallArguments(toolCall.args || toolCall.arguments),
       };
       
@@ -791,7 +792,7 @@ export function standardizeToolCall(
       const cohereName = toolCall.name || 'unknown';
       return {
         id: createToolCallId(ensureValidId(toolCall.id, cohereName)),
-        _name: cohereName,
+        name: cohereName,
         arguments: parseToolCallArguments(toolCall.parameters || toolCall.arguments),
       };
       
@@ -800,7 +801,7 @@ export function standardizeToolCall(
       const localName = toolCall.name || 'unknown';
       return {
         id: createToolCallId(ensureValidId(toolCall.id, localName)),
-        _name: localName,
+        name: localName,
         arguments: parseToolCallArguments(toolCall.arguments),
       };
       
@@ -809,7 +810,7 @@ export function standardizeToolCall(
       const unknownName = toolCall.name || 'unknown';
       return {
         id: createToolCallId(ensureValidId(toolCall.id, unknownName)),
-        _name: unknownName,
+        name: unknownName,
         arguments: parseToolCallArguments(toolCall.arguments || {}),
       };
   }
@@ -911,8 +912,8 @@ function mapHttpStatusToErrorCode(status: number): string {
  */
 export function mapProviderError(
   error: any,
-  _provider: string
-): { code: string; _message: string } {
+  provider: string
+): { code: string; message: string } {
   switch (provider) {
     case 'anthropic':
       return {

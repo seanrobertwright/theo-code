@@ -8,6 +8,7 @@
 
 import type { ModelProvider } from '../../shared/types/models.js';
 import { ExtendedAdapterError, calculateRetryDelay, logError } from './error-handling.js';
+import { logger } from '../../shared/utils/logger.js';
 // =============================================================================
 // RETRY CONFIGURATION
 // =============================================================================
@@ -42,9 +43,9 @@ export interface RetryConfig {
  */
 const DEFAULT_RETRY_CONFIGS: Record<ModelProvider, RetryConfig> = {
   openai: {
-    _maxRetries: 3,
-    _baseDelayMs: 1000,
-    _maxDelayMs: 60000,
+    maxRetries: 3,
+    baseDelayMs: 1000,
+    maxDelayMs: 60000,
     strategy: 'exponential',
     jitterFactor: 0.25,
     retryableErrors: new Set([
@@ -56,9 +57,9 @@ const DEFAULT_RETRY_CONFIGS: Record<ModelProvider, RetryConfig> = {
     ]),
   },
   anthropic: {
-    _maxRetries: 3,
-    _baseDelayMs: 1000,
-    _maxDelayMs: 60000,
+    maxRetries: 3,
+    baseDelayMs: 1000,
+    maxDelayMs: 60000,
     strategy: 'exponential',
     jitterFactor: 0.25,
     retryableErrors: new Set([
@@ -70,9 +71,9 @@ const DEFAULT_RETRY_CONFIGS: Record<ModelProvider, RetryConfig> = {
     ]),
   },
   google: {
-    _maxRetries: 3,
-    _baseDelayMs: 1000,
-    _maxDelayMs: 60000,
+    maxRetries: 3,
+    baseDelayMs: 1000,
+    maxDelayMs: 60000,
     strategy: 'exponential',
     jitterFactor: 0.25,
     retryableErrors: new Set([
@@ -84,9 +85,9 @@ const DEFAULT_RETRY_CONFIGS: Record<ModelProvider, RetryConfig> = {
     ]),
   },
   openrouter: {
-    _maxRetries: 2,
-    _baseDelayMs: 2000,
-    _maxDelayMs: 30000,
+    maxRetries: 2,
+    baseDelayMs: 2000,
+    maxDelayMs: 30000,
     strategy: 'exponential',
     jitterFactor: 0.3,
     retryableErrors: new Set([
@@ -97,9 +98,9 @@ const DEFAULT_RETRY_CONFIGS: Record<ModelProvider, RetryConfig> = {
     ]),
   },
   cohere: {
-    _maxRetries: 3,
-    _baseDelayMs: 1000,
-    _maxDelayMs: 45000,
+    maxRetries: 3,
+    baseDelayMs: 1000,
+    maxDelayMs: 45000,
     strategy: 'exponential',
     jitterFactor: 0.25,
     retryableErrors: new Set([
@@ -110,9 +111,9 @@ const DEFAULT_RETRY_CONFIGS: Record<ModelProvider, RetryConfig> = {
     ]),
   },
   mistral: {
-    _maxRetries: 3,
-    _baseDelayMs: 1000,
-    _maxDelayMs: 45000,
+    maxRetries: 3,
+    baseDelayMs: 1000,
+    maxDelayMs: 45000,
     strategy: 'exponential',
     jitterFactor: 0.25,
     retryableErrors: new Set([
@@ -123,9 +124,9 @@ const DEFAULT_RETRY_CONFIGS: Record<ModelProvider, RetryConfig> = {
     ]),
   },
   together: {
-    _maxRetries: 2,
-    _baseDelayMs: 1500,
-    _maxDelayMs: 30000,
+    maxRetries: 2,
+    baseDelayMs: 1500,
+    maxDelayMs: 30000,
     strategy: 'exponential',
     jitterFactor: 0.3,
     retryableErrors: new Set([
@@ -136,9 +137,9 @@ const DEFAULT_RETRY_CONFIGS: Record<ModelProvider, RetryConfig> = {
     ]),
   },
   perplexity: {
-    _maxRetries: 2,
-    _baseDelayMs: 2000,
-    _maxDelayMs: 30000,
+    maxRetries: 2,
+    baseDelayMs: 2000,
+    maxDelayMs: 30000,
     strategy: 'exponential',
     jitterFactor: 0.3,
     retryableErrors: new Set([
@@ -148,9 +149,9 @@ const DEFAULT_RETRY_CONFIGS: Record<ModelProvider, RetryConfig> = {
     ]),
   },
   ollama: {
-    _maxRetries: 1,
-    _baseDelayMs: 5000,
-    _maxDelayMs: 15000,
+    maxRetries: 1,
+    baseDelayMs: 5000,
+    maxDelayMs: 15000,
     strategy: 'fixed',
     jitterFactor: 0.1,
     retryableErrors: new Set([
@@ -222,16 +223,16 @@ export class RetryExecutor {
    */
   async execute<T>(
     operation: () => Promise<T>,
-    _operationName: string,
+    operationName: string,
     context?: Partial<RetryContext>
   ): Promise<RetryResult<T>> {
     const retryContext: RetryContext = {
-      _attempt: 1,
+      attempt: 1,
       maxAttempts: this.config.maxRetries + 1, // +1 for initial attempt
       provider: this.provider,
-      _operation: operationName,
+      operation: operationName,
       startTime: Date.now(),
-      _totalRetryTime: 0,
+      totalRetryTime: 0,
       errors: [],
       ...context,
     };
@@ -248,8 +249,8 @@ export class RetryExecutor {
 
         return {
           success: true,
-          _value: result,
-          _context: retryContext,
+          value: result,
+          context: retryContext,
         };
 
       } catch (error) {
@@ -257,7 +258,7 @@ export class RetryExecutor {
         retryContext.errors.push(adaptedError);
 
         logError(adaptedError, {
-          _operation: operationName,
+          operation: operationName,
           attempt: retryContext.attempt,
           maxAttempts: retryContext.maxAttempts,
         });
@@ -267,7 +268,7 @@ export class RetryExecutor {
           logger.warn(`[RetryExecutor] ${operationName} failed permanently after ${retryContext.attempt} attempts`);
           return {
             success: false, error: adaptedError,
-            _context: retryContext,
+            context: retryContext,
           };
         }
 
@@ -289,7 +290,7 @@ export class RetryExecutor {
     return {
       success: false,
       ...(finalError !== undefined && { error: finalError }),
-      _context: retryContext,
+      context: retryContext,
     };
   }
 
@@ -298,7 +299,7 @@ export class RetryExecutor {
    */
   async executeParallel<T>(
     operations: Array<() => Promise<T>>,
-    _operationName: string,
+    operationName: string,
     options?: {
       failFast?: boolean;
       maxConcurrency?: number;
@@ -355,7 +356,7 @@ export class RetryExecutor {
   /**
    * Determine if an error should trigger a retry.
    */
-  private shouldRetry(error: ExtendedAdapterError, _context: RetryContext): boolean {
+  private shouldRetry(error: ExtendedAdapterError, context: RetryContext): boolean {
     // No more attempts left
     if (context.attempt >= context.maxAttempts) {
       return false;
@@ -458,7 +459,7 @@ export class RetryExecutor {
  * Create a retry executor for a specific provider.
  */
 export function createRetryExecutor(
-  _provider: ModelProvider,
+  provider: ModelProvider,
   customConfig?: Partial<RetryConfig>
 ): RetryExecutor {
   return new RetryExecutor(provider, customConfig);
@@ -468,9 +469,9 @@ export function createRetryExecutor(
  * Execute a function with retry logic using default configuration.
  */
 export async function withRetry<T>(
-  _provider: ModelProvider,
+  provider: ModelProvider,
   operation: () => Promise<T>,
-  _operationName: string,
+  operationName: string,
   customConfig?: Partial<RetryConfig>
 ): Promise<T> {
   const executor = createRetryExecutor(provider, customConfig);
@@ -494,7 +495,7 @@ export function getDefaultRetryConfig(provider: ModelProvider): RetryConfig {
  * Update default retry configuration for a provider.
  */
 export function updateDefaultRetryConfig(
-  _provider: ModelProvider,
+  provider: ModelProvider,
   updates: Partial<RetryConfig>
 ): void {
   DEFAULT_RETRY_CONFIGS[provider] = {
@@ -511,8 +512,8 @@ export function updateDefaultRetryConfig(
  * Decorator for adding retry logic to adapter methods.
  */
 export function withRetryDecorator(
-  _provider: ModelProvider,
-  _operationName: string,
+  provider: ModelProvider,
+  operationName: string,
   customConfig?: Partial<RetryConfig>
 ) {
   return function <T extends (...args: any[]) => Promise<any>>(

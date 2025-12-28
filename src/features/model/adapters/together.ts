@@ -22,6 +22,7 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
+import { logger } from '../../../shared/utils/logger.js';
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -416,8 +417,8 @@ export class TogetherAdapter implements IModelAdapter {
     const requestParams: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
       model: this.model,
       messages,
-      _stream: true,
-      maxtokens: options?.maxTokens ?? this.config.maxOutputTokens ?? 4096,
+      stream: true,
+      max_tokens: options?.maxTokens ?? this.config.maxOutputTokens ?? 4096,
       temperature: options?.temperature ?? 0.7,
       ...(tools !== undefined ? { tools } : {}),
       ...(options?.topP !== undefined ? { top_p: options.topP } : {}),
@@ -429,7 +430,7 @@ export class TogetherAdapter implements IModelAdapter {
       messageCount: requestParams.messages.length,
       hasTools: 'tools' in requestParams,
       temperature: requestParams.temperature,
-      maxtokens: requestParams.max_tokens
+      max_tokens: requestParams.max_tokens
     });
 
     try {

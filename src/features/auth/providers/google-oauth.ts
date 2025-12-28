@@ -25,7 +25,7 @@ const GOOGLE_OAUTH_CONFIG = {
  * Google OAuth token response interface.
  */
 interface GoogleTokenResponse {
-  accesstoken: string;
+  access_token: string;
   refresh_token?: string;
   expires_in: number;
   token_type: string;
@@ -126,7 +126,7 @@ export class GoogleOAuthAdapter implements IOAuthProviderAdapter {
     const refreshRequest = {
       grant_type: 'refresh_token',
       client_id: config.clientId,
-      refreshtoken: refreshToken,
+      refresh_token: refreshToken,
     };
 
     try {

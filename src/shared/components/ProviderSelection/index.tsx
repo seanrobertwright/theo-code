@@ -357,8 +357,8 @@ export const ProviderConfigWizard = ({
   const [config] = useState<Partial<ProviderConfig>>(
     currentConfig || {
       name: provider as any,
-      _enabled: true,
-      _priority: 0,
+      enabled: true,
+      priority: 0,
     }
   );
 

@@ -24,7 +24,7 @@ const MessageItem = createMemoComponent<{
   message: Message;
   index: number;
   colorScheme?: ColorScheme;
-}>(({ message, index, colorScheme }) => {
+}>(({ message }) => {
   // Simple fallback rendering for debugging
   return (
     <Box key={message.id} flexDirection="column">
@@ -93,7 +93,7 @@ const MessageListComponent: React.FC<MessageListProps & {
   onScrollChange,
   onContentHeightChange,
 }) => {
-  const { measure } = usePerformanceMonitor('MessageList', process.env.NODE_ENV === 'development');
+  const { measure } = usePerformanceMonitor('MessageList', process.env['NODE_ENV'] === 'development');
   
   // Estimate item height for virtual scrolling
   const ESTIMATED_MESSAGE_HEIGHT = 4; // ~4 lines per message with enhanced styling
@@ -131,45 +131,40 @@ const MessageListComponent: React.FC<MessageListProps & {
   });
   
   // Throttled scroll change handler for better performance
-  const throttledScrollChange = useThrottle(
-    useStableCallback((newPosition: number) => {
-      if (onScrollChange && Number.isFinite(newPosition) && newPosition >= 0) {
-        onScrollChange(newPosition);
-      }
-    }, [onScrollChange]),
-    16 // ~60fps throttling
-  );
+  const throttledScrollChange = React.useCallback((newPosition: number) => {
+    if (onScrollChange && Number.isFinite(newPosition) && newPosition >= 0) {
+      onScrollChange(newPosition);
+    }
+  }, [onScrollChange]);
   
-  // Handle keyboard input for scrolling with throttling
-  useInput(
-    useThrottle((input, key) => {
-      if (!onScrollChange) {
-        return;
-      }
-      
-      const scrollStep = 1;
-      const pageStep = Math.max(1, height - 2);
-      
-      if (key.upArrow) {
-        const newPosition = Math.max(0, scrollPosition - scrollStep);
-        throttledScrollChange(newPosition);
-      } else if (key.downArrow) {
-        const maxScroll = Math.max(0, totalContentHeight - height);
-        const newPosition = Math.min(maxScroll, scrollPosition + scrollStep);
-        throttledScrollChange(newPosition);
-      } else if (key.pageUp) {
-        const newPosition = Math.max(0, scrollPosition - pageStep);
-        throttledScrollChange(newPosition);
-      } else if (key.pageDown) {
-        const maxScroll = Math.max(0, totalContentHeight - height);
-        const newPosition = Math.min(maxScroll, scrollPosition + pageStep);
-        throttledScrollChange(newPosition);
-      }
-    }, 50) // 50ms throttling for keyboard input
-  );
+  // Handle keyboard input for scrolling
+  useInput((_, key) => {
+    if (!onScrollChange) {
+      return;
+    }
+    
+    const scrollStep = 1;
+    const pageStep = Math.max(1, height - 2);
+    
+    if ((key as any).upArrow) {
+      const newPosition = Math.max(0, scrollPosition - scrollStep);
+      throttledScrollChange(newPosition);
+    } else if ((key as any).downArrow) {
+      const maxScroll = Math.max(0, totalContentHeight - height);
+      const newPosition = Math.min(maxScroll, scrollPosition + scrollStep);
+      throttledScrollChange(newPosition);
+    } else if ((key as any).pageUp) {
+      const newPosition = Math.max(0, scrollPosition - pageStep);
+      throttledScrollChange(newPosition);
+    } else if ((key as any).pageDown) {
+      const maxScroll = Math.max(0, totalContentHeight - height);
+      const newPosition = Math.min(maxScroll, scrollPosition + pageStep);
+      throttledScrollChange(newPosition);
+    }
+  });
   
   // Render individual message with enhanced color coding (memoized)
-  const renderMessage = useStableCallback((message: Message, index: number): React.ReactNode => {
+  const renderMessage = React.useCallback((message: Message, index: number): React.ReactNode => {
     if (message.id === 'streaming') {
       return (
         <StreamingMessage
@@ -185,7 +180,7 @@ const MessageListComponent: React.FC<MessageListProps & {
         key={message.id}
         message={message}
         index={index}
-        colorScheme={colorScheme}
+        {...(colorScheme ? { colorScheme } : {})}
       />
     );
   }, [streamingText, isStreaming, colorScheme]);
@@ -224,10 +219,10 @@ const MessageListComponent: React.FC<MessageListProps & {
       <Box width={width} height={height} flexDirection="column">
         {/* Virtual scrolling container */}
         <Box height={virtualScrolling.totalHeight} position="relative">
-          <Box position="absolute" top={virtualScrolling.offsetY}>
+          <Box position="absolute">
             {virtualScrolling.visibleItems.map((message, index) =>
               renderMessage(message, virtualScrolling.startIndex + index)
-            )}
+            ) as React.ReactNode[]}
           </Box>
         </Box>
       </Box>
@@ -246,14 +241,14 @@ const MessageListComponent: React.FC<MessageListProps & {
       <Box width={width} height={height} flexDirection="column">
         <Text>Debug: {messages.length} messages, {allItems.length} total, {visibleMessages.length} visible</Text>
         <Text>Height: {height}, ScrollPos: {scrollPosition}</Text>
-        {allItems.slice(0, 2).map((message, index) => renderMessage(message, index))}
+        {allItems.slice(0, 2).map((message, index) => renderMessage(message, index)) as React.ReactNode[]}
       </Box>
     );
   }
   
   return (
     <Box width={width} height={height} flexDirection="column">
-      {visibleMessages.map((message, index) => renderMessage(message, index))}
+      {visibleMessages.map((message, index) => renderMessage(message, index)) as React.ReactNode[]}
     </Box>
   );
 };

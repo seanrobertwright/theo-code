@@ -87,6 +87,9 @@ export function useArchonMCP(
       // Use fallback tasks when disabled
       setTasks(fallbackTasks);
       setConnectionStatus('disconnected');
+      
+      // Return undefined cleanup function for consistency
+      return undefined;
     }
   }, [config]);
 

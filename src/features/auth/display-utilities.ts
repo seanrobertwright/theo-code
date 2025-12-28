@@ -128,7 +128,7 @@ export class AuthStatusDisplayFormatter {
   /**
    * Get status text description.
    */
-  private static getStatusText(status: AuthStatus, _useColors: boolean): string {
+  private static getStatusText(status: AuthStatus, useColors: boolean): string {
     const color = useColors ? this.getStatusColor(status) : '';
     const reset = useColors ? Colors.RESET : '';
     
@@ -144,7 +144,7 @@ export class AuthStatusDisplayFormatter {
   /**
    * Format expiration information.
    */
-  private static formatExpirationInfo(expiresAt: Date, _needsRefresh: boolean, _useColors: boolean): string {
+  private static formatExpirationInfo(expiresAt: Date, needsRefresh: boolean, useColors: boolean): string {
     const now = new Date();
     const isExpired = expiresAt <= now;
     
@@ -177,7 +177,7 @@ export class AuthStatusDisplayFormatter {
   /**
    * Format data in a table format.
    */
-  private static formatTable(headers: string[], rows: string[][], _useColors: boolean): string {
+  private static formatTable(headers: string[], rows: string[][], useColors: boolean): string {
     // Calculate column widths
     const columnWidths = headers.map((header, index) => {
       const rowWidths = rows.map(row => this.stripAnsiCodes(row[index] || '').length);
@@ -293,7 +293,7 @@ export class TokenDisplayFormatter {
   /**
    * Get color for token status.
    */
-  private static getTokenStatusColor(maskedInfo: MaskedTokenInfo, _useColors: boolean): string {
+  private static getTokenStatusColor(maskedInfo: MaskedTokenInfo, useColors: boolean): string {
     if (!useColors) {
     return '';
   }
@@ -312,7 +312,7 @@ export class TokenDisplayFormatter {
   /**
    * Format token expiration information.
    */
-  private static formatTokenExpiration(maskedInfo: MaskedTokenInfo, _useColors: boolean): string {
+  private static formatTokenExpiration(maskedInfo: MaskedTokenInfo, useColors: boolean): string {
     if (!maskedInfo.expiresAt) {
     return 'N/A';
   }
@@ -347,7 +347,7 @@ export class TokenDisplayFormatter {
   /**
    * Format token status information.
    */
-  private static formatTokenStatus(maskedInfo: MaskedTokenInfo, _useColors: boolean): string {
+  private static formatTokenStatus(maskedInfo: MaskedTokenInfo, useColors: boolean): string {
     const statusColor = this.getTokenStatusColor(maskedInfo, useColors);
     const reset = useColors ? Colors.RESET : '';
     
@@ -366,7 +366,7 @@ export class TokenDisplayFormatter {
   /**
    * Get token status text without formatting.
    */
-  private static getTokenStatusText(maskedInfo: MaskedTokenInfo, _useColors: boolean): string {
+  private static getTokenStatusText(maskedInfo: MaskedTokenInfo, useColors: boolean): string {
     return this.formatTokenStatus(maskedInfo, useColors);
   }
 }
@@ -514,7 +514,7 @@ export class ConfigDisplayFormatter {
   /**
    * Format enabled status with colors.
    */
-  private static formatEnabledStatus(enabled: boolean, _useColors: boolean): string {
+  private static formatEnabledStatus(enabled: boolean, useColors: boolean): string {
     const color = enabled ? (useColors ? Colors.GREEN : '') : (useColors ? Colors.RED : '');
     const reset = useColors ? Colors.RESET : '';
     return `${color}${enabled ? 'Yes' : 'No'}${reset}`;

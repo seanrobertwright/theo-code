@@ -6,6 +6,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import * as path from 'node:path';
 import { z } from 'zod';
 import type { Tool } from '../../../shared/types/tools.js';
+import { logger } from '../../../shared/utils/logger.js';
 interface LSPServer {
   process: ChildProcess;
   language: string;
@@ -36,7 +37,7 @@ class LSPManager {
     go: { command: 'gopls', args: [] }
   };
 
-  async startServer(language: string, _workspaceRoot: string): Promise<boolean> {
+  async startServer(language: string, workspaceRoot: string): Promise<boolean> {
     if (this.servers.has(language)) {
       return true;
     }
@@ -48,15 +49,15 @@ class LSPManager {
 
     try {
       const process = spawn(config.command, config.args, {
-        _cwd: workspaceRoot,
+        cwd: workspaceRoot,
         stdio: ['pipe', 'pipe', 'pipe']
       });
 
       const server: LSPServer = {
         process,
         language,
-        _ready: false,
-        _messageId: 1
+        ready: false,
+        messageId: 1
       };
 
       // Initialize LSP
@@ -85,7 +86,7 @@ class LSPManager {
     }
   }
 
-  private async sendRequest(server: LSPServer, _method: string, params: any): Promise<any> {
+  private async sendRequest(server: LSPServer, method: string, params: any): Promise<any> {
     return new Promise((resolve, reject) => {
       const id = server.messageId++;
       const message = {
@@ -114,7 +115,7 @@ class LSPManager {
     });
   }
 
-  async getDefinition(language: string, _file: string, _position: Position): Promise<Location[]> {
+  async getDefinition(language: string, file: string, position: Position): Promise<Location[]> {
     const server = this.servers.get(language);
     if (!server?.ready) {
       throw new Error(`LSP server not ready for ${language}`);
@@ -126,7 +127,7 @@ class LSPManager {
     });
   }
 
-  async getHover(language: string, _file: string, _position: Position): Promise<any> {
+  async getHover(language: string, file: string, position: Position): Promise<any> {
     const server = this.servers.get(language);
     if (!server?.ready) {
       throw new Error(`LSP server not ready for ${language}`);
@@ -138,7 +139,7 @@ class LSPManager {
     });
   }
 
-  async getReferences(language: string, _file: string, _position: Position): Promise<Location[]> {
+  async getReferences(language: string, file: string, position: Position): Promise<Location[]> {
     const server = this.servers.get(language);
     if (!server?.ready) {
       throw new Error(`LSP server not ready for ${language}`);
@@ -147,7 +148,7 @@ class LSPManager {
     return this.sendRequest(server, 'textDocument/references', {
       textDocument: { uri: `file://${file}` },
       position,
-      context: { _includeDeclaration: true }
+      context: { includeDeclaration: true }
     });
   }
 
@@ -189,16 +190,16 @@ export const createLSPTools = (): Tool[] => [
       }).optional(),
       error: z.string().optional()
     }),
-    _requiresConfirmation: false,
+    requiresConfirmation: false,
     category: 'lsp',
 
     async execute(params: unknown, context) {
       try {
-        const typedParams = params as { _language: string };
+        const typedParams = params as { language: string };
         const success = await lspManager.startServer(typedParams.language, context.workspaceRoot);
         return {
           success,
-          data: { language: typedParams.language, _started: success }
+          data: { language: typedParams.language, started: success }
         };
       } catch (error) {
         return {
@@ -242,12 +243,12 @@ export const createLSPTools = (): Tool[] => [
       }).optional(),
       error: z.string().optional()
     }),
-    _requiresConfirmation: false,
+    requiresConfirmation: false,
     category: 'lsp',
 
     async execute(params: unknown, context) {
       try {
-        const typedParams = params as { language: string; file: string; line: number; _character: number };
+        const typedParams = params as { language: string; file: string; line: number; character: number };
         const filePath = path.resolve(context.workspaceRoot, typedParams.file);
         const definitions = await lspManager.getDefinition(
           typedParams.language,
@@ -297,12 +298,12 @@ export const createLSPTools = (): Tool[] => [
       }).optional(),
       error: z.string().optional()
     }),
-    _requiresConfirmation: false,
+    requiresConfirmation: false,
     category: 'lsp',
 
     async execute(params: unknown, context) {
       try {
-        const typedParams = params as { language: string; file: string; line: number; _character: number };
+        const typedParams = params as { language: string; file: string; line: number; character: number };
         const filePath = path.resolve(context.workspaceRoot, typedParams.file);
         const hover = await lspManager.getHover(
           typedParams.language,
@@ -352,12 +353,12 @@ export const createLSPTools = (): Tool[] => [
       }).optional(),
       error: z.string().optional()
     }),
-    _requiresConfirmation: false,
+    requiresConfirmation: false,
     category: 'lsp',
 
     async execute(params: unknown, context) {
       try {
-        const typedParams = params as { language: string; file: string; line: number; _character: number };
+        const typedParams = params as { language: string; file: string; line: number; character: number };
         const filePath = path.resolve(context.workspaceRoot, typedParams.file);
         const references = await lspManager.getReferences(
           typedParams.language,

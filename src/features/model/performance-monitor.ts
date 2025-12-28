@@ -649,7 +649,7 @@ export class PerformanceMonitor {
   /**
    * Determines alert severity based on metrics.
    */
-  private determineSeverity(config: AlertConfig, metrics: AggregatedMetrics | SystemMetrics): PerformanceAlert['severity'] {
+  private determineSeverity(_config: AlertConfig, metrics: AggregatedMetrics | SystemMetrics): PerformanceAlert['severity'] {
     // Simple severity determination - could be made more sophisticated
     if ('successRate' in metrics) {
       if (metrics.successRate < 0.5) {

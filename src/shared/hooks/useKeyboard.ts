@@ -47,7 +47,7 @@ export interface UseKeyboardResult {
  */
 function navigateHistoryUp(
   history: HistoryEntry[],
-  _historyIndex: number,
+  historyIndex: number,
   setHistoryIndex: (idx: number) => void,
   setInput: (value: string) => void
 ): void {
@@ -66,7 +66,7 @@ function navigateHistoryUp(
  */
 function navigateHistoryDown(
   history: HistoryEntry[],
-  _historyIndex: number,
+  historyIndex: number,
   setHistoryIndex: (idx: number) => void,
   setInput: (value: string) => void
 ): void {
@@ -88,7 +88,7 @@ function navigateHistoryDown(
  */
 function handleSpecialKey(
   key: Key,
-  _char: string,
+  char: string,
   handlers: {
     onExit: (() => void) | undefined;
     onSubmit: () => void;
@@ -152,12 +152,12 @@ export function useKeyboard(options: UseKeyboardOptions = {}): UseKeyboardResult
   }, []);
 
   const addToHistory = useCallback((entry: string): void => {
-    if (length === 0) {
+    if (entry.length === 0) {
       return;
     }
 
     setHistory((prev) => [
-      { _input: entry, timestamp: Date.now() },
+      { input: entry, timestamp: Date.now() },
       ...prev.slice(0, 99), // Keep last 100 entries
     ]);
   }, []);
@@ -167,7 +167,7 @@ export function useKeyboard(options: UseKeyboardOptions = {}): UseKeyboardResult
       const handled = handleSpecialKey(key, char, {
         onExit,
         onSubmit: () => {
-          if (length > 0) {
+          if (input.length > 0) {
             addToHistory(input);
             onSubmit?.(input);
           }
@@ -176,7 +176,7 @@ export function useKeyboard(options: UseKeyboardOptions = {}): UseKeyboardResult
         onBackspace: () => setInput((prev) => prev.slice(0, -1)),
         onUpArrow: () => navigateHistoryUp(history, historyIndex, setHistoryIndex, setInput),
         onDownArrow: () => navigateHistoryDown(history, historyIndex, setHistoryIndex, setInput),
-        _onEscape: clearInput,
+        onEscape: clearInput,
       });
 
       // Handle regular character input
@@ -189,7 +189,7 @@ export function useKeyboard(options: UseKeyboardOptions = {}): UseKeyboardResult
   );
 
   return {
-    _currentInput: input,
+    currentInput: input,
     setInput,
     clearInput,
     history,

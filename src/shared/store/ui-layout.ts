@@ -274,15 +274,15 @@ export function useLayoutActions() {
   const validateConfiguration = useUILayoutStore((state) => state.validateConfiguration);
   
   return useDeepMemo(() => ({
-    setContextAreaWidth: useStableCallback(setContextAreaWidth, [setContextAreaWidth]),
-    toggleTaskSidebar: useStableCallback(toggleTaskSidebar, [toggleTaskSidebar]),
-    setTaskSidebarCollapsed: useStableCallback(setTaskSidebarCollapsed, [setTaskSidebarCollapsed]),
-    setContextScrollPosition: useStableCallback(setContextScrollPosition, [setContextScrollPosition]),
-    setTaskScrollPosition: useStableCallback(setTaskScrollPosition, [setTaskScrollPosition]),
-    setColorScheme: useStableCallback(setColorScheme, [setColorScheme]),
-    setLayoutConfig: useStableCallback(setLayoutConfig, [setLayoutConfig]),
-    resetToDefaults: useStableCallback(resetToDefaults, [resetToDefaults]),
-    validateConfiguration: useStableCallback(validateConfiguration, [validateConfiguration]),
+    setContextAreaWidth,
+    toggleTaskSidebar,
+    setTaskSidebarCollapsed,
+    setContextScrollPosition,
+    setTaskScrollPosition,
+    setColorScheme,
+    setLayoutConfig,
+    resetToDefaults,
+    validateConfiguration,
   }), [
     setContextAreaWidth,
     toggleTaskSidebar,

@@ -9,6 +9,7 @@
 import type { Message } from '../../shared/types/index.js';
 import type { ModelProvider, GenerateOptions } from '../../shared/types/models.js';
 import { ExtendedAdapterError } from './error-handling.js';
+import { logger } from '../../shared/utils/logger.js';
 // =============================================================================
 // CONTEXT MANAGEMENT TYPES
 // =============================================================================
@@ -110,85 +111,85 @@ export interface TruncationResult {
  */
 const DEFAULT_CONTEXT_CONFIGS: Record<ModelProvider, ContextConfig> = {
   openai: {
-    _maxContextTokens: 128000, // GPT-4o
-    _maxOutputTokens: 4096,
-    _reservedTokens: 1000,
+    maxContextTokens: 128000, // GPT-4o
+    maxOutputTokens: 4096,
+    reservedTokens: 1000,
     truncationStrategy: 'sliding_window',
-    _minMessages: 2,
-    _preserveSystemMessages: true,
-    _preserveLastUserMessage: true,
+    minMessages: 2,
+    preserveSystemMessages: true,
+    preserveLastUserMessage: true,
   },
   anthropic: {
-    _maxContextTokens: 200000, // Claude 3.5 Sonnet
-    _maxOutputTokens: 8192,
-    _reservedTokens: 1000,
+    maxContextTokens: 200000, // Claude 3.5 Sonnet
+    maxOutputTokens: 8192,
+    reservedTokens: 1000,
     truncationStrategy: 'sliding_window',
-    _minMessages: 2,
-    _preserveSystemMessages: true,
-    _preserveLastUserMessage: true,
+    minMessages: 2,
+    preserveSystemMessages: true,
+    preserveLastUserMessage: true,
   },
   google: {
-    _maxContextTokens: 1000000, // Gemini 3.0 Pro
-    _maxOutputTokens: 8192,
-    _reservedTokens: 2000,
+    maxContextTokens: 1000000, // Gemini 3.0 Pro
+    maxOutputTokens: 8192,
+    reservedTokens: 2000,
     truncationStrategy: 'smart_summary',
-    _minMessages: 2,
-    _preserveSystemMessages: true,
-    _preserveLastUserMessage: true,
+    minMessages: 2,
+    preserveSystemMessages: true,
+    preserveLastUserMessage: true,
   },
   openrouter: {
-    _maxContextTokens: 32000, // Conservative default
-    _maxOutputTokens: 4096,
-    _reservedTokens: 1000,
+    maxContextTokens: 32000, // Conservative default
+    maxOutputTokens: 4096,
+    reservedTokens: 1000,
     truncationStrategy: 'oldest_first',
-    _minMessages: 2,
-    _preserveSystemMessages: true,
-    _preserveLastUserMessage: true,
+    minMessages: 2,
+    preserveSystemMessages: true,
+    preserveLastUserMessage: true,
   },
   cohere: {
-    _maxContextTokens: 128000, // Command R+
-    _maxOutputTokens: 4096,
-    _reservedTokens: 1000,
+    maxContextTokens: 128000, // Command R+
+    maxOutputTokens: 4096,
+    reservedTokens: 1000,
     truncationStrategy: 'sliding_window',
-    _minMessages: 2,
-    _preserveSystemMessages: true,
-    _preserveLastUserMessage: true,
+    minMessages: 2,
+    preserveSystemMessages: true,
+    preserveLastUserMessage: true,
   },
   mistral: {
-    _maxContextTokens: 32000, // Mistral Large
-    _maxOutputTokens: 4096,
-    _reservedTokens: 1000,
+    maxContextTokens: 32000, // Mistral Large
+    maxOutputTokens: 4096,
+    reservedTokens: 1000,
     truncationStrategy: 'oldest_first',
-    _minMessages: 2,
-    _preserveSystemMessages: true,
-    _preserveLastUserMessage: true,
+    minMessages: 2,
+    preserveSystemMessages: true,
+    preserveLastUserMessage: true,
   },
   together: {
-    _maxContextTokens: 32000, // Conservative default
-    _maxOutputTokens: 4096,
-    _reservedTokens: 1000,
+    maxContextTokens: 32000, // Conservative default
+    maxOutputTokens: 4096,
+    reservedTokens: 1000,
     truncationStrategy: 'oldest_first',
-    _minMessages: 2,
-    _preserveSystemMessages: true,
-    _preserveLastUserMessage: true,
+    minMessages: 2,
+    preserveSystemMessages: true,
+    preserveLastUserMessage: true,
   },
   perplexity: {
-    _maxContextTokens: 16000, // Conservative default
-    _maxOutputTokens: 4096,
-    _reservedTokens: 1000,
+    maxContextTokens: 16000, // Conservative default
+    maxOutputTokens: 4096,
+    reservedTokens: 1000,
     truncationStrategy: 'oldest_first',
-    _minMessages: 2,
-    _preserveSystemMessages: true,
-    _preserveLastUserMessage: true,
+    minMessages: 2,
+    preserveSystemMessages: true,
+    preserveLastUserMessage: true,
   },
   ollama: {
-    _maxContextTokens: 8192, // Conservative default for local models
-    _maxOutputTokens: 2048,
-    _reservedTokens: 500,
+    maxContextTokens: 8192, // Conservative default for local models
+    maxOutputTokens: 2048,
+    reservedTokens: 500,
     truncationStrategy: 'oldest_first',
-    _minMessages: 1,
-    _preserveSystemMessages: true,
-    _preserveLastUserMessage: true,
+    minMessages: 1,
+    preserveSystemMessages: true,
+    preserveLastUserMessage: true,
   },
 };
 
@@ -205,7 +206,7 @@ export class ContextManager {
   private readonly tokenCounter: (messages: Message[]) => number;
 
   constructor(
-    _provider: ModelProvider,
+    provider: ModelProvider,
     tokenCounter: (messages: Message[]) => number,
     customConfig?: Partial<ContextConfig>
   ) {
@@ -294,8 +295,8 @@ export class ContextManager {
     if (analysis.fitsInContext) {
       return {
         messages: this.enrichMessages(messages),
-        _messagesRemoved: 0,
-        _tokensRemoved: 0,
+        messagesRemoved: 0,
+        tokensRemoved: 0,
         strategyUsed: this.config.truncationStrategy,
         success: true,
       };
@@ -313,32 +314,32 @@ export class ContextManager {
     try {
       switch (strategy) {
         case 'oldest_first':
-          ({ _messages: truncatedMessages, tokensRemoved, messagesRemoved } = 
+          ({ messages: truncatedMessages, tokensRemoved, messagesRemoved } = 
             this.truncateOldestFirst(extendedMessages, analysis));
           break;
 
         case 'middle_out':
-          ({ _messages: truncatedMessages, tokensRemoved, messagesRemoved } = 
+          ({ messages: truncatedMessages, tokensRemoved, messagesRemoved } = 
             this.truncateMiddleOut(extendedMessages, analysis));
           break;
 
         case 'sliding_window':
-          ({ _messages: truncatedMessages, tokensRemoved, messagesRemoved } = 
+          ({ messages: truncatedMessages, tokensRemoved, messagesRemoved } = 
             this.truncateSlidingWindow(extendedMessages, analysis));
           break;
 
         case 'token_based':
-          ({ _messages: truncatedMessages, tokensRemoved, messagesRemoved } = 
+          ({ messages: truncatedMessages, tokensRemoved, messagesRemoved } = 
             this.truncateTokenBased(extendedMessages, analysis));
           break;
 
         case 'priority_based':
-          ({ _messages: truncatedMessages, tokensRemoved, messagesRemoved } = 
+          ({ messages: truncatedMessages, tokensRemoved, messagesRemoved } = 
             this.truncatePriorityBased(extendedMessages, analysis));
           break;
 
         case 'smart_summary':
-          ({ _messages: truncatedMessages, tokensRemoved, messagesRemoved } = 
+          ({ messages: truncatedMessages, tokensRemoved, messagesRemoved } = 
             this.truncateWithSummary(extendedMessages, analysis));
           break;
 
@@ -362,10 +363,10 @@ export class ContextManager {
       }
 
       const result: TruncationResult = {
-        _messages: truncatedMessages,
+        messages: truncatedMessages,
         messagesRemoved,
         tokensRemoved,
-        _strategyUsed: strategy,
+        strategyUsed: strategy,
         success,
       };
       
@@ -385,7 +386,7 @@ export class ContextManager {
         {
           severity: 'high',
           recoveryStrategy: 'abort',
-          _originalError: error,
+          originalError: error,
           context: { analysis, strategy },
         }
       );
@@ -433,7 +434,7 @@ export class ContextManager {
         {
           severity: 'high',
           recoveryStrategy: 'abort',
-          _originalError: error,
+          originalError: error,
         }
       );
     }
@@ -488,7 +489,7 @@ export class ContextManager {
   /**
    * Determine message priority for truncation decisions.
    */
-  private determineMessagePriority(message: Message, _index: number, _totalMessages: number): MessagePriority {
+  private determineMessagePriority(message: Message, index: number, totalMessages: number): MessagePriority {
     // System messages are critical
     if (message.role === 'system') {
       return 'critical';
@@ -513,8 +514,8 @@ export class ContextManager {
    */
   private truncateOldestFirst(
     messages: ExtendedMessage[],
-    _analysis: ContextAnalysis
-  ): { messages: ExtendedMessage[]; tokensRemoved: number; _messagesRemoved: number } {
+    analysis: ContextAnalysis
+  ): { messages: ExtendedMessage[]; tokensRemoved: number; messagesRemoved: number } {
     const result = [...messages];
     let tokensRemoved = 0;
     let messagesRemoved = 0;
@@ -542,7 +543,7 @@ export class ContextManager {
         .filter(i => i !== messageIndex);
     }
 
-    return { _messages: result, tokensRemoved, messagesRemoved };
+    return { messages: result, tokensRemoved, messagesRemoved };
   }
 
   /**
@@ -550,8 +551,8 @@ export class ContextManager {
    */
   private truncateMiddleOut(
     messages: ExtendedMessage[],
-    _analysis: ContextAnalysis
-  ): { messages: ExtendedMessage[]; tokensRemoved: number; _messagesRemoved: number } {
+    analysis: ContextAnalysis
+  ): { messages: ExtendedMessage[]; tokensRemoved: number; messagesRemoved: number } {
     const result = [...messages];
     let tokensRemoved = 0;
     let messagesRemoved = 0;
@@ -581,7 +582,7 @@ export class ContextManager {
       result.splice(actualIndex, 1);
     }
 
-    return { _messages: result, tokensRemoved, messagesRemoved };
+    return { messages: result, tokensRemoved, messagesRemoved };
   }
 
   /**
@@ -589,8 +590,8 @@ export class ContextManager {
    */
   private truncateSlidingWindow(
     messages: ExtendedMessage[],
-    _analysis: ContextAnalysis
-  ): { messages: ExtendedMessage[]; tokensRemoved: number; _messagesRemoved: number } {
+    analysis: ContextAnalysis
+  ): { messages: ExtendedMessage[]; tokensRemoved: number; messagesRemoved: number } {
     const windowSize = Math.max(this.config.minMessages, messages.length - Math.ceil(analysis.tokensToRemove / 100));
     const preservedIndices = new Set(analysis.preservedMessages);
     
@@ -625,7 +626,7 @@ export class ContextManager {
       }
     }
 
-    return { _messages: result, tokensRemoved, messagesRemoved };
+    return { messages: result, tokensRemoved, messagesRemoved };
   }
 
   /**
@@ -633,15 +634,15 @@ export class ContextManager {
    */
   private truncateTokenBased(
     messages: ExtendedMessage[],
-    _analysis: ContextAnalysis
-  ): { messages: ExtendedMessage[]; tokensRemoved: number; _messagesRemoved: number } {
+    analysis: ContextAnalysis
+  ): { messages: ExtendedMessage[]; tokensRemoved: number; messagesRemoved: number } {
     const result = [...messages];
     let tokensRemoved = 0;
     let messagesRemoved = 0;
 
     // Sort truncatable messages by token count (largest first)
     const truncatableWithTokens = analysis.truncatableMessages
-      .map(i => messages[i] ? { _index: i, tokens: messages[i].tokenCount ?? 0 } : null)
+      .map(i => messages[i] ? { index: i, tokens: messages[i]?.tokenCount ?? 0 } : null)
       .filter((item): item is { index: number; tokens: number } => item !== null)
       .sort((a, b) => b.tokens - a.tokens);
 
@@ -660,7 +661,7 @@ export class ContextManager {
       result.splice(actualIndex, 1);
     }
 
-    return { _messages: result, tokensRemoved, messagesRemoved };
+    return { messages: result, tokensRemoved, messagesRemoved };
   }
 
   /**
@@ -668,8 +669,8 @@ export class ContextManager {
    */
   private truncatePriorityBased(
     messages: ExtendedMessage[],
-    _analysis: ContextAnalysis
-  ): { messages: ExtendedMessage[]; tokensRemoved: number; _messagesRemoved: number } {
+    analysis: ContextAnalysis
+  ): { messages: ExtendedMessage[]; tokensRemoved: number; messagesRemoved: number } {
     const result = [...messages];
     let tokensRemoved = 0;
     let messagesRemoved = 0;
@@ -704,7 +705,7 @@ export class ContextManager {
       }
     }
 
-    return { _messages: result, tokensRemoved, messagesRemoved };
+    return { messages: result, tokensRemoved, messagesRemoved };
   }
 
   /**
@@ -712,8 +713,8 @@ export class ContextManager {
    */
   private truncateWithSummary(
     messages: ExtendedMessage[],
-    _analysis: ContextAnalysis
-  ): { messages: ExtendedMessage[]; tokensRemoved: number; _messagesRemoved: number } {
+    analysis: ContextAnalysis
+  ): { messages: ExtendedMessage[]; tokensRemoved: number; messagesRemoved: number } {
     // For now, fall back to sliding window
     // TODO: Implement actual summarization logic
     logger.warn(`[ContextManager] Smart summary not yet implemented, falling back to sliding window`);
@@ -729,7 +730,7 @@ export class ContextManager {
  * Create a context manager for a specific provider.
  */
 export function createContextManager(
-  _provider: ModelProvider,
+  provider: ModelProvider,
   tokenCounter: (messages: Message[]) => number,
   customConfig?: Partial<ContextConfig>
 ): ContextManager {
@@ -747,7 +748,7 @@ export function getDefaultContextConfig(provider: ModelProvider): ContextConfig 
  * Estimate if messages will fit in context window.
  */
 export function estimateContextFit(
-  _provider: ModelProvider,
+  provider: ModelProvider,
   messages: Message[],
   tokenCounter: (messages: Message[]) => number,
   options?: GenerateOptions

@@ -17,7 +17,7 @@ import type {
   GenerateOptions,
   ModelConfig,
 } from '../../../shared/types/models.js';
-import type { AuthenticationManager } from '../auth/authentication-manager.js';
+import type { AuthenticationManager } from '../../auth/authentication-manager.js';
 
 // =============================================================================
 // ADAPTER INTERFACE

@@ -18,6 +18,7 @@ import {
   ToolExecutionError,
   ToolValidationError,
 } from '../../shared/types/tools.js';
+import { logger } from '../../shared/utils/logger.js';
 // =============================================================================
 // TOOL REGISTRY
 // =============================================================================
@@ -48,7 +49,7 @@ export class ToolRegistry {
 
     this.tools.set(name, {
       tool,
-      _enabled: true,
+      enabled: true,
       metadata: {
         registeredAt: new Date(),
         version,
@@ -80,8 +81,8 @@ export class ToolRegistry {
   setEnabled(name: string, _enabled: boolean): void {
     const entry = this.tools.get(name);
     if (entry) {
-      entry.enabled = enabled;
-      logger.debug(`Tool '${name}' ${enabled ? 'enabled' : 'disabled'}`);
+      entry.enabled = _enabled;
+      logger.debug(`Tool '${name}' ${_enabled ? 'enabled' : 'disabled'}`);
     }
   }
 
@@ -158,9 +159,9 @@ export class ToolRegistry {
    * @returns Promise resolving to execution result
    */
   async execute(
-    _name: string,
-    _input: unknown,
-    _context: ToolContext
+    name: string,
+    input: unknown,
+    context: ToolContext
   ): Promise<ToolExecutionResult> {
     const startTime = Date.now();
     
@@ -219,7 +220,7 @@ export class ToolRegistry {
   /**
    * Validate input against tool schema.
    */
-  private validateInput(tool: Tool, _input: unknown): unknown {
+  private validateInput(tool: Tool, input: unknown): unknown {
     try {
       return tool.inputSchema.parse(input);
     } catch (error) {
@@ -234,8 +235,8 @@ export class ToolRegistry {
    * Perform pre-execution validation if tool has validate method.
    */
   private async performPreExecutionValidation(
-    _tool: Tool,
-    _context: ToolContext, name: string
+    tool: Tool,
+    context: ToolContext, name: string
   ): Promise<void> {
     if (typeof tool.validate === 'function') {
       const validation = await tool.validate(context);
@@ -259,9 +260,9 @@ export class ToolRegistry {
    * Request confirmation if tool requires it.
    */
   private async requestConfirmationIfNeeded(
-    _tool: Tool,
-    _context: ToolContext, name: string,
-    _validatedInput: unknown
+    tool: Tool,
+    context: ToolContext, name: string,
+    validatedInput: unknown
   ): Promise<boolean> {
     if (!tool.requiresConfirmation) {
       return true;
@@ -277,11 +278,11 @@ export class ToolRegistry {
    * Execute the tool and validate output.
    */
   private async executeTool(
-    _tool: Tool,
-    _validatedInput: unknown,
-    _context: ToolContext, name: string
+    tool: Tool,
+    validatedInput: unknown,
+    context: ToolContext, name: string
   ): Promise<unknown> {
-    logger.debug(`Executing tool '${name}'`, { _input: validatedInput });
+    logger.debug(`Executing tool '${name}'`, { input: validatedInput });
     
     const output = await tool.execute(validatedInput, context);
 

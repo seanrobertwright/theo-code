@@ -78,5 +78,3 @@ export const InputArea: React.FC<InputAreaProps> = ({
     </Box>
   );
 };
-
-export type { InputAreaProps };

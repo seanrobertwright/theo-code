@@ -173,7 +173,7 @@ export class OAuthConfigSerializer {
   /**
    * Serialize OAuth configuration to YAML format with security masking.
    */
-  static serializeOAuthConfig(config: OAuthConfig, _settings: OAuthProviderSettings): string {
+  static serializeOAuthConfig(config: OAuthConfig, settings: OAuthProviderSettings): string {
     const secureConfig: SecureOAuthConfig = {
       provider: config.provider,
       clientId: config.clientId,
@@ -190,9 +190,9 @@ export class OAuthConfigSerializer {
     };
     
     return stringifyYaml(secureConfig, {
-      _indent: 2,
-      _lineWidth: 120,
-      _minContentWidth: 0,
+      indent: 2,
+      lineWidth: 120,
+      minContentWidth: 0,
     });
   }
   
@@ -225,7 +225,7 @@ export class OAuthConfigSerializer {
         tokenEndpoint: '', // Will be filled by provider adapter
         scopes: [], // Will be filled by provider adapter
         redirectUri: 'http://localhost:8080/callback',
-        _additionalParams: null,
+        additionalParams: null,
         settings: {
           enabled: config.oauth.enabled,
           preferredMethod: config.oauth.preferredMethod,
@@ -241,9 +241,9 @@ export class OAuthConfigSerializer {
     };
     
     return stringifyYaml(serializableConfig, {
-      _indent: 2,
-      _lineWidth: 120,
-      _minContentWidth: 0,
+      indent: 2,
+      lineWidth: 120,
+      minContentWidth: 0,
     });
   }
   
@@ -262,7 +262,7 @@ export class OAuthConfigSerializer {
   /**
    * Validate OAuth configuration round-trip consistency.
    */
-  static validateRoundTrip(originalConfig: OAuthConfig, _settings: OAuthProviderSettings): boolean {
+  static validateRoundTrip(originalConfig: OAuthConfig, settings: OAuthProviderSettings): boolean {
     try {
       // Serialize then deserialize
       const serialized = this.serializeOAuthConfig(originalConfig, settings);
@@ -301,12 +301,12 @@ export class TokenInfoFormatter {
     if (!tokens) {
       return {
         provider,
-        _hasTokens: false,
-        _maskedAccessToken: null,
-        _expiresAt: null,
-        _hasRefreshToken: false,
+        hasTokens: false,
+        maskedAccessToken: null,
+        expiresAt: null,
+        hasRefreshToken: false,
         tokenType: 'Bearer',
-        _isExpired: false,
+        isExpired: false,
         needsRefresh: false,
       };
     }
@@ -317,7 +317,7 @@ export class TokenInfoFormatter {
     
     return {
       provider,
-      _hasTokens: true,
+      hasTokens: true,
       maskedAccessToken: this.maskToken(tokens.accessToken),
       expiresAt: tokens.expiresAt,
       hasRefreshToken: !!tokens.refreshToken,
@@ -415,7 +415,7 @@ export class OAuthConfigValidator {
     
     try {
       SecureOAuthConfigSchema.parse(config);
-      return { _valid: true, errors: [] };
+      return { valid: true, errors: [] };
     } catch (error) {
       if (error instanceof z.ZodError) {
         for (const issue of error.issues) {
@@ -425,7 +425,7 @@ export class OAuthConfigValidator {
         errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       
-      return { _valid: false, errors };
+      return { valid: false, errors };
     }
   }
   
@@ -437,7 +437,7 @@ export class OAuthConfigValidator {
     
     try {
       SerializableProviderConfigSchema.parse(config);
-      return { _valid: true, errors: [] };
+      return { valid: true, errors: [] };
     } catch (error) {
       if (error instanceof z.ZodError) {
         for (const issue of error.issues) {
@@ -447,7 +447,7 @@ export class OAuthConfigValidator {
         errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
       
-      return { _valid: false, errors };
+      return { valid: false, errors };
     }
   }
   
@@ -455,7 +455,7 @@ export class OAuthConfigValidator {
    * Check if configuration contains sensitive data that should be masked.
    */
   static containsSensitiveData(config: any): boolean {
-    if (config === null ?? config === undefined) {
+    if (config === null || config === undefined) {
       return false;
     }
     

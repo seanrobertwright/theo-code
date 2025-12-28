@@ -106,7 +106,7 @@ class GitAnalyzer {
       type,
       scope,
       description,
-      _breaking: hasBreaking
+      breaking: hasBreaking
     };
   }
 
@@ -145,7 +145,7 @@ export const createGitTools = (): Tool[] => [
       parameters: {
         type: 'object',
         properties: {
-          porcelain: { type: 'boolean', _default: true, description: 'Use porcelain format for machine-readable output' }
+          porcelain: { type: 'boolean', default: true, description: 'Use porcelain format for machine-readable output' }
         },
         required: []
       }
@@ -161,7 +161,7 @@ export const createGitTools = (): Tool[] => [
       }).optional(),
       error: z.string().optional()
     }),
-    _requiresConfirmation: false,
+    requiresConfirmation: false,
     category: 'git',
 
     async execute(params: unknown, context) {
@@ -196,9 +196,9 @@ export const createGitTools = (): Tool[] => [
       parameters: {
         type: 'object',
         properties: {
-          staged: { type: 'boolean', _default: false, description: 'Show staged changes only' },
+          staged: { type: 'boolean', default: false, description: 'Show staged changes only' },
           files: { type: 'array', items: { type: 'string' }, description: 'Specific files to diff' },
-          generateCommit: { type: 'boolean', _default: false, description: 'Generate commit message suggestion' }
+          generateCommit: { type: 'boolean', default: false, description: 'Generate commit message suggestion' }
         },
         required: []
       }
@@ -219,7 +219,7 @@ export const createGitTools = (): Tool[] => [
       }).optional(),
       error: z.string().optional()
     }),
-    _requiresConfirmation: false,
+    requiresConfirmation: false,
     category: 'git',
 
     async execute(params: unknown, context) {
@@ -316,8 +316,8 @@ export const createGitTools = (): Tool[] => [
         type: 'object',
         properties: {
           message: { type: 'string', description: 'Custom commit message' },
-          autoGenerate: { type: 'boolean', _default: true, description: 'Auto-generate commit message if not provided' },
-          addAll: { type: 'boolean', _default: false, description: 'Add all changes before committing' },
+          autoGenerate: { type: 'boolean', default: true, description: 'Auto-generate commit message if not provided' },
+          addAll: { type: 'boolean', default: false, description: 'Add all changes before committing' },
           files: { type: 'array', items: { type: 'string' }, description: 'Specific files to add before committing' }
         },
         required: []
@@ -338,7 +338,7 @@ export const createGitTools = (): Tool[] => [
       }).optional(),
       error: z.string().optional()
     }),
-    _requiresConfirmation: true,
+    requiresConfirmation: true,
     category: 'git',
 
     async execute(params: unknown, context) {
@@ -412,7 +412,7 @@ export const createGitTools = (): Tool[] => [
         return {
           success: true,
           data: {
-            _message: commitMessage,
+            message: commitMessage,
             output: result.trim(),
             generated: !message && autoGenerate
           }
@@ -434,8 +434,8 @@ export const createGitTools = (): Tool[] => [
       parameters: {
         type: 'object',
         properties: {
-          limit: { type: 'number', _default: 10, description: 'Maximum number of commits to return' },
-          oneline: { type: 'boolean', _default: false, description: 'Use oneline format' },
+          limit: { type: 'number', default: 10, description: 'Maximum number of commits to return' },
+          oneline: { type: 'boolean', default: false, description: 'Use oneline format' },
           since: { type: 'string', description: 'Date filter (e.g., "1 week ago")' }
         },
         required: []
@@ -459,7 +459,7 @@ export const createGitTools = (): Tool[] => [
       }).optional(),
       error: z.string().optional()
     }),
-    _requiresConfirmation: false,
+    requiresConfirmation: false,
     category: 'git',
 
     async execute(params: unknown, context) {

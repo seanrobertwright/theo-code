@@ -143,7 +143,7 @@ export class AnthropicAdapter implements IModelAdapter {
 
   private client: Anthropic;
   private readonly config: ModelConfig;
-  private readonly authManager?: AuthenticationManager;
+  private readonly authManager: AuthenticationManager | undefined;
 
   constructor(config: ModelConfig, authManager?: AuthenticationManager) {
     this.config = config;
@@ -224,15 +224,22 @@ export class AnthropicAdapter implements IModelAdapter {
       const anthropicMessages = convertMessages(messages);
       const anthropicTools = tools && tools.length > 0 ? convertTools(tools) : undefined;
 
-      const stream = await this.client.messages.create({
+      const baseParams = {
         model: this.model,
         messages: anthropicMessages,
-        system: systemPrompt,
-        tools: anthropicTools,
-        maxtokens: options?.maxTokens ?? this.config.maxOutputTokens ?? 4096,
+        max_tokens: options?.maxTokens ?? this.config.maxOutputTokens ?? 4096,
         temperature: options?.temperature ?? 0.7,
-        stream: true,
-      });
+        stream: true as const,
+      };
+
+      // Build the request parameters with proper typing
+      const requestParams = {
+        ...baseParams,
+        ...(systemPrompt && { system: systemPrompt }),
+        ...(anthropicTools && { tools: anthropicTools }),
+      };
+
+      const stream = await this.client.messages.create(requestParams);
 
       for await (const event of stream) {
         if (event.type === 'content_block_delta') {
@@ -276,11 +283,11 @@ export class AnthropicAdapter implements IModelAdapter {
     } catch (error) {
       logger.error('[Anthropic] Stream error:', error);
       
-      if (error instanceof Anthropic.APIError) {
+      if (error instanceof Anthropic.APIError && 'type' in error) {
         yield {
           type: 'error',
           error: {
-            code: ERROR_CODE_MAP[error.type] ?? 'API_ERROR',
+            code: ERROR_CODE_MAP[error.type as string] ?? 'API_ERROR',
             message: error.message,
           },
         };

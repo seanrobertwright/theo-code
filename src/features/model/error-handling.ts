@@ -8,6 +8,7 @@
 
 import type { ModelProvider } from '../../shared/types/models.js';
 import { AdapterError, type AdapterErrorCode } from './adapters/types.js';
+import { logger } from '../../shared/utils/logger.js';
 // =============================================================================
 // EXTENDED ERROR TYPES
 // =============================================================================
@@ -52,9 +53,9 @@ export class ExtendedAdapterError extends AdapterError {
   readonly context: Record<string, unknown>;
 
   constructor(
-    _code: ExtendedAdapterErrorCode,
-    _provider: string,
-    _message: string,
+    code: ExtendedAdapterErrorCode,
+    provider: string,
+    message: string,
     options?: {
       retryable?: boolean;
       retryAfterMs?: number;
@@ -556,7 +557,7 @@ export function getRecoveryAction(
   }
 
   // For context length errors, try truncation first
-  if (error instanceof ExtendedAdapterError && error.code === 'CONTEXT_LENGTH_EXCEEDED') {
+  if (error instanceof ExtendedAdapterError && (error.code as ExtendedAdapterErrorCode) === 'CONTEXT_LENGTH_EXCEEDED') {
     return 'truncate';
   }
 

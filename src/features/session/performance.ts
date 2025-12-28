@@ -976,6 +976,5 @@ export type {
   CacheStats,
   LazyLoadConfig,
   BackgroundTaskConfig,
-  PerformanceMetrics,
   BackgroundTask,
 };

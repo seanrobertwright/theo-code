@@ -247,7 +247,7 @@ export function getDirectoryTree(
   const entries: TreeEntry[] = [];
 
   try {
-    const items = fs.readdirSync(dirPath, { _withFileTypes: true });
+    const items = fs.readdirSync(dirPath, { withFileTypes: true });
 
     for (const item of items) {
       // Skip hidden files and common ignore patterns
@@ -260,14 +260,14 @@ export function getDirectoryTree(
       if (item.isDirectory()) {
         entries.push({
           name: item.name,
-          _path: itemPath,
+          path: itemPath,
           type: 'directory',
           children: getDirectoryTree(itemPath, maxDepth, currentDepth + 1),
         });
       } else {
         entries.push({
           name: item.name,
-          _path: itemPath,
+          path: itemPath,
           type: 'file',
         });
       }

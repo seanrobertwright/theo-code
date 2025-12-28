@@ -39,7 +39,7 @@ interface QueuedRequest<T = any, R = any> {
   reject: (reason: any) => void;
   timestamp: number;
   retryCount: number;
-  timeoutId?: NodeJS.Timeout;
+  timeoutId: NodeJS.Timeout | undefined;
 }
 
 /**
@@ -97,6 +97,7 @@ export class RequestQueue {
         reject,
         timestamp: Date.now(),
         retryCount: 0,
+        timeoutId: undefined,
       };
 
       // Set timeout
@@ -122,6 +123,7 @@ export class RequestQueue {
     // Identify requests that can be run
     for (let i = 0; i < this.queue.length; i++) {
       const request = this.queue[i];
+      if (!request) continue;
       const running = this.runningCount.get(request.provider) ?? 0;
 
       if (running < this.config.maxConcurrentPerProvider) {
@@ -186,8 +188,10 @@ export class RequestQueue {
     const index = this.queue.findIndex(r => r.id === requestId);
     if (index !== -1) {
       const request = this.queue.splice(index, 1)[0];
-      logger.warn(`[RequestQueue] Request ${requestId} timed out while in queue`);
-      request.reject(new Error('Request timed out in queue'));
+      if (request) {
+        logger.warn(`[RequestQueue] Request ${requestId} timed out while in queue`);
+        request.reject(new Error('Request timed out in queue'));
+      }
     }
   }
 
@@ -207,7 +211,7 @@ export class RequestQueue {
    * Generate a unique request ID.
    */
   private generateRequestId(): string {
-    return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 
   /**

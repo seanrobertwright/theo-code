@@ -4,6 +4,7 @@
  */
 
 import type { ModelProvider } from '../../shared/types/models.js';
+import { logger } from '../../shared/utils/logger.js';
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -157,10 +158,10 @@ export class OAuthResourceCleanupManager {
    * Register a callback server for cleanup.
    */
   registerCallbackServer(
-    _provider: ModelProvider,
-    _operation: string,
+    provider: ModelProvider,
+    operation: string,
     server: { close: () => Promise<void> },
-    _port: number
+    port: number
   ): string {
     return this.registerResource({
       type: 'callback_server',
@@ -182,8 +183,8 @@ export class OAuthResourceCleanupManager {
    * Register a browser process for cleanup.
    */
   registerBrowserProcess(
-    _provider: ModelProvider,
-    _operation: string,
+    provider: ModelProvider,
+    operation: string,
     process: { kill: () => void },
     pid?: number
   ): string {
@@ -207,16 +208,16 @@ export class OAuthResourceCleanupManager {
    * Register temporary tokens for cleanup.
    */
   registerTemporaryTokens(
-    _provider: ModelProvider,
-    _operation: string,
+    provider: ModelProvider,
+    operation: string,
     clearFunction: () => Promise<void>
   ): string {
     return this.registerResource({
       type: 'temporary_tokens',
       provider,
       operation,
-      _cleanup: clearFunction,
-      _isCritical: true, // Don't auto-cleanup tokens
+      cleanup: clearFunction,
+      isCritical: true, // Don't auto-cleanup tokens
     });
   }
 
@@ -224,15 +225,15 @@ export class OAuthResourceCleanupManager {
    * Register OAuth state for cleanup.
    */
   registerOAuthState(
-    _provider: ModelProvider,
-    _operation: string,
+    provider: ModelProvider,
+    operation: string,
     clearFunction: () => Promise<void>
   ): string {
     return this.registerResource({
       type: 'oauth_state',
       provider,
       operation,
-      _cleanup: clearFunction,
+      cleanup: clearFunction,
     });
   }
 
@@ -240,8 +241,8 @@ export class OAuthResourceCleanupManager {
    * Register network connections for cleanup.
    */
   registerNetworkConnection(
-    _provider: ModelProvider,
-    _operation: string,
+    provider: ModelProvider,
+    operation: string,
     connection: { destroy: () => void }
   ): string {
     return this.registerResource({
@@ -263,8 +264,8 @@ export class OAuthResourceCleanupManager {
    * Register timers for cleanup.
    */
   registerTimer(
-    _provider: ModelProvider,
-    _operation: string,
+    provider: ModelProvider,
+    operation: string,
     timer: NodeJS.Timeout
   ): string {
     return this.registerResource({
@@ -290,8 +291,8 @@ export class OAuthResourceCleanupManager {
    * Clean up all resources for a specific provider and operation.
    */
   async cleanupOperation(
-    _provider: ModelProvider,
-    _operation: string,
+    provider: ModelProvider,
+    operation: string,
     context?: Partial<CleanupContext>
   ): Promise<CleanupResult[]> {
     const resources = Array.from(this.managedResources.values())
@@ -323,7 +324,7 @@ export class OAuthResourceCleanupManager {
    * Clean up all resources for a specific provider.
    */
   async cleanupProvider(
-    _provider: ModelProvider,
+    provider: ModelProvider,
     context?: Partial<CleanupContext>
   ): Promise<CleanupResult[]> {
     const resources = Array.from(this.managedResources.values())
@@ -355,7 +356,7 @@ export class OAuthResourceCleanupManager {
    * Clean up resources by type.
    */
   async cleanupByType(
-    _resourceType: CleanupResourceType,
+    resourceType: CleanupResourceType,
     context?: Partial<CleanupContext>
   ): Promise<CleanupResult[]> {
     const resources = Array.from(this.managedResources.values())
@@ -417,7 +418,7 @@ export class OAuthResourceCleanupManager {
   /**
    * Clean up a single resource with timeout.
    */
-  private async cleanupResource(resource: ManagedResource, _timeoutMs: number): Promise<CleanupResult> {
+  private async cleanupResource(resource: ManagedResource, timeoutMs: number): Promise<CleanupResult> {
     const startTime = Date.now();
     
     try {
@@ -461,7 +462,7 @@ export class OAuthResourceCleanupManager {
   /**
    * Schedule automatic cleanup for a resource.
    */
-  private scheduleAutoCleanup(resourceId: string, _delayMs: number): void {
+  private scheduleAutoCleanup(resourceId: string, delayMs: number): void {
     const timeout = setTimeout(async () => {
       const resource = this.managedResources.get(resourceId);
       if (resource) {
@@ -490,16 +491,20 @@ export class OAuthResourceCleanupManager {
     totalResources: number;
     resourcesByType: Record<CleanupResourceType, number>;
     resourcesByProvider: Record<string, number>;
-    oldestResource?: { id: string; type: CleanupResourceType; _ageMs: number };
+    oldestResource?: { id: string; type: CleanupResourceType; ageMs: number };
   } {
     const resources = Array.from(this.managedResources.values());
     const now = Date.now();
     
-    const info = {
+    const info: {
+      totalResources: number;
+      resourcesByType: Record<CleanupResourceType, number>;
+      resourcesByProvider: Record<string, number>;
+      oldestResource?: { id: string; type: CleanupResourceType; ageMs: number };
+    } = {
       totalResources: resources.length,
       resourcesByType: {} as Record<CleanupResourceType, number>,
       resourcesByProvider: {} as Record<string, number>,
-      oldestResource: undefined as { id: string; type: CleanupResourceType; _ageMs: number } | undefined,
     };
 
     let oldestAge = 0;
@@ -518,7 +523,7 @@ export class OAuthResourceCleanupManager {
         info.oldestResource = {
           id: resource.id,
           type: resource.type,
-          _ageMs: age,
+          ageMs: age,
         };
       }
     }
@@ -529,7 +534,7 @@ export class OAuthResourceCleanupManager {
   /**
    * Generate a unique resource ID.
    */
-  private generateResourceId(type: CleanupResourceType, _provider: ModelProvider, _operation: string): string {
+  private generateResourceId(type: CleanupResourceType, provider: ModelProvider, operation: string): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
     return `${type}-${provider}-${operation}-${timestamp}-${random}`;

@@ -557,8 +557,8 @@ export function getOAuthSerializationSettings(config: MergedConfig): OAuthSerial
   if (!settings) {
     // Return default settings
     return {
-      _includeInSerialization: true,
-      _maskSensitiveData: true,
+      includeInSerialization: true,
+      maskSensitiveData: true,
       customSensitivePatterns: undefined,
     };
   }

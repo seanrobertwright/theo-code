@@ -22,6 +22,7 @@ import {
   AdapterError,
   registerAdapter,
 } from './types.js';
+import { logger } from '../../../shared/utils/logger.js';
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -193,7 +194,7 @@ function convertMessages(messages: Message[]): Array<{
       
       ollamaMessages.push({
         role: 'assistant',
-        _content: assistantContent,
+        content: assistantContent,
       });
     } else if (message.role === 'tool') {
       // Convert tool results to user messages
@@ -483,7 +484,7 @@ export class OllamaAdapter implements IModelAdapter {
   async pullModel(modelName: string): Promise<void> {
     try {
       logger.info(`[Ollama] Pulling model ${modelName}...`);
-      await this.client.pull({ _model: modelName });
+      await this.client.pull({ model: modelName });
       logger.info(`[Ollama] Successfully pulled model ${modelName}`);
     } catch (error) {
       logger.error(`[Ollama] Failed to pull model ${modelName}:`, error);
@@ -501,7 +502,7 @@ export class OllamaAdapter implements IModelAdapter {
   async removeModel(modelName: string): Promise<void> {
     try {
       logger.info(`[Ollama] Removing model ${modelName}...`);
-      await this.client.delete({ _model: modelName });
+      await this.client.delete({ model: modelName });
       logger.info(`[Ollama] Successfully removed model ${modelName}`);
     } catch (error) {
       logger.error(`[Ollama] Failed to remove model ${modelName}:`, error);
@@ -589,7 +590,7 @@ export class OllamaAdapter implements IModelAdapter {
               yield {
                 type: 'tool_call',
                 id: `ollama_${Date.now()}`,
-                _name: toolName,
+                name: toolName,
                 arguments: JSON.stringify(args),
               };
             } catch {

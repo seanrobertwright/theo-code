@@ -287,7 +287,7 @@ interface ConfigurationValidationResult {
   issues?: Array<{ setting: string; error: string }>;
   
   /** Configuration warnings */
-  warnings?: Array<{ setting: string; _message: string }>;
+  warnings?: Array<{ setting: string; message: string }>;
 }
 
 /**
@@ -1045,7 +1045,7 @@ export class SessionManager implements ISessionManager {
    * @param fuzzyMatch - Whether to enable fuzzy matching
    * @returns Array of search terms
    */
-  private parseSearchQuery(query: string, _caseSensitive: boolean, _fuzzyMatch: boolean): string[] {
+  private parseSearchQuery(query: string, caseSensitive: boolean, fuzzyMatch: boolean): string[] {
     let processedQuery = query.trim();
     
     if (!caseSensitive) {
@@ -1112,7 +1112,7 @@ export class SessionManager implements ISessionManager {
       try {
         // Only load session if we haven't found matches in metadata/filenames
         // or if we specifically need content search
-        const fullSession = await this.loadSession(session.id, { _validateIntegrity: false });
+        const fullSession = await this.loadSession(session.id, { validateIntegrity: false });
         const contentMatches = this.searchSessionContent(fullSession, searchTerms, options.caseSensitive);
         matches.push(...contentMatches);
         if (contentMatches.length > 0) {
@@ -1476,9 +1476,9 @@ export class SessionManager implements ISessionManager {
     
     const result: CleanupResult = {
       deletedSessions: [],
-      _deletedByAge: 0,
-      _deletedByCount: 0,
-      _spaceFree: 0,
+      deletedByAge: 0,
+      deletedByCount: 0,
+      spaceFree: 0,
       errors: [],
     };
     
@@ -1657,8 +1657,8 @@ export class SessionManager implements ISessionManager {
    */
   async restoreSession(sessionId: SessionId): Promise<Session> {
     const session = await this.loadSession(sessionId, {
-      _validateIntegrity: true,
-      _updateTimestamp: true, // Update timestamp to mark as recently accessed
+      validateIntegrity: true,
+      updateTimestamp: true, // Update timestamp to mark as recently accessed
     });
     
     // Set as current session
@@ -1751,7 +1751,7 @@ export class SessionManager implements ISessionManager {
     } = options;
     
     // Load the session
-    const session = await this.loadSession(sessionId, { _validateIntegrity: true });
+    const session = await this.loadSession(sessionId, { validateIntegrity: true });
     
     const warnings: string[] = [];
     let exportData: any;
@@ -1819,7 +1819,7 @@ export class SessionManager implements ISessionManager {
     return {
       data: formattedData,
       format,
-      _sanitized: sanitize,
+      sanitized: sanitize,
       size: Buffer.byteLength(formattedData, 'utf8'),
       warnings,
     };
@@ -1895,7 +1895,7 @@ export class SessionManager implements ISessionManager {
     let newIdGenerated = false;
     if (generateNewId) {
       const newId = createSessionId();
-      sessionData = { ...sessionData, _id: newId };
+      sessionData = { ...sessionData, id: newId };
       newIdGenerated = true;
     } else {
       // Check if session with this ID already exists
@@ -1914,8 +1914,8 @@ export class SessionManager implements ISessionManager {
       const now = Date.now();
       sessionData = {
         ...sessionData,
-        _created: now,
-        _lastModified: now,
+        created: now,
+        lastModified: now,
       };
     }
     
@@ -1944,7 +1944,7 @@ export class SessionManager implements ISessionManager {
     }
     
     return {
-      _session: sessionData,
+      session: sessionData,
       newIdGenerated,
       originalId,
       warnings,
@@ -2185,7 +2185,7 @@ export class SessionManager implements ISessionManager {
     }
     
     if (!repaired.tokenCount) {
-      repaired.tokenCount = { _total: 0, _input: 0, _output: 0 };
+      repaired.tokenCount = { total: 0, input: 0, output: 0 };
     }
     
     if (!repaired.messages) {
@@ -2245,7 +2245,7 @@ export class SessionManager implements ISessionManager {
     }
     
     // Check message consistency
-    if (length) {
+    if (session.messages.some(msg => !msg.id)) {
       throw new Error('Session contains messages without IDs');
     }
   }
@@ -2256,10 +2256,10 @@ export class SessionManager implements ISessionManager {
    * @param _filePath - Path to check (unused in current implementation)
    * @returns Promise resolving to true if file exists
    */
-  private async checkFileExists(filePath: string): Promise<boolean> {
+  private async checkFileExists(_filePath: string): Promise<boolean> {
     try {
       // This is a placeholder implementation
-      // In a real implementation, you would use fs.access or similar
+      // In a real implementation, you might want to use fs.access or similar
       // For now, we'll assume files exist (this is just for the interface)
       return true;
     } catch {
@@ -2288,13 +2288,13 @@ export class SessionManager implements ISessionManager {
       sessionsDir: getSessionsDir(),
       maxSessions: sessionConfig?.maxSessions ?? 50,
       maxAgeMs: 30 * 24 * 60 * 60 * 1000, // 30 days default
-      _compressionEnabled: true, // Default enabled
+      compressionEnabled: true, // Default enabled
       autoSaveEnabled: this.isAutoSaveEnabled(),
       autoSaveInterval: this.autoSaveConfig?.intervalMs ?? sessionConfig?.autoSaveInterval ?? 30000,
-      _sanitizeExports: true, // Default enabled
+      sanitizeExports: true, // Default enabled
       auditLogging: auditConfig.enabled,
-      _indexCaching: true, // Default enabled
-      _backgroundCleanup: true, // Default enabled
+      indexCaching: true, // Default enabled
+      backgroundCleanup: true, // Default enabled
     };
   }
 
@@ -2305,7 +2305,7 @@ export class SessionManager implements ISessionManager {
    * @param value - Value to set
    * @throws {Error} If configuration update fails
    */
-  async setConfiguration(key: string, _value: string): Promise<void> {
+  async setConfiguration(key: string, value: string): Promise<void> {
     await logOperation(
       'session.config.set',
       async () => {
@@ -2354,11 +2354,11 @@ export class SessionManager implements ISessionManager {
             }
             // Update audit logger configuration
             const auditLogger = getAuditLogger();
-            auditLogger.updateConfig({ _enabled: parsedValue });
+            auditLogger.updateConfig({ enabled: parsedValue });
             break;
             
           case 'sessions-dir':
-            if (length === 0) {
+            if (value.trim().length === 0) {
               throw new Error('sessions-dir must be a non-empty string');
             }
             break;
@@ -2372,8 +2372,8 @@ export class SessionManager implements ISessionManager {
       },
       undefined,
       {
-        _configKey: key,
-        _configValue: value,
+        key,
+        value,
       }
     );
   }
@@ -2385,19 +2385,17 @@ export class SessionManager implements ISessionManager {
    * @param value - Value to validate
    * @returns Promise resolving to validation result
    */
-  async validateConfigChange(key: string, _value: string): Promise<ConfigurationValidationResult> {
+  async validateConfigChange(key: string, value: string): Promise<ConfigurationValidationResult> {
     try {
+      const parsedValue = this.parseConfigurationValue(key, value);
       const currentConfig = await this.getConfiguration();
       const currentValue = this.getCurrentConfigValue(currentConfig, key);
-      
-      // Parse the new value
-      const parsedValue = this.parseConfigurationValue(key, value);
       
       // Validate the value
       const validation = this.validateConfigurationValue(key, parsedValue);
       if (!validation.valid) {
         const result: ConfigurationValidationResult = {
-          _valid: false,
+          valid: false,
           error: validation.error!,
           currentValue: String(currentValue),
         };
@@ -2406,7 +2404,7 @@ export class SessionManager implements ISessionManager {
           result.suggestions = validation.suggestions;
         }
         
-        return result;
+        return Promise.resolve(result);
       }
       
       // Check if confirmation is required for disruptive changes
@@ -2414,7 +2412,7 @@ export class SessionManager implements ISessionManager {
       const warning = requiresConfirmation ? this.getConfigChangeWarning(key, parsedValue) : undefined;
       
       const result: ConfigurationValidationResult = {
-        _valid: true,
+        valid: true,
         currentValue: String(currentValue),
         requiresConfirmation,
         restartRequired: this.configChangeRequiresRestart(key),
@@ -2424,14 +2422,14 @@ export class SessionManager implements ISessionManager {
         result.warning = warning;
       }
       
-      return result;
+      return Promise.resolve(result);
       
     } catch (error: any) {
-      return {
-        _valid: false,
+      return Promise.resolve({
+        valid: false,
         error: error.message || 'Validation failed',
         currentValue: 'unknown',
-      };
+      });
     }
   }
 
@@ -2498,7 +2496,7 @@ export class SessionManager implements ISessionManager {
    */
   async validateConfiguration(): Promise<ConfigurationValidationResult> {
     const issues: Array<{ setting: string; error: string }> = [];
-    const warnings: Array<{ setting: string; _message: string }> = [];
+    const warnings: Array<{ setting: string; message: string }> = [];
     let checkedSettings = 0;
     
     try {
@@ -2506,7 +2504,7 @@ export class SessionManager implements ISessionManager {
       
       // Validate sessions directory
       checkedSettings++;
-      if (length === 0) {
+      if (config.sessionsDir.length === 0) {
         issues.push({
           setting: 'sessions-dir',
           error: 'Sessions directory is not configured',
@@ -2569,7 +2567,7 @@ export class SessionManager implements ISessionManager {
       
     } catch (error: any) {
       return {
-        _valid: false,
+        valid: false,
         currentValue: 'N/A',
         checkedSettings,
         issues: [{
@@ -2629,58 +2627,55 @@ export class SessionManager implements ISessionManager {
       case 'max-sessions':
         if (typeof value !== 'number' || value < 1 || value > 10000) {
           return {
-            _valid: false,
+            valid: false,
             error: 'Must be a number between 1 and 10000',
             suggestions: ['50', '100', '200'],
           };
         }
-        return { _valid: true };
+        return { valid: true };
         
       case 'max-age-days':
         if (typeof value !== 'number' || value < 1 || value > 365) {
           return {
-            _valid: false,
+            valid: false,
             error: 'Must be a number between 1 and 365 days',
             suggestions: ['7', '30', '90'],
           };
         }
-        return { _valid: true };
+        return { valid: true };
         
       case 'auto-save-interval':
-        if (typeof value !== 'number' || value < 5 || value > 300) {
-          return {
-            _valid: false,
-            error: 'Must be between 5 and 300 seconds',
-            suggestions: ['30', '60', '120'],
-          };
-        }
-        return { _valid: true };
+    if (typeof value !== 'number' || value < 5 || value > 300) {
+      return { valid: false, error: 'Auto-save interval must be between 5 and 300 seconds' };
+    }
+    return { valid: true };
+
         
       case 'compression':
       case 'sanitize-exports':
       case 'audit-logging':
         if (typeof value !== 'boolean') {
           return {
-            _valid: false,
+            valid: false,
             error: 'Must be true or false',
             suggestions: ['true', 'false'],
           };
         }
-        return { _valid: true };
+        return { valid: true };
         
       case 'sessions-dir':
         if (typeof value !== 'string' || value.length === 0) {
           return {
-            _valid: false,
+            valid: false,
             error: 'Must be a non-empty directory path',
             suggestions: ['~/.theo-code/sessions', './sessions'],
           };
         }
-        return { _valid: true };
+        return { valid: true };
         
       default:
         return {
-          _valid: false,
+          valid: false,
           error: `Unknown configuration key: ${key}`,
         };
     }
@@ -2777,10 +2772,13 @@ export class SessionManager implements ISessionManager {
    * @param newValue - New value
    * @returns Warning message
    */
-  private getConfigChangeWarning(key: string, newValue: any): string {
+  private getConfigChangeWarning(key: string, newValue: any): string | undefined {
     switch (key) {
       case 'max-sessions':
-        return 'Reducing max sessions may trigger immediate cleanup of existing sessions.';
+        if (newValue < 10) {
+          return 'Setting max sessions very low may lead to frequent cleanup of valuable context.';
+        }
+        break;
       case 'max-age-days':
         return 'Reducing retention period may trigger immediate cleanup of older sessions.';
       case 'sessions-dir':
@@ -2788,6 +2786,7 @@ export class SessionManager implements ISessionManager {
       default:
         return 'This change may affect existing sessions.';
     }
+    return undefined;
   }
 
   /**
@@ -2821,7 +2820,7 @@ export class SessionManager implements ISessionManager {
       
       let totalSizeBytes = 0;
       let oldestSessionAge = 0;
-      const sessionSizeDistribution: Array<{ sessionId: string; sizeBytes: number; _age: number }> = [];
+      const sessionSizeDistribution: Array<{ sessionId: string; sizeBytes: number; age: number }> = [];
       
       const now = Date.now();
       
@@ -2836,7 +2835,7 @@ export class SessionManager implements ISessionManager {
         
         sessionSizeDistribution.push({
           sessionId: session.id,
-          _sizeBytes: estimatedSize,
+          sizeBytes: estimatedSize,
           age,
         });
       }
@@ -2854,10 +2853,10 @@ export class SessionManager implements ISessionManager {
     } catch (error) {
       console.error('Failed to get storage info:', error);
       return {
-        _totalSessions: 0,
-        _totalSizeBytes: 0,
-        _oldestSessionAge: 0,
-        _availableDiskSpace: 0,
+        totalSessions: 0,
+        totalSizeBytes: 0,
+        oldestSessionAge: 0,
+        availableDiskSpace: 0,
         sessionSizeDistribution: [],
       };
     }
@@ -2936,13 +2935,13 @@ export class SessionManager implements ISessionManager {
     } catch (error) {
       console.error('Failed to check storage limits:', error);
       return {
-        _withinLimits: true,
-        _sessionCountExceeded: false,
-        _totalSizeExceeded: false,
-        _diskSpaceExceeded: false,
-        _warningThresholdReached: false,
+        withinLimits: true,
+        sessionCountExceeded: false,
+        totalSizeExceeded: false,
+        diskSpaceExceeded: false,
+        warningThresholdReached: false,
         suggestedActions: [],
-        _estimatedSpaceSavings: 0,
+        estimatedSpaceSavings: 0,
       };
     }
   }
@@ -3051,9 +3050,9 @@ export function createSessionManager(workspaceRoot: string): SessionManager {
   
   // Create storage with configuration
   const storage = new SessionStorage({
-    _enableCompression: true,
-    _enableChecksum: true,
-    _createBackups: true,
+    enableCompression: true,
+    enableChecksum: true,
+    createBackups: true,
     maxFileSize: 10 * 1024 * 1024, // 10MB
   });
   
@@ -3063,9 +3062,9 @@ export function createSessionManager(workspaceRoot: string): SessionManager {
   const sessionConfig = config.global.session;
   if (sessionConfig?.autoSaveInterval) {
     manager.enableAutoSave({
-      _enabled: true,
+      enabled: true,
       intervalMs: sessionConfig.autoSaveInterval,
-      _maxRetries: 3,
+      maxRetries: 3,
     });
   }
   

@@ -164,10 +164,10 @@ export class BrowserLauncher implements IBrowserLauncher {
     const command = commands[index];
     logger.debug(`[BrowserLauncher] Trying command: ${command}`);
 
-    const child = spawn(command, [url], {
+    const child = spawn(command as string, [url], {
       detached: true,
       stdio: 'ignore',
-    });
+    }) as ChildProcess;
 
     const timeout = setTimeout(() => {
       child.kill();

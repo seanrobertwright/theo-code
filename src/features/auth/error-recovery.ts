@@ -5,6 +5,7 @@
 
 import type { ModelProvider } from '../../shared/types/models.js';
 import type { IOAuthManager, ITokenStore, OAuthError } from './types.js';
+import { logger } from '../../shared/utils/logger.js';
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -77,7 +78,7 @@ export class OAuthErrorRecoveryManager {
   private readonly maxRetryAttempts = 3;
   private readonly retryDelayMs = 1000;
 
-  constructor(oauthManager: IOAuthManager, _tokenStore: ITokenStore) {
+  constructor(oauthManager: IOAuthManager, tokenStore: ITokenStore) {
     this.oauthManager = oauthManager;
     this.tokenStore = tokenStore;
   }
@@ -250,7 +251,7 @@ export class OAuthErrorRecoveryManager {
             success: false,
             strategy,
             message: `Unknown recovery strategy: ${strategy}`,
-            _requiresUserIntervention: true,
+            requiresUserIntervention: true,
             error: `Unsupported recovery strategy: ${strategy}`,
           };
       }
@@ -261,7 +262,7 @@ export class OAuthErrorRecoveryManager {
         success: false,
         strategy,
         message: `Recovery attempt failed: ${recoveryError instanceof Error ? recoveryError.message : 'Unknown error'}`,
-        _requiresUserIntervention: true,
+        requiresUserIntervention: true,
         error: recoveryError instanceof Error ? recoveryError.message : 'Recovery failed',
       };
     }
@@ -284,7 +285,7 @@ export class OAuthErrorRecoveryManager {
       success: true,
       strategy: 'retry',
       message: `Retrying ${context.operation} (attempt ${attempts}) after ${delay}ms delay`,
-      _requiresUserIntervention: false,
+      requiresUserIntervention: false,
     };
   }
 
@@ -301,7 +302,7 @@ export class OAuthErrorRecoveryManager {
         success: true,
         strategy: 'refresh_tokens',
         message: `Successfully refreshed OAuth tokens for ${context.provider}`,
-        _requiresUserIntervention: false,
+        requiresUserIntervention: false,
       };
     } catch (refreshError) {
       logger.warn(`[ErrorRecovery] Token refresh failed for ${context.provider}:`, refreshError);
@@ -325,7 +326,7 @@ export class OAuthErrorRecoveryManager {
         success: true,
         strategy: 'clear_and_restart',
         message: `Cleared OAuth tokens for ${context.provider}. Re-authentication required.`,
-        _requiresUserIntervention: true,
+        requiresUserIntervention: true,
         userActions: [
           `Run '/auth login ${context.provider}' to re-authenticate`,
           'Complete the OAuth flow in your browser',
@@ -339,7 +340,7 @@ export class OAuthErrorRecoveryManager {
         success: false,
         strategy: 'clear_and_restart',
         message: `Failed to clear OAuth tokens for ${context.provider}`,
-        _requiresUserIntervention: true,
+        requiresUserIntervention: true,
         error: clearError instanceof Error ? clearError.message : 'Token clearing failed',
         userActions: [
           'Manually revoke access in your provider account settings',
@@ -360,7 +361,7 @@ export class OAuthErrorRecoveryManager {
       success: true,
       strategy: 'fallback_to_api_key',
       message: `OAuth failed for ${context.provider}, falling back to API key authentication`,
-      _requiresUserIntervention: false,
+      requiresUserIntervention: false,
     };
   }
 
@@ -386,7 +387,7 @@ export class OAuthErrorRecoveryManager {
       success: false,
       strategy: 'user_intervention',
       message: `OAuth ${context.operation} failed for ${context.provider} after multiple attempts. User intervention required.`,
-      _requiresUserIntervention: true,
+      requiresUserIntervention: true,
       userActions, error: errorMessage,
     };
   }
@@ -401,7 +402,7 @@ export class OAuthErrorRecoveryManager {
       success: false,
       strategy: 'no_recovery',
       message: `OAuth ${context.operation} failed for ${context.provider} due to configuration issues. No automatic recovery available.`,
-      _requiresUserIntervention: true,
+      requiresUserIntervention: true,
       userActions: [
         'Check OAuth configuration for this provider',
         'Verify client ID and endpoints are correct',
@@ -418,7 +419,7 @@ export class OAuthErrorRecoveryManager {
   /**
    * Clean up resources after failed OAuth flows.
    */
-  async cleanupFailedFlow(provider: ModelProvider, _operation: string): Promise<void> {
+  async cleanupFailedFlow(provider: ModelProvider, operation: string): Promise<void> {
     logger.debug(`[ErrorRecovery] Cleaning up failed OAuth flow for ${provider}`);
     
     try {
@@ -462,7 +463,7 @@ export class OAuthErrorRecoveryManager {
     operationAttempts: Record<string, number>;
   } {
     const stats = {
-      _totalAttempts: 0,
+      totalAttempts: 0,
       providerAttempts: {} as Record<string, number>,
       operationAttempts: {} as Record<string, number>,
     };
@@ -471,8 +472,12 @@ export class OAuthErrorRecoveryManager {
       const [provider, operation] = key.split('-');
       
       stats.totalAttempts += attempts;
-      stats.providerAttempts[provider] = (stats.providerAttempts[provider] || 0) + attempts;
-      stats.operationAttempts[operation] = (stats.operationAttempts[operation] || 0) + attempts;
+      if (provider) {
+        stats.providerAttempts[provider] = (stats.providerAttempts[provider] || 0) + attempts;
+      }
+      if (operation) {
+        stats.operationAttempts[operation] = (stats.operationAttempts[operation] || 0) + attempts;
+      }
     }
 
     return stats;
@@ -499,8 +504,8 @@ export class OAuthErrorRecoveryManager {
  * Create a new OAuth error recovery manager.
  */
 export function createOAuthErrorRecoveryManager(
-  _oauthManager: IOAuthManager,
-  _tokenStore: ITokenStore
+  oauthManager: IOAuthManager,
+  tokenStore: ITokenStore
 ): OAuthErrorRecoveryManager {
   return new OAuthErrorRecoveryManager(oauthManager, tokenStore);
 }

@@ -49,7 +49,7 @@ export async function ensureSessionsDirectory(): Promise<string> {
   } catch (error: any) {
     if (error.code === 'ENOENT') {
       // Directory doesn't exist, create it
-      await fs.mkdir(sessionsDir, { _recursive: true, _mode: SESSION_DIR_MODE });
+      await fs.mkdir(sessionsDir, { recursive: true, mode: SESSION_DIR_MODE });
       return sessionsDir;
     }
     throw error;
@@ -90,7 +90,7 @@ async function validateDirectoryPermissions(dirPath: string): Promise<void> {
  * @throws {Error} If write operation fails
  */
 export async function atomicWriteFile(
-  _filePath: string,
+  filePath: string,
   data: string,
   options: {
     createBackup?: boolean;
@@ -107,7 +107,7 @@ export async function atomicWriteFile(
     try {
       // Ensure parent directory exists
       const parentDir = path.dirname(filePath);
-      await fs.mkdir(parentDir, { _recursive: true, _mode: SESSION_DIR_MODE });
+      await fs.mkdir(parentDir, { recursive: true, mode: SESSION_DIR_MODE });
       
       // Create backup if file exists and backup is requested
       if (createBackup && await fileExists(filePath)) {
@@ -117,7 +117,7 @@ export async function atomicWriteFile(
       
       // For simplicity in tests, write directly to the target file
       // In production, this would use a proper atomic write with temp files
-      await fs.writeFile(filePath, data, { encoding, _mode: SESSION_FILE_MODE });
+      await fs.writeFile(filePath, data, { encoding, mode: SESSION_FILE_MODE });
       
       // Success - exit retry loop
       return;
@@ -155,7 +155,7 @@ export async function atomicWriteFile(
  * @throws {Error} If read operation fails
  */
 export async function safeReadFile(
-  _filePath: string,
+  filePath: string,
   options: {
     encoding?: BufferEncoding;
     maxSize?: number;
@@ -296,7 +296,7 @@ export function calculateChecksum(data: string): string {
  * @param expectedChecksum - Expected hex-encoded checksum
  * @returns True if checksum matches
  */
-export function verifyChecksum(data: string, _expectedChecksum: string): boolean {
+export function verifyChecksum(data: string, expectedChecksum: string): boolean {
   const actualChecksum = calculateChecksum(data);
   return actualChecksum === expectedChecksum;
 }

@@ -17,6 +17,7 @@ import { OpenAIAdapter } from '../model/adapters/openai.js';
 import { useAppStore } from '../../shared/store/index.js';
 import { toolRegistry } from '../tools/framework.js';
 import { confirmationService } from '../tools/confirmation.js';
+import { logger } from '../../shared/utils/logger.js';
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -259,7 +260,7 @@ export class AgentLoop {
             console.warn(`Tool progress: ${message}`);
           },
           debug: (message: string, data?: unknown) => {
-            console.warn(`Tool debug [${toolCall.name}]: ${_message}`, data);
+            console.warn(`Tool debug [${toolCall.name}]: ${message}`, data);
           },
         };
 
@@ -287,7 +288,7 @@ export class AgentLoop {
         toolResults.push({
           toolCallId: toolCall.id,
           content: `Error: ${errorMessage}`,
-          _isError: true,
+          isError: true,
         });
 
         // Remove from pending

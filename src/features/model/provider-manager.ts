@@ -100,7 +100,7 @@ export class ProviderManager {
   private readonly providerConfigs = new Map<ModelProvider, ModelConfig>();
   private readonly providerHealth = new Map<ModelProvider, ProviderHealth>();
   private readonly rateLimitStates = new Map<ModelProvider, RateLimitState>();
-  private readonly authManager?: AuthenticationManager;
+  private readonly authManager: AuthenticationManager | undefined;
   private healthCheckTimer: NodeJS.Timeout | null = null;
 
   constructor(config: ProviderManagerConfig = {}) {
@@ -185,7 +185,7 @@ export class ProviderManager {
             method: status.currentMethod !== 'none' ? status.currentMethod : (authConfig?.preferredMethod || 'none'),
             authenticated: status.authenticated,
             needsRefresh: status.needsRefresh,
-            expiresAt: status.expiresAt,
+            ...(status.expiresAt && { expiresAt: status.expiresAt }),
           };
         } catch (error) {
           logger.warn(`[ProviderManager] Failed to get auth status for ${provider}:`, error);
@@ -207,7 +207,7 @@ export class ProviderManager {
           imageGeneration: false,
           reasoning: false,
         },
-        authStatus,
+        ...(authStatus && { authStatus }),
       });
     }
 
@@ -660,7 +660,7 @@ export class ProviderManager {
           method: status.currentMethod,
           authenticated: status.authenticated,
           needsRefresh: status.needsRefresh,
-          expiresAt: status.expiresAt,
+          ...(status.expiresAt && { expiresAt: status.expiresAt }),
         };
       } catch (error) {
         logger.warn(`[ProviderManager] Failed to get auth status for ${provider}:`, error);
@@ -767,12 +767,17 @@ export class ProviderManager {
         
         if (authConfig.hasOAuth || authConfig.hasApiKey) {
           // Configure authentication manager with provider settings
-          this.authManager.configureProvider(provider, {
+          const authManagerConfig: any = {
             preferredMethod: authConfig.preferredMethod,
             oauthEnabled: authConfig.oauthEnabled,
-            apiKey: authConfig.hasApiKey ? 'configured' : undefined, // Don't expose actual key
-            enableFallback: authConfig.hasApiKey && authConfig.hasOAuth, // Enable fallback if both are available
-          });
+            enableFallback: authConfig.hasApiKey && authConfig.hasOAuth,
+          };
+          
+          if (authConfig.hasApiKey) {
+            authManagerConfig.apiKey = 'configured'; // Don't expose actual key
+          }
+          
+          this.authManager.configureProvider(provider, authManagerConfig);
 
           logger.info(`[ProviderManager] Configured authentication for ${provider}: OAuth=${authConfig.oauthEnabled}, API Key=${authConfig.hasApiKey}, Preferred=${authConfig.preferredMethod}`);
         }
@@ -796,12 +801,17 @@ export class ProviderManager {
       const authConfig = getAuthenticationConfig(provider, config);
       
       if (authConfig.hasOAuth || authConfig.hasApiKey) {
-        this.authManager.configureProvider(provider, {
+        const authManagerConfig: any = {
           preferredMethod: authConfig.preferredMethod,
           oauthEnabled: authConfig.oauthEnabled,
-          apiKey: authConfig.hasApiKey ? 'configured' : undefined,
           enableFallback: authConfig.hasApiKey && authConfig.hasOAuth,
-        });
+        };
+        
+        if (authConfig.hasApiKey) {
+          authManagerConfig.apiKey = 'configured';
+        }
+        
+        this.authManager.configureProvider(provider, authManagerConfig);
 
         logger.info(`[ProviderManager] Updated authentication config for ${provider}`);
       } else {

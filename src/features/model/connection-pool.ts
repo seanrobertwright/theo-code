@@ -82,11 +82,11 @@ interface PendingRequest {
  * Default connection pool configuration.
  */
 export const DEFAULT_CONNECTION_POOL_CONFIG: ConnectionPoolConfig = {
-  _maxConnectionsPerHost: 10,
-  _maxTotalConnections: 50,
-  _connectionTimeoutMs: 30000, // 30 seconds
-  _keepAliveTimeoutMs: 60000,  // 1 minute
-  _poolTimeoutMs: 5000,        // 5 seconds
+  maxConnectionsPerHost: 10,
+  maxTotalConnections: 50,
+  connectionTimeoutMs: 30000, // 30 seconds
+  keepAliveTimeoutMs: 60000,  // 1 minute
+  poolTimeoutMs: 5000,        // 5 seconds
 };
 
 // =============================================================================
@@ -295,8 +295,8 @@ export class ConnectionPool {
       host,
       createdAt: new Date(),
       lastUsedAt: new Date(),
-      _requestCount: 0,
-      _isActive: true,
+      requestCount: 0,
+      isActive: true,
     };
 
     this.connections.set(connection.id, connection);

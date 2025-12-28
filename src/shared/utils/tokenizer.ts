@@ -235,7 +235,7 @@ export function checkContextFit(
     fits: available > 0,
     used,
     limit,
-    available: Math.max(0, available),
+    _available: Math.max(0, available),
   };
 }
 

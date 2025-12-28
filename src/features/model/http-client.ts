@@ -63,8 +63,8 @@ export interface HttpResponse extends Response {
  * @example
  * ```typescript
  * const client = new HttpClient({
- *   connectionPool: { _maxConnectionsPerHost: 5 },
- *   _timeoutMs: 30000,
+ *   connectionPool: { maxConnectionsPerHost: 5 },
+ *   timeoutMs: 30000,
  * });
  *
  * const response = await client.fetch('https://api.openai.com/v1/chat/completions', {
@@ -81,8 +81,8 @@ export class HttpClient {
 
   constructor(config: HttpClientConfig = {}) {
     this.config = {
-      _timeoutMs: 30000,
-      _useGlobalPool: true,
+      timeoutMs: 30000,
+      useGlobalPool: true,
       ...config,
     };
 
@@ -240,7 +240,7 @@ export class HttpClient {
     break;
   }
 
-        buffer += decoder.decode(value, { _stream: true });
+        buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() ?? '';
 
@@ -292,7 +292,7 @@ export class HttpClient {
  * Creates an HTTP client configured for a specific AI provider.
  */
 export function createProviderHttpClient(
-  _provider: string,
+  provider: string,
   config: Partial<HttpClientConfig> = {}
 ): HttpClient {
   const providerConfig: HttpClientConfig = {
@@ -311,15 +311,15 @@ export function createProviderHttpClient(
  */
 function getProviderConnectionLimit(provider: string): number {
   const limits: Record<string, number> = {
-    _openai: 10,
-    _anthropic: 5,
-    _google: 8,
-    _openrouter: 15,
-    _cohere: 5,
-    _mistral: 5,
-    _together: 10,
-    _perplexity: 5,
-    _ollama: 3, // Local, fewer connections needed
+    openai: 10,
+    anthropic: 5,
+    google: 8,
+    openrouter: 15,
+    cohere: 5,
+    mistral: 5,
+    together: 10,
+    perplexity: 5,
+    ollama: 3, // Local, fewer connections needed
   };
 
   return limits[provider] ?? 5;
@@ -330,15 +330,15 @@ function getProviderConnectionLimit(provider: string): number {
  */
 function getProviderTimeout(provider: string): number {
   const timeouts: Record<string, number> = {
-    _openai: 60000,     // 1 minute
-    _anthropic: 60000,  // 1 minute
-    _google: 90000,     // 1.5 minutes (can be slower)
-    _openrouter: 60000, // 1 minute
-    _cohere: 45000,     // 45 seconds
-    _mistral: 45000,    // 45 seconds
-    _together: 60000,   // 1 minute
-    _perplexity: 45000, // 45 seconds
-    _ollama: 120000,    // 2 minutes (local processing)
+    openai: 60000,     // 1 minute
+    anthropic: 60000,  // 1 minute
+    google: 90000,     // 1.5 minutes (can be slower)
+    openrouter: 60000, // 1 minute
+    cohere: 45000,     // 45 seconds
+    mistral: 45000,    // 45 seconds
+    together: 60000,   // 1 minute
+    perplexity: 45000, // 45 seconds
+    ollama: 120000,    // 2 minutes (local processing)
   };
 
   return timeouts[provider] ?? 60000;
@@ -351,4 +351,4 @@ function getProviderTimeout(provider: string): number {
 /**
  * Global HTTP client instance using the global connection pool.
  */
-export const globalHttpClient = new HttpClient({ _useGlobalPool: true });
+export const globalHttpClient = new HttpClient({ useGlobalPool: true });

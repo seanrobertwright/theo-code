@@ -15,8 +15,50 @@ import { join, relative, resolve, dirname } from 'node:path';
 import { glob } from 'glob';
 import type { Tool, ToolContext } from '../../../shared/types/tools.js';
 import { ToolExecutionError } from '../../../shared/types/tools.js';
+import { logger } from '../../../shared/utils/logger.js';
 const DEFAULT_ENCODING = 'utf-8';
 const PATH_DESCRIPTION = 'File path relative to workspace';
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Check if a path is a directory.
+ */
+function isDirectory(path: string): boolean {
+  try {
+    const stats = require('node:fs').statSync(path);
+    return stats.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if a path is a file.
+ */
+function isFile(path: string): boolean {
+  try {
+    const stats = require('node:fs').statSync(path);
+    return stats.isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if a file is binary.
+ */
+function isBinaryFile(path: string): boolean {
+  try {
+    const buffer = require('node:fs').readFileSync(path);
+    // Simple heuristic: if file contains null bytes, it's likely binary
+    return buffer.includes(0);
+  } catch {
+    return false;
+  }
+}
 
 // =============================================================================
 // READ FILE TOOL
@@ -48,7 +90,7 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
       properties: {
         path: {
           type: 'string',
-          _description: PATH_DESCRIPTION,
+          description: PATH_DESCRIPTION,
         },
         lineStart: {
           type: 'number',
@@ -62,9 +104,9 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
       required: ['path'],
     },
   },
-  _inputSchema: ReadFileInputSchema,
-  _outputSchema: ReadFileOutputSchema,
-  _requiresConfirmation: false,
+  inputSchema: ReadFileInputSchema,
+  outputSchema: ReadFileOutputSchema,
+  requiresConfirmation: false,
   category: 'filesystem',
 
   async validate(context: ToolContext) {
@@ -80,7 +122,7 @@ export const readFileTool: Tool<ReadFileInput, ReadFileOutput> = {
     return { valid: true, warnings: [] };
   },
 
-  async execute(input: ReadFileInput, _context: ToolContext): Promise<ReadFileOutput> {
+  async execute(input: ReadFileInput, context: ToolContext): Promise<ReadFileOutput> {
     const absolutePath = resolve(context.workspaceRoot, input.path);
     
     // Security: Ensure path is within workspace
@@ -176,7 +218,7 @@ export const writeFileTool: Tool<WriteFileInput, WriteFileOutput> = {
       properties: {
         path: {
           type: 'string',
-          _description: PATH_DESCRIPTION,
+          description: PATH_DESCRIPTION,
         },
         content: {
           type: 'string',
@@ -185,15 +227,15 @@ export const writeFileTool: Tool<WriteFileInput, WriteFileOutput> = {
         createDirs: {
           type: 'boolean',
           description: 'Create parent directories if they do not exist',
-          _default: true,
+          default: true,
         },
       },
       required: ['path', 'content'],
     },
   },
-  _inputSchema: WriteFileInputSchema,
-  _outputSchema: WriteFileOutputSchema,
-  _requiresConfirmation: true,
+  inputSchema: WriteFileInputSchema,
+  outputSchema: WriteFileOutputSchema,
+  requiresConfirmation: true,
   category: 'filesystem',
 
   async validate(context: ToolContext) {
@@ -294,7 +336,7 @@ export const listFilesTool: Tool<ListFilesInput, ListFilesOutput> = {
         recursive: {
           type: 'boolean',
           description: 'Include subdirectories recursively',
-          _default: false,
+          default: false,
         },
         pattern: {
           type: 'string',
@@ -303,15 +345,15 @@ export const listFilesTool: Tool<ListFilesInput, ListFilesOutput> = {
         includeHidden: {
           type: 'boolean',
           description: 'Include hidden files and directories',
-          _default: false,
+          default: false,
         },
       },
       required: [],
     },
   },
-  _inputSchema: ListFilesInputSchema,
-  _outputSchema: ListFilesOutputSchema,
-  _requiresConfirmation: false,
+  inputSchema: ListFilesInputSchema,
+  outputSchema: ListFilesOutputSchema,
+  requiresConfirmation: false,
   category: 'filesystem',
 
   async execute(input: ListFilesInput, context: ToolContext): Promise<ListFilesOutput> {
@@ -459,20 +501,20 @@ export const grepSearchTool: Tool<GrepSearchInput, GrepSearchOutput> = {
         caseSensitive: {
           type: 'boolean',
           description: 'Perform case-sensitive search',
-          _default: false,
+          default: false,
         },
         maxResults: {
           type: 'number',
           description: 'Maximum number of matches to return',
-          _default: 100,
+          default: 100,
         },
       },
       required: ['pattern'],
     },
   },
-  _inputSchema: GrepSearchInputSchema,
-  _outputSchema: GrepSearchOutputSchema,
-  _requiresConfirmation: false,
+  inputSchema: GrepSearchInputSchema,
+  outputSchema: GrepSearchOutputSchema,
+  requiresConfirmation: false,
   category: 'search',
 
   async execute(input: GrepSearchInput, context: ToolContext): Promise<GrepSearchOutput> {
