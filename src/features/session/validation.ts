@@ -13,6 +13,13 @@ import type { SessionId, SessionMetadata, SessionIndex, Session } from '../../sh
 import { SessionSchema, SessionIndexSchema } from '../../shared/types/index.js';
 import { fileExists, getSessionFilePath, getSessionIndexPath, safeReadFile } from './filesystem.js';
 import { logger } from '../../shared/utils/logger.js';
+import * as path from 'node:path';
+import { validationLogger, type ValidationOperationContext } from './validation-logger.js';
+import { 
+  type IValidationConfigManager, 
+  type SessionValidationConfig,
+  createValidationConfigManager 
+} from './validation-config.js';
 
 // =============================================================================
 // INTERFACES
@@ -134,6 +141,20 @@ export interface ISessionValidator {
    * @returns Promise resolving to startup integrity check result
    */
   performStartupIntegrityCheck(): Promise<StartupIntegrityResult>;
+
+  /**
+   * Gets the current validation configuration.
+   * 
+   * @returns Current validation configuration
+   */
+  getConfig(): SessionValidationConfig;
+
+  /**
+   * Updates the validation configuration.
+   * 
+   * @param config - Partial configuration to update
+   */
+  updateConfig(config: Partial<SessionValidationConfig>): void;
 }
 
 // =============================================================================
@@ -147,6 +168,11 @@ export interface ISessionValidator {
  * detailed error reporting and cleanup capabilities.
  */
 export class SessionValidator implements ISessionValidator {
+  private configManager: IValidationConfigManager;
+  
+  constructor(configManager?: IValidationConfigManager) {
+    this.configManager = configManager || createValidationConfigManager();
+  }
   
   /**
    * Validates a single session file for existence, readability, and structure.
@@ -155,6 +181,28 @@ export class SessionValidator implements ISessionValidator {
    * @returns Promise resolving to validation result
    */
   async validateSessionFile(sessionId: SessionId): Promise<SessionValidationResult> {
+    const context = validationLogger.createOperationContext('file-validation', sessionId);
+    validationLogger.logOperationStart(context);
+
+    const config = this.configManager.getConfig();
+    
+    // Check if validation is enabled
+    if (!config.enabled) {
+      const result: SessionValidationResult = {
+        isValid: true,
+        fileExists: true,
+        isReadable: true,
+        hasValidStructure: true,
+        errors: [],
+        warnings: ['Validation is disabled'],
+      };
+      
+      const duration = validationLogger.calculateDuration(context);
+      validationLogger.logSessionFileValidation(sessionId, result, duration);
+      validationLogger.logOperationComplete(context, true, duration, { reason: 'validation-disabled' });
+      return result;
+    }
+
     const result: SessionValidationResult = {
       isValid: false,
       fileExists: false,
@@ -167,19 +215,37 @@ export class SessionValidator implements ISessionValidator {
     try {
       const filePath = getSessionFilePath(sessionId);
       
-      // Check if file exists
-      result.fileExists = await fileExists(filePath);
+      // Check if file exists with timeout
+      const timeoutConfig = this.configManager.getTimeoutConfig();
+      result.fileExists = await Promise.race([
+        fileExists(filePath),
+        new Promise<boolean>((_, reject) => 
+          setTimeout(() => reject(new Error('File existence check timeout')), timeoutConfig.fileExistenceTimeoutMs)
+        )
+      ]);
+      
       if (!result.fileExists) {
         result.errors.push(`Session file does not exist: ${filePath}`);
         logger.warn(`Session file validation failed: ${sessionId} - file not found`);
+        
+        const duration = validationLogger.calculateDuration(context);
+        validationLogger.logSessionFileValidation(sessionId, result, duration);
+        validationLogger.logOperationComplete(context, false, duration, { reason: 'file-not-found' });
         return result;
       }
 
-      // Try to read the file
+      // Try to read the file with timeout
       try {
-        const content = await safeReadFile(filePath, {
-          maxSize: 50 * 1024 * 1024, // 50MB limit
-        });
+        const performanceConfig = this.configManager.getPerformanceConfig();
+        const content = await Promise.race([
+          safeReadFile(filePath, {
+            maxSize: performanceConfig.maxFileSizeBytes,
+          }),
+          new Promise<string>((_, reject) => 
+            setTimeout(() => reject(new Error('File read timeout')), timeoutConfig.fileReadTimeoutMs)
+          )
+        ]);
+        
         result.isReadable = true;
 
         // Try to parse and validate the JSON structure
@@ -187,11 +253,23 @@ export class SessionValidator implements ISessionValidator {
           const parsed = JSON.parse(content);
           
           // Check if it's a versioned session format
-          if (parsed.version && parsed.data) {
-            // Versioned format - validate the inner data
-            const sessionData = typeof parsed.data === 'string' 
-              ? JSON.parse(parsed.data) 
-              : parsed.data;
+          if (parsed.version && parsed.data !== undefined) {
+            // Versioned format - handle compression if needed
+            let sessionData: any;
+            
+            if (parsed.compressed && typeof parsed.data === 'string') {
+              // Data is compressed - decompress it first
+              const { decompressData } = await import('./filesystem.js');
+              const decompressedData = await decompressData(parsed.data);
+              sessionData = JSON.parse(decompressedData);
+            } else if (typeof parsed.data === 'string') {
+              // Data is a JSON string but not compressed
+              sessionData = JSON.parse(parsed.data);
+            } else {
+              // Data is already an object
+              sessionData = parsed.data;
+            }
+            
             SessionSchema.parse(sessionData);
           } else {
             // Direct session format
@@ -203,18 +281,39 @@ export class SessionValidator implements ISessionValidator {
           
         } catch (parseError: any) {
           result.errors.push(`Invalid session structure: ${parseError.message}`);
-          logger.warn(`Session structure validation failed: ${sessionId} - ${parseError.message}`);
+          if (config.logging.enableDetailedLogging) {
+            logger.warn(`Session structure validation failed: ${sessionId} - ${parseError.message}`);
+          }
         }
         
       } catch (readError: any) {
         result.errors.push(`Cannot read session file: ${readError.message}`);
-        logger.warn(`Session file read failed: ${sessionId} - ${readError.message}`);
+        if (config.logging.enableDetailedLogging) {
+          logger.warn(`Session file read failed: ${sessionId} - ${readError.message}`);
+        }
       }
 
     } catch (error: any) {
       result.errors.push(`Validation error: ${error.message}`);
       logger.error(`Session validation error: ${sessionId} - ${error.message}`);
     }
+
+    const duration = validationLogger.calculateDuration(context);
+    
+    // Log successful validations only if configured to do so
+    if (result.isValid && !config.logging.logSuccessfulValidations) {
+      // Skip logging successful validations if disabled
+    } else {
+      validationLogger.logSessionFileValidation(sessionId, result, duration);
+    }
+    
+    validationLogger.logOperationComplete(context, result.isValid, duration, {
+      fileExists: result.fileExists,
+      isReadable: result.isReadable,
+      hasValidStructure: result.hasValidStructure,
+      errorCount: result.errors.length,
+      warningCount: result.warnings.length,
+    });
 
     return result;
   }
@@ -225,6 +324,9 @@ export class SessionValidator implements ISessionValidator {
    * @returns Promise resolving to index validation result
    */
   async validateSessionIndex(): Promise<SessionIndexValidationResult> {
+    const context = validationLogger.createOperationContext('index-validation');
+    validationLogger.logOperationStart(context);
+
     const result: SessionIndexValidationResult = {
       isValid: true,
       orphanedEntries: [],
@@ -240,6 +342,9 @@ export class SessionValidator implements ISessionValidator {
       // Check if index exists
       if (!await fileExists(indexPath)) {
         logger.warn('Session index does not exist, will be rebuilt');
+        const duration = validationLogger.calculateDuration(context);
+        validationLogger.logIndexValidation(result, duration);
+        validationLogger.logOperationComplete(context, true, duration, { reason: 'index-missing' });
         return result;
       }
 
@@ -252,6 +357,9 @@ export class SessionValidator implements ISessionValidator {
       } catch (error: any) {
         logger.error(`Failed to parse session index: ${error.message}`);
         result.isValid = false;
+        const duration = validationLogger.calculateDuration(context);
+        validationLogger.logIndexValidation(result, duration);
+        validationLogger.logOperationComplete(context, false, duration, { reason: 'index-parse-error', error: error.message });
         return result;
       }
 
@@ -262,6 +370,7 @@ export class SessionValidator implements ISessionValidator {
       for (const [sessionId, metadata] of sessionEntries) {
         if (!metadata) {
           result.corruptedEntries.push(sessionId as SessionId);
+          logger.warn(`Corrupted index entry found: ${sessionId} - missing metadata`);
           continue;
         }
 
@@ -283,7 +392,8 @@ export class SessionValidator implements ISessionValidator {
         const sessionFiles = await listSessionFiles();
         
         for (const filePath of sessionFiles) {
-          const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || '';
+          // Use path.basename to properly extract filename on all platforms
+          const fileName = path.basename(filePath);
           const sessionId = fileName.replace('.json', '') as SessionId;
           
           if (!index.sessions[sessionId]) {
@@ -309,6 +419,16 @@ export class SessionValidator implements ISessionValidator {
       result.isValid = false;
     }
 
+    const duration = validationLogger.calculateDuration(context);
+    validationLogger.logIndexValidation(result, duration);
+    validationLogger.logOperationComplete(context, result.isValid, duration, {
+      totalSessions: result.totalSessions,
+      validSessions: result.validSessions,
+      orphanedEntries: result.orphanedEntries.length,
+      orphanedFiles: result.orphanedFiles.length,
+      corruptedEntries: result.corruptedEntries.length,
+    });
+
     return result;
   }
 
@@ -318,6 +438,12 @@ export class SessionValidator implements ISessionValidator {
    * @returns Promise resolving to cleanup result
    */
   async cleanupOrphanedEntries(): Promise<SessionCleanupResult> {
+    const context = validationLogger.createOperationContext('cleanup');
+    validationLogger.logOperationStart(context);
+
+    const config = this.configManager.getConfig();
+    const cleanupConfig = this.configManager.getCleanupConfig();
+
     const result: SessionCleanupResult = {
       orphanedEntriesRemoved: 0,
       orphanedFilesProcessed: 0,
@@ -326,16 +452,34 @@ export class SessionValidator implements ISessionValidator {
       warnings: [],
     };
 
+    // Check if automatic cleanup is enabled
+    if (!cleanupConfig.enableAutomaticCleanup) {
+      result.warnings.push('Automatic cleanup is disabled');
+      logger.info('Session cleanup skipped - automatic cleanup is disabled');
+      
+      const duration = validationLogger.calculateDuration(context);
+      validationLogger.logCleanupOperation(result, duration);
+      validationLogger.logOperationComplete(context, true, duration, { reason: 'cleanup-disabled' });
+      return result;
+    }
+
+    let backupPath: string | undefined;
+
     try {
-      // First, create a backup of the index
-      const backupPath = await this.createIndexBackup();
-      result.warnings.push(`Index backup created: ${backupPath}`);
+      // Create a backup if configured to do so
+      if (cleanupConfig.createBackups) {
+        backupPath = await this.createIndexBackup();
+        result.warnings.push(`Index backup created: ${backupPath}`);
+      }
 
       // Validate the index to find issues
       const validation = await this.validateSessionIndex();
       
       if (validation.isValid) {
         logger.info('Session index is already valid, no cleanup needed');
+        const duration = validationLogger.calculateDuration(context);
+        validationLogger.logCleanupOperation(result, duration, backupPath);
+        validationLogger.logOperationComplete(context, true, duration, { reason: 'no-cleanup-needed' });
         return result;
       }
 
@@ -348,6 +492,9 @@ export class SessionValidator implements ISessionValidator {
         index = SessionIndexSchema.parse(JSON.parse(content));
       } catch (error: any) {
         result.errors.push({ sessionId: '' as SessionId, error: `Failed to read index: ${error.message}` });
+        const duration = validationLogger.calculateDuration(context);
+        validationLogger.logCleanupOperation(result, duration, backupPath);
+        validationLogger.logOperationComplete(context, false, duration, { reason: 'index-read-error' });
         return result;
       }
 
@@ -356,68 +503,96 @@ export class SessionValidator implements ISessionValidator {
         delete index.sessions[sessionId];
         result.orphanedEntriesRemoved++;
         result.cleanedSessions.push(sessionId);
-        logger.info(`Removed orphaned index entry: ${sessionId}`);
+        if (config.logging.logCleanupOperations) {
+          logger.info(`Removed orphaned index entry: ${sessionId}`);
+        }
       }
 
       // Handle orphaned files (files without index entries)
       for (const filePath of validation.orphanedFiles) {
         try {
-          const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || '';
+          const fileName = path.basename(filePath);
           const sessionId = fileName.replace('.json', '') as SessionId;
           
-          // Try to read the session file and recreate the index entry
-          const sessionValidation = await this.validateSessionFile(sessionId);
-          
-          if (sessionValidation.isValid && sessionValidation.isReadable) {
-            // Read the session to create metadata
-            const content = await safeReadFile(filePath);
-            const parsed = JSON.parse(content);
-            
-            let sessionData: Session;
-            if (parsed.version && parsed.data) {
-              // Versioned format
-              sessionData = typeof parsed.data === 'string' ? JSON.parse(parsed.data) : parsed.data;
-            } else {
-              // Direct format
-              sessionData = parsed;
-            }
-
-            // Create metadata for the session
-            const metadata: SessionMetadata = {
-              id: sessionData.id,
-              created: sessionData.created,
-              lastModified: sessionData.lastModified,
-              model: sessionData.model,
-              provider: sessionData.provider,
-              tokenCount: sessionData.tokenCount,
-              title: sessionData.title,
-              workspaceRoot: sessionData.workspaceRoot,
-              messageCount: sessionData.messages.length,
-              lastMessage: sessionData.messages.length > 0 
-                ? (() => {
-                    const lastMessage = sessionData.messages[sessionData.messages.length - 1];
-                    return lastMessage ? this.extractMessageText(lastMessage.content).slice(0, 50) : undefined;
-                  })()
-                : undefined,
-              contextFiles: sessionData.contextFiles,
-              tags: sessionData.tags,
-              preview: sessionData.messages.find(m => m.role === 'user')
-                ? (() => {
-                    const userMessage = sessionData.messages.find(m => m.role === 'user');
-                    return userMessage ? this.extractMessageText(userMessage.content).slice(0, 100) : undefined;
-                  })()
-                : undefined,
-            };
-
-            index.sessions[sessionId] = metadata;
+          // Check if we should clean up orphaned files
+          if (cleanupConfig.cleanupOrphanedFiles) {
+            // Delete the orphaned file
+            const { safeDeleteFile } = await import('./filesystem.js');
+            await safeDeleteFile(filePath);
             result.orphanedFilesProcessed++;
-            result.cleanedSessions.push(sessionId);
-            logger.info(`Recreated index entry for orphaned file: ${sessionId}`);
-            
+            if (config.logging.logCleanupOperations) {
+              logger.info(`Deleted orphaned session file: ${filePath}`);
+            }
           } else {
-            // File is corrupted, log warning but don't delete
-            result.warnings.push(`Orphaned file ${filePath} appears corrupted, manual review needed`);
-            logger.warn(`Orphaned file appears corrupted: ${filePath}`);
+            // Try to read the session file and recreate the index entry
+            const sessionValidation = await this.validateSessionFile(sessionId);
+            
+            if (sessionValidation.isValid && sessionValidation.isReadable) {
+              // Read the session to create metadata
+              const content = await safeReadFile(filePath);
+              const parsed = JSON.parse(content);
+              
+              let sessionData: Session;
+              if (parsed.version && parsed.data !== undefined) {
+                // Versioned format - handle compression if needed
+                if (parsed.compressed && typeof parsed.data === 'string') {
+                  // Data is compressed - decompress it first
+                  const { decompressData } = await import('./filesystem.js');
+                  const decompressedData = await decompressData(parsed.data);
+                  sessionData = JSON.parse(decompressedData);
+                } else if (typeof parsed.data === 'string') {
+                  // Data is a JSON string but not compressed
+                  sessionData = JSON.parse(parsed.data);
+                } else {
+                  // Data is already an object
+                  sessionData = parsed.data;
+                }
+              } else {
+                // Direct format
+                sessionData = parsed;
+              }
+
+              // Create metadata for the session
+              const metadata: SessionMetadata = {
+                id: sessionData.id,
+                created: sessionData.created,
+                lastModified: sessionData.lastModified,
+                model: sessionData.model,
+                provider: sessionData.provider,
+                tokenCount: sessionData.tokenCount,
+                title: sessionData.title,
+                workspaceRoot: sessionData.workspaceRoot,
+                messageCount: sessionData.messages.length,
+                lastMessage: sessionData.messages.length > 0 
+                  ? (() => {
+                      const lastMessage = sessionData.messages[sessionData.messages.length - 1];
+                      return lastMessage ? this.extractMessageText(lastMessage.content).slice(0, 50) : undefined;
+                    })()
+                  : undefined,
+                contextFiles: sessionData.contextFiles,
+                tags: sessionData.tags,
+                preview: sessionData.messages.find(m => m.role === 'user')
+                  ? (() => {
+                      const userMessage = sessionData.messages.find(m => m.role === 'user');
+                      return userMessage ? this.extractMessageText(userMessage.content).slice(0, 100) : undefined;
+                    })()
+                  : undefined,
+              };
+
+              index.sessions[sessionId] = metadata;
+              result.orphanedFilesProcessed++;
+              result.cleanedSessions.push(sessionId);
+              if (config.logging.logCleanupOperations) {
+                logger.info(`Recreated index entry for orphaned file: ${sessionId}`);
+              }
+              
+            } else {
+              // File is corrupted, log warning but don't delete
+              result.warnings.push(`Orphaned file ${filePath} appears corrupted, manual review needed`);
+              if (config.logging.enableDetailedLogging) {
+                logger.warn(`Orphaned file appears corrupted: ${filePath}`);
+              }
+            }
           }
           
         } catch (error: any) {
@@ -432,7 +607,9 @@ export class SessionValidator implements ISessionValidator {
       for (const sessionId of validation.corruptedEntries) {
         delete index.sessions[sessionId];
         result.cleanedSessions.push(sessionId);
-        logger.info(`Removed corrupted index entry: ${sessionId}`);
+        if (config.logging.logCleanupOperations) {
+          logger.info(`Removed corrupted index entry: ${sessionId}`);
+        }
       }
 
       // Update the index timestamp
@@ -441,10 +618,12 @@ export class SessionValidator implements ISessionValidator {
       // Write the cleaned index back to disk
       const { atomicWriteFile } = await import('./filesystem.js');
       await atomicWriteFile(indexPath, JSON.stringify(index, null, 2), {
-        createBackup: false, // We already created a backup
+        createBackup: false, // We already created a backup if configured
       });
 
-      logger.info(`Session index cleanup completed: ${result.orphanedEntriesRemoved} orphaned entries removed, ${result.orphanedFilesProcessed} orphaned files processed`);
+      if (config.logging.logCleanupOperations) {
+        logger.info(`Session index cleanup completed: ${result.orphanedEntriesRemoved} orphaned entries removed, ${result.orphanedFilesProcessed} orphaned files processed`);
+      }
 
     } catch (error: any) {
       result.errors.push({ 
@@ -453,6 +632,16 @@ export class SessionValidator implements ISessionValidator {
       });
       logger.error(`Session index cleanup failed: ${error.message}`);
     }
+
+    const duration = validationLogger.calculateDuration(context);
+    validationLogger.logCleanupOperation(result, duration, backupPath);
+    validationLogger.logOperationComplete(context, result.errors.length === 0, duration, {
+      orphanedEntriesRemoved: result.orphanedEntriesRemoved,
+      orphanedFilesProcessed: result.orphanedFilesProcessed,
+      totalSessionsCleaned: result.cleanedSessions.length,
+      errorsEncountered: result.errors.length,
+      warningsGenerated: result.warnings.length,
+    });
 
     return result;
   }
@@ -463,6 +652,9 @@ export class SessionValidator implements ISessionValidator {
    * @returns Promise resolving to backup file path
    */
   async createIndexBackup(): Promise<string> {
+    const context = validationLogger.createOperationContext('backup-creation');
+    validationLogger.logOperationStart(context);
+
     const indexPath = getSessionIndexPath();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupPath = `${indexPath}.backup.${timestamp}`;
@@ -475,11 +667,18 @@ export class SessionValidator implements ISessionValidator {
           createBackup: false, // Don't create backup of backup
         });
         logger.info(`Session index backup created: ${backupPath}`);
+        
+        const duration = validationLogger.calculateDuration(context);
+        validationLogger.logOperationComplete(context, true, duration, { backupPath });
       } else {
         logger.warn('Session index does not exist, no backup created');
+        const duration = validationLogger.calculateDuration(context);
+        validationLogger.logOperationComplete(context, true, duration, { reason: 'index-not-found' });
       }
     } catch (error: any) {
       logger.error(`Failed to create index backup: ${error.message}`);
+      const duration = validationLogger.calculateDuration(context);
+      validationLogger.logOperationComplete(context, false, duration, { error: error.message });
       throw new Error(`Failed to create index backup: ${error.message}`);
     }
 
@@ -495,6 +694,9 @@ export class SessionValidator implements ISessionValidator {
    * @returns Promise resolving to startup integrity check result
    */
   async performStartupIntegrityCheck(): Promise<StartupIntegrityResult> {
+    const context = validationLogger.createOperationContext('startup-check');
+    validationLogger.logOperationStart(context);
+
     const result: StartupIntegrityResult = {
       success: false,
       indexValidation: {
@@ -592,7 +794,35 @@ export class SessionValidator implements ISessionValidator {
       logger.error(`Session system integrity check failed: ${error.message}`);
     }
 
+    const duration = validationLogger.calculateDuration(context);
+    validationLogger.logStartupIntegrityCheck(result, duration);
+    validationLogger.logOperationComplete(context, result.success, duration, {
+      issuesFound: result.issuesFound,
+      issuesResolved: result.issuesResolved,
+      validSessions: result.indexValidation.validSessions,
+      totalSessions: result.indexValidation.totalSessions,
+      backupCreated: !!result.backupPath,
+    });
+
     return result;
+  }
+
+  /**
+   * Gets the current validation configuration.
+   * 
+   * @returns Current validation configuration
+   */
+  getConfig(): SessionValidationConfig {
+    return this.configManager.getConfig();
+  }
+
+  /**
+   * Updates the validation configuration.
+   * 
+   * @param config - Partial configuration to update
+   */
+  updateConfig(config: Partial<SessionValidationConfig>): void {
+    this.configManager.updateConfig(config);
   }
 
   /**
@@ -627,8 +857,9 @@ export class SessionValidator implements ISessionValidator {
 /**
  * Creates a new SessionValidator instance.
  * 
+ * @param configManager - Optional configuration manager for validation behavior
  * @returns Configured SessionValidator instance
  */
-export function createSessionValidator(): ISessionValidator {
-  return new SessionValidator();
+export function createSessionValidator(configManager?: IValidationConfigManager): ISessionValidator {
+  return new SessionValidator(configManager);
 }

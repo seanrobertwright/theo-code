@@ -10,8 +10,18 @@ export {
   SessionRestoration, 
   SessionDetectionLoading, 
   SessionDetectionError,
+  SessionRestorationErrorBoundary,
+  SessionDetectionErrorBoundary,
+  DefaultSessionRestorationErrorFallback,
+  DefaultSessionDetectionErrorFallback,
+  useSessionRestorationErrorHandler,
+  withSessionRestorationErrorBoundary,
   type SessionRestorationProps,
-  type SessionDetectionErrorProps 
+  type SessionDetectionErrorProps,
+  type SessionRestorationErrorBoundaryProps,
+  type SessionRestorationErrorFallbackProps,
+  type SessionDetectionErrorBoundaryProps,
+  type SessionDetectionErrorFallbackProps,
 } from './SessionRestoration/index.js';
 export { 
   ProviderSelection, 

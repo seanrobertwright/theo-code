@@ -24,6 +24,39 @@ export {
   type EnhancedSessionManagerConfig,
 } from './enhanced-manager.js';
 
+// Export Safe SessionManager with robustness features
+export {
+  SafeSessionManager,
+  createSafeSessionManager,
+  type ISafeSessionManager,
+  type SafeDetectionResult,
+  type SafeRestorationResult,
+} from './safe-session-manager.js';
+
+// Export validation and error recovery systems
+export {
+  SessionValidator,
+  createSessionValidator,
+  type ISessionValidator,
+  type SessionValidationResult,
+  type SessionIndexValidationResult,
+  type SessionCleanupResult,
+  type StartupIntegrityResult,
+} from './validation.js';
+
+export {
+  ErrorRecoverySystem,
+  createErrorRecoverySystem,
+  createStrictErrorRecoverySystem,
+  createLenientErrorRecoverySystem,
+  type IErrorRecoverySystem,
+  type FailureAttempt,
+  type SessionFailureRecord,
+  type RecoveryContext,
+  type RecoveryOption,
+  type ErrorRecoveryConfig,
+} from './error-recovery.js';
+
 // Export performance optimization utilities
 export {
   SessionMetadataCache,

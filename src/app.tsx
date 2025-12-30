@@ -23,8 +23,9 @@ import {
   createGitTools
 } from './features/tools/index.js';
 import { registerAllTools } from './registerTools.js';
-import { ConfirmDialog, SessionRestoration, SessionDetectionLoading, SessionDetectionError } from './shared/components/index.js';
+import { ConfirmDialog, SessionRestoration, SessionDetectionLoading, SessionDetectionError, SessionRestorationErrorBoundary, SessionDetectionErrorBoundary } from './shared/components/index.js';
 import { createSessionManager } from './features/session/index.js';
+import { createSafeSessionManager } from './features/session/safe-session-manager.js';
 import { detectAvailableSessions, restoreSessionOnStartup } from './features/session/startup.js';
 import { createDefaultCommandRegistry } from './features/commands/index.js';
 import type { ModelConfig } from './shared/types/models.js';
@@ -81,16 +82,21 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
 
   // Session restoration state
   const [sessionRestoreState, setSessionRestoreState] = useState<
-    'detecting' | 'prompting' | 'restoring' | 'error' | 'complete'
+    'detecting' | 'validating' | 'prompting' | 'restoring' | 'error' | 'complete'
   >('detecting');
   const [availableSessions, setAvailableSessions] = useState<SessionMetadata[]>([]);
   const [sessionRestoreError, setSessionRestoreError] = useState<string | null>(null);
+  const [validationProgress, setValidationProgress] = useState<{
+    current: number;
+    total: number;
+    currentSession?: string;
+  }>({ current: 0, total: 0 });
 
   // Agent loop ref
   const agentRef = useRef<AgentLoop | null>(null);
   
-  // Session manager ref
-  const sessionManagerRef = useRef(createSessionManager(workspaceRoot));
+  // Session manager ref - use safe session manager
+  const sessionManagerRef = useRef(createSafeSessionManager());
 
   // Store actions
   const setWorkspaceRoot = useAppStore((state) => state.setWorkspaceRoot);
@@ -139,23 +145,49 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
       try {
         setSessionRestoreState('detecting');
         
-        const detectionResult = await detectAvailableSessions(sessionManagerRef.current, {
-          maxRecentSessions: 10,
-          recentThresholdMs: 7 * 24 * 60 * 60 * 1000, // 7 days
+        // Use safe session detection with validation progress
+        const safeDetectionResult = await sessionManagerRef.current.detectAvailableSessionsSafely({
+          limit: 10,
+          sortBy: 'lastModified',
+          sortOrder: 'desc',
         });
         
-        if (detectionResult.hasAvailableSessions) {
-          setAvailableSessions(detectionResult.recentSessions);
+        // Show validation progress if there were sessions to validate
+        if (safeDetectionResult.validSessions.length > 0 || safeDetectionResult.invalidSessions.length > 0) {
+          setSessionRestoreState('validating');
+          setValidationProgress({
+            current: safeDetectionResult.validSessions.length + safeDetectionResult.invalidSessions.length,
+            total: safeDetectionResult.validSessions.length + safeDetectionResult.invalidSessions.length,
+          });
+          
+          // Brief delay to show validation progress
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        // Handle warnings from validation
+        if (safeDetectionResult.warnings.length > 0) {
+          logger.warn(`Session detection warnings: ${safeDetectionResult.warnings.join('; ')}`);
+        }
+        
+        if (safeDetectionResult.validSessions.length > 0) {
+          setAvailableSessions(safeDetectionResult.validSessions);
           setSessionRestoreState('prompting');
         } else {
-          // No sessions found, proceed with normal startup
+          // No valid sessions found, proceed with graceful fallback to new session
+          logger.info('No valid sessions found, creating new session');
           setSessionRestoreState('complete');
           initializeNewSession();
         }
       } catch (error) {
         console.error('Session detection failed:', error);
-        setSessionRestoreError(error instanceof Error ? error.message : 'Unknown error');
-        setSessionRestoreState('error');
+        
+        // Graceful fallback: if detection fails completely, create new session
+        logger.error(`Session detection failed, falling back to new session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setSessionRestoreError(`Session detection failed: ${error instanceof Error ? error.message : 'Unknown error'}. Creating new session instead.`);
+        
+        // Don't show error state, just proceed with new session
+        setSessionRestoreState('complete');
+        initializeNewSession();
       }
     };
     
@@ -188,12 +220,13 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
     try {
       setSessionRestoreState('restoring');
       
-      const result = await restoreSessionOnStartup(sessionManagerRef.current, sessionId as SessionId);
+      // Use safe session restoration with error recovery
+      const safeRestorationResult = await sessionManagerRef.current.restoreSessionSafely(sessionId as SessionId);
       
-      if (result.success) {
+      if (safeRestorationResult.success && safeRestorationResult.session) {
         // Update store with restored session
-        setWorkspaceRoot(result.session.workspaceRoot);
-        setCurrentModel(result.session.model);
+        setWorkspaceRoot(safeRestorationResult.session.workspaceRoot);
+        setCurrentModel(safeRestorationResult.session.model);
         
         // Use the session manager's restoreSessionWithContext to update the store
         const storeRestoreSession = (useAppStore.getState() as any).restoreSession;
@@ -207,26 +240,81 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
           toolRegistry.register(tool);
         }
         
-        // Show restoration success message
+        // Show restoration success message with context file status
+        const contextStatus = safeRestorationResult.contextFilesStatus;
+        const contextMessage = contextStatus 
+          ? (contextStatus.missing.length > 0 
+              ? `\n\n⚠️ Warning: ${contextStatus.missing.length} context file(s) are no longer available.`
+              : '')
+          : '';
+        
         addMessage({
           role: 'assistant',
-          content: `✓ Session restored successfully!\n\nModel: ${result.session.model}\nMessages: ${result.session.messages.length}\nTokens: ${result.session.tokenCount.total.toLocaleString()}${
-            result.contextFilesMissing.length > 0
-              ? `\n\n⚠️ Warning: ${result.contextFilesMissing.length} context file(s) are no longer available.`
-              : ''
-          }`,
+          content: `✓ Session restored successfully!\n\nModel: ${safeRestorationResult.session.model}\nMessages: ${safeRestorationResult.session.messages.length}\nTokens: ${safeRestorationResult.session.tokenCount.total.toLocaleString()}${contextMessage}`,
         });
         
         setSessionRestoreState('complete');
       } else {
-        throw new Error(result.error ?? 'Failed to restore session');
+        // Restoration failed - implement progressive recovery escalation
+        const error = safeRestorationResult.error || new Error('Session restoration failed');
+        logger.error(`Session restoration failed for ${sessionId}: ${error.message}`);
+        
+        // Check if we have recovery options
+        if (safeRestorationResult.recoveryOptions && safeRestorationResult.recoveryOptions.length > 0) {
+          // Find the most appropriate recovery option
+          const recommendedOption = safeRestorationResult.recoveryOptions.find(opt => opt.isRecommended);
+          const fallbackOption = safeRestorationResult.recoveryOptions.find(opt => opt.type === 'new-session');
+          const skipOption = safeRestorationResult.recoveryOptions.find(opt => opt.type === 'skip');
+          
+          // Progressive escalation: try recommended option, then fallback, then skip
+          if (recommendedOption && recommendedOption.type === 'retry') {
+            // Don't auto-retry to avoid infinite loops - let user decide
+            setSessionRestoreError(`Session restoration failed: ${error.message}. You can try again or create a new session.`);
+            setSessionRestoreState('error');
+          } else if (fallbackOption) {
+            // Graceful fallback to new session creation
+            logger.info('Using fallback recovery option: creating new session');
+            await fallbackOption.action();
+            setSessionRestoreState('complete');
+            initializeNewSession();
+          } else if (skipOption) {
+            // Skip this session and show alternatives
+            logger.info('Using skip recovery option');
+            await skipOption.action();
+            // Go back to session selection with remaining sessions
+            const updatedSessions = availableSessions.filter(s => s.id !== sessionId);
+            if (updatedSessions.length > 0) {
+              setAvailableSessions(updatedSessions);
+              setSessionRestoreState('prompting');
+            } else {
+              // No more sessions available, create new session
+              setSessionRestoreState('complete');
+              initializeNewSession();
+            }
+          } else {
+            // No suitable recovery options, fallback to new session
+            logger.warn('No suitable recovery options available, falling back to new session');
+            setSessionRestoreState('complete');
+            initializeNewSession();
+          }
+        } else {
+          // No recovery options available, graceful fallback to new session
+          logger.warn('No recovery options available, falling back to new session');
+          setSessionRestoreError(`Session restoration failed: ${error.message}. Creating new session instead.`);
+          setSessionRestoreState('complete');
+          initializeNewSession();
+        }
       }
     } catch (error) {
       console.error('Session restoration failed:', error);
-      setSessionRestoreError(error instanceof Error ? error.message : 'Unknown error');
-      setSessionRestoreState('error');
+      
+      // Ultimate fallback: if everything fails, create new session
+      logger.error(`Session restoration completely failed, falling back to new session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setSessionRestoreError(`Session restoration failed: ${error instanceof Error ? error.message : 'Unknown error'}. Creating new session instead.`);
+      setSessionRestoreState('complete');
+      initializeNewSession();
     }
-  }, [setWorkspaceRoot, setCurrentModel, addMessage]);
+  }, [setWorkspaceRoot, setCurrentModel, addMessage, availableSessions, initializeNewSession]);
 
   // Handle new session selection
   const handleNewSession = useCallback(() => {
@@ -239,16 +327,29 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
     setSessionRestoreError(null);
     setSessionRestoreState('detecting');
     
-    // Re-run detection
+    // Re-run safe detection
     const detectSessions = async () => {
       try {
-        const detectionResult = await detectAvailableSessions(sessionManagerRef.current, {
-          maxRecentSessions: 10,
-          recentThresholdMs: 7 * 24 * 60 * 60 * 1000,
+        const safeDetectionResult = await sessionManagerRef.current.detectAvailableSessionsSafely({
+          limit: 10,
+          sortBy: 'lastModified',
+          sortOrder: 'desc',
         });
         
-        if (detectionResult.hasAvailableSessions) {
-          setAvailableSessions(detectionResult.recentSessions);
+        // Show validation progress if there were sessions to validate
+        if (safeDetectionResult.validSessions.length > 0 || safeDetectionResult.invalidSessions.length > 0) {
+          setSessionRestoreState('validating');
+          setValidationProgress({
+            current: safeDetectionResult.validSessions.length + safeDetectionResult.invalidSessions.length,
+            total: safeDetectionResult.validSessions.length + safeDetectionResult.invalidSessions.length,
+          });
+          
+          // Brief delay to show validation progress
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        if (safeDetectionResult.validSessions.length > 0) {
+          setAvailableSessions(safeDetectionResult.validSessions);
           setSessionRestoreState('prompting');
         } else {
           setSessionRestoreState('complete');
@@ -256,8 +357,11 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
         }
       } catch (error) {
         console.error('Session detection failed:', error);
-        setSessionRestoreError(error instanceof Error ? error.message : 'Unknown error');
-        setSessionRestoreState('error');
+        
+        // Graceful fallback on retry failure too
+        logger.error(`Session detection retry failed, falling back to new session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setSessionRestoreState('complete');
+        initializeNewSession();
       }
     };
     
@@ -436,30 +540,107 @@ Then restart theo-code.`,
   if (sessionRestoreState !== 'complete') {
     return (
       <Box flexDirection="column" height={terminalHeight} justifyContent="center">
-        {sessionRestoreState === 'detecting' && <SessionDetectionLoading />}
+        {sessionRestoreState === 'detecting' && (
+          <SessionDetectionErrorBoundary
+            onFallbackToNewSession={handleNewSession}
+            onRetryDetection={handleRetryDetection}
+            onError={(error, errorInfo) => {
+              logger.error('Session detection error boundary caught error', {
+                error: error.message,
+                stack: error.stack,
+                componentStack: errorInfo.componentStack,
+                context: 'session-detection',
+              });
+            }}
+          >
+            <SessionDetectionLoading />
+          </SessionDetectionErrorBoundary>
+        )}
+        
+        {sessionRestoreState === 'validating' && (
+          <SessionDetectionErrorBoundary
+            onFallbackToNewSession={handleNewSession}
+            onRetryDetection={handleRetryDetection}
+            onError={(error, errorInfo) => {
+              logger.error('Session validation error boundary caught error', {
+                error: error.message,
+                stack: error.stack,
+                componentStack: errorInfo.componentStack,
+                context: 'session-validation',
+              });
+            }}
+          >
+            <Box flexDirection="column" padding={1}>
+              <Text color="cyan">Validating sessions...</Text>
+              <Text color="gray">
+                Validated {validationProgress.current} of {validationProgress.total} sessions
+              </Text>
+              {validationProgress.currentSession && (
+                <Text color="gray">Current: {validationProgress.currentSession}</Text>
+              )}
+            </Box>
+          </SessionDetectionErrorBoundary>
+        )}
         
         {sessionRestoreState === 'prompting' && (
-          <SessionRestoration
-            sessions={availableSessions}
-            onSessionSelected={handleSessionSelected}
-            onNewSession={handleNewSession}
-            showDetails={false}
-            maxDisplaySessions={8}
-          />
+          <SessionRestorationErrorBoundary
+            onFallbackToNewSession={handleNewSession}
+            onError={(error, errorInfo) => {
+              logger.error('Session restoration UI error boundary caught error', {
+                error: error.message,
+                stack: error.stack,
+                componentStack: errorInfo.componentStack,
+                context: 'session-restoration-ui',
+              });
+            }}
+          >
+            <SessionRestoration
+              sessions={availableSessions}
+              onSessionSelected={handleSessionSelected}
+              onNewSession={handleNewSession}
+              showDetails={false}
+              maxDisplaySessions={8}
+            />
+          </SessionRestorationErrorBoundary>
         )}
         
         {sessionRestoreState === 'restoring' && (
-          <Box flexDirection="column" padding={1}>
-            <Text color="cyan">Restoring session...</Text>
-          </Box>
+          <SessionRestorationErrorBoundary
+            onFallbackToNewSession={handleNewSession}
+            onError={(error, errorInfo) => {
+              logger.error('Session restoration process error boundary caught error', {
+                error: error.message,
+                stack: error.stack,
+                componentStack: errorInfo.componentStack,
+                context: 'session-restoration-process',
+              });
+            }}
+          >
+            <Box flexDirection="column" padding={1}>
+              <Text color="cyan">Restoring session...</Text>
+            </Box>
+          </SessionRestorationErrorBoundary>
         )}
         
         {sessionRestoreState === 'error' && (
-          <SessionDetectionError
-            error={sessionRestoreError ?? 'Unknown error'}
-            onRetry={handleRetryDetection}
-            onContinue={handleNewSession}
-          />
+          <SessionDetectionErrorBoundary
+            onFallbackToNewSession={handleNewSession}
+            onRetryDetection={handleRetryDetection}
+            onError={(error, errorInfo) => {
+              logger.error('Session error display error boundary caught error', {
+                error: error.message,
+                stack: error.stack,
+                componentStack: errorInfo.componentStack,
+                context: 'session-error-display',
+              });
+            }}
+          >
+            <SessionDetectionError
+              error={sessionRestoreError ?? 'Unknown error'}
+              onRetry={handleRetryDetection}
+              onContinue={handleNewSession}
+            />
+          </SessionDetectionErrorBoundary>
         )}
       </Box>
     );

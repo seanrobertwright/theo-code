@@ -11,6 +11,11 @@
 
 import type { SessionId, SessionMetadata } from '../../shared/types/index.js';
 import { logger } from '../../shared/utils/logger.js';
+import { 
+  type IValidationConfigManager, 
+  type ValidationRetryConfig,
+  createValidationConfigManager 
+} from './validation-config.js';
 
 // =============================================================================
 // INTERFACES
@@ -175,6 +180,20 @@ export interface IErrorRecoverySystem {
    * @returns Number of records cleaned up
    */
   cleanupOldRecords(): number;
+
+  /**
+   * Gets the validation configuration manager.
+   * 
+   * @returns Validation configuration manager
+   */
+  getValidationConfigManager(): IValidationConfigManager;
+
+  /**
+   * Updates the validation configuration manager.
+   * 
+   * @param configManager - New validation configuration manager
+   */
+  setValidationConfigManager(configManager: IValidationConfigManager): void;
 }
 
 // =============================================================================
@@ -190,12 +209,18 @@ export interface IErrorRecoverySystem {
 export class ErrorRecoverySystem implements IErrorRecoverySystem {
   private failureRecords: Map<SessionId, SessionFailureRecord> = new Map();
   private config: ErrorRecoveryConfig;
+  private validationConfigManager: IValidationConfigManager;
 
-  constructor(config?: Partial<ErrorRecoveryConfig>) {
+  constructor(config?: Partial<ErrorRecoveryConfig>, validationConfigManager?: IValidationConfigManager) {
+    this.validationConfigManager = validationConfigManager || createValidationConfigManager();
+    
+    // Use validation config to set defaults if no explicit config provided
+    const validationRetryConfig = this.validationConfigManager.getRetryConfig();
+    
     this.config = {
-      maxRetries: 3,
-      baseDelayMs: 1000, // 1 second
-      maxDelayMs: 30000, // 30 seconds
+      maxRetries: validationRetryConfig.maxRetries,
+      baseDelayMs: validationRetryConfig.baseDelayMs,
+      maxDelayMs: validationRetryConfig.maxDelayMs,
       blacklistDurationMs: 5 * 60 * 1000, // 5 minutes
       enableAutoCleanup: true,
       cleanupAgeMs: 24 * 60 * 60 * 1000, // 24 hours
@@ -271,7 +296,7 @@ export class ErrorRecoverySystem implements IErrorRecoverySystem {
       } else {
         // Blacklist period expired, clear the blacklist
         record.isBlacklisted = false;
-        record.blacklistedUntil = undefined;
+        delete record.blacklistedUntil;
         logger.info(`Session ${sessionId} blacklist expired, allowing retry`);
       }
     }
@@ -306,29 +331,29 @@ export class ErrorRecoverySystem implements IErrorRecoverySystem {
           }
           // The actual retry logic would be handled by the caller
         },
-        isRecommended: attemptCount === 0, // Recommend retry on first failure
+        isRecommended: attemptCount === 0 && context.totalFailures < 3, // Recommend retry only on first failure and low total failures
       });
     }
 
     // Option 2: Skip this session and select a different one
-    if (context.availableSessions.length > 1) {
-      const alternativeSessions = context.availableSessions
-        .filter(session => session.id !== context.failedSessionId)
-        .filter(session => !this.isSessionProblematic(session.id))
-        .slice(0, 3); // Show up to 3 alternatives
+    // Always provide this option for consistency, even with no alternatives
+    const alternativeSessions = context.availableSessions
+      .filter(session => session.id !== context.failedSessionId)
+      .filter(session => !this.isSessionProblematic(session.id));
 
-      if (alternativeSessions.length > 0) {
-        options.push({
-          type: 'select-different',
-          label: `Select Different Session (${alternativeSessions.length} available)`,
-          description: `Choose from ${alternativeSessions.length} other available sessions`,
-          action: async () => {
-            // The actual session selection would be handled by the caller
-          },
-          isRecommended: attemptCount >= 2, // Recommend after multiple failures
-        });
-      }
-    }
+    options.push({
+      type: 'select-different',
+      label: alternativeSessions.length > 0 
+        ? `Select Different Session (${alternativeSessions.length} available)`
+        : 'Select Different Session (0 available)',
+      description: alternativeSessions.length > 0
+        ? `Choose from ${alternativeSessions.length} other available sessions`
+        : 'No alternative sessions are currently available',
+      action: async () => {
+        // The actual session selection would be handled by the caller
+      },
+      isRecommended: attemptCount >= 2 && alternativeSessions.length > 0, // Recommend after multiple failures if alternatives exist
+    });
 
     // Option 3: Skip session restoration entirely
     options.push({
@@ -344,7 +369,7 @@ export class ErrorRecoverySystem implements IErrorRecoverySystem {
           }
         }
       },
-      isRecommended: attemptCount >= this.config.maxRetries || context.totalFailures >= 5,
+      isRecommended: attemptCount >= this.config.maxRetries || context.totalFailures >= 4,
     });
 
     // Option 4: Create new session (always available)
@@ -363,6 +388,14 @@ export class ErrorRecoverySystem implements IErrorRecoverySystem {
       },
       isRecommended: context.totalFailures >= 3, // Recommend after multiple session failures
     });
+
+    // Ensure at least one option is recommended
+    if (!options.some(option => option.isRecommended)) {
+      // If no options are recommended, recommend the first available option
+      if (options.length > 0 && options[0]) {
+        options[0].isRecommended = true;
+      }
+    }
 
     return options;
   }
@@ -465,13 +498,40 @@ export class ErrorRecoverySystem implements IErrorRecoverySystem {
   }
 
   /**
+   * Gets the validation configuration manager.
+   * 
+   * @returns Validation configuration manager
+   */
+  getValidationConfigManager(): IValidationConfigManager {
+    return this.validationConfigManager;
+  }
+
+  /**
+   * Updates the validation configuration manager.
+   * 
+   * @param configManager - New validation configuration manager
+   */
+  setValidationConfigManager(configManager: IValidationConfigManager): void {
+    this.validationConfigManager = configManager;
+    
+    // Update error recovery config to match validation config
+    const validationRetryConfig = configManager.getRetryConfig();
+    this.config.maxRetries = validationRetryConfig.maxRetries;
+    this.config.baseDelayMs = validationRetryConfig.baseDelayMs;
+    this.config.maxDelayMs = validationRetryConfig.maxDelayMs;
+    
+    logger.info('Error recovery system updated with new validation configuration');
+  }
+
+  /**
    * Categorizes an error into a specific type for tracking purposes.
    * 
    * @param error - Error to categorize
    * @returns Categorized error type
    */
   private categorizeError(error: Error): FailureAttempt['errorType'] {
-    const message = error.message.toLowerCase();
+    if (!error) return 'unknown';
+    const message = (error.message || '').toLowerCase();
 
     if (message.includes('not found') || message.includes('enoent')) {
       return 'file-not-found';
@@ -497,19 +557,24 @@ export class ErrorRecoverySystem implements IErrorRecoverySystem {
  * Creates a new ErrorRecoverySystem instance with default configuration.
  * 
  * @param config - Optional configuration overrides
+ * @param validationConfigManager - Optional validation configuration manager
  * @returns Configured ErrorRecoverySystem instance
  */
-export function createErrorRecoverySystem(config?: Partial<ErrorRecoveryConfig>): IErrorRecoverySystem {
-  return new ErrorRecoverySystem(config);
+export function createErrorRecoverySystem(
+  config?: Partial<ErrorRecoveryConfig>, 
+  validationConfigManager?: IValidationConfigManager
+): IErrorRecoverySystem {
+  return new ErrorRecoverySystem(config, validationConfigManager);
 }
 
 /**
  * Creates a new ErrorRecoverySystem instance with strict configuration.
  * Strict configuration has lower retry limits and shorter delays.
  * 
+ * @param validationConfigManager - Optional validation configuration manager
  * @returns Configured ErrorRecoverySystem instance with strict settings
  */
-export function createStrictErrorRecoverySystem(): IErrorRecoverySystem {
+export function createStrictErrorRecoverySystem(validationConfigManager?: IValidationConfigManager): IErrorRecoverySystem {
   return new ErrorRecoverySystem({
     maxRetries: 2,
     baseDelayMs: 500,
@@ -517,16 +582,17 @@ export function createStrictErrorRecoverySystem(): IErrorRecoverySystem {
     blacklistDurationMs: 2 * 60 * 1000, // 2 minutes
     enableAutoCleanup: true,
     cleanupAgeMs: 12 * 60 * 60 * 1000, // 12 hours
-  });
+  }, validationConfigManager);
 }
 
 /**
  * Creates a new ErrorRecoverySystem instance with lenient configuration.
  * Lenient configuration has higher retry limits and longer delays.
  * 
+ * @param validationConfigManager - Optional validation configuration manager
  * @returns Configured ErrorRecoverySystem instance with lenient settings
  */
-export function createLenientErrorRecoverySystem(): IErrorRecoverySystem {
+export function createLenientErrorRecoverySystem(validationConfigManager?: IValidationConfigManager): IErrorRecoverySystem {
   return new ErrorRecoverySystem({
     maxRetries: 5,
     baseDelayMs: 2000,
@@ -534,5 +600,5 @@ export function createLenientErrorRecoverySystem(): IErrorRecoverySystem {
     blacklistDurationMs: 10 * 60 * 1000, // 10 minutes
     enableAutoCleanup: true,
     cleanupAgeMs: 48 * 60 * 60 * 1000, // 48 hours
-  });
+  }, validationConfigManager);
 }

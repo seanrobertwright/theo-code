@@ -728,6 +728,7 @@ export class SessionStorage implements ISessionStorage {
       created: session.created,
       lastModified: session.lastModified,
       model: session.model,
+      provider: session.provider,
       tokenCount: session.tokenCount,
       title: session.title,
       workspaceRoot: session.workspaceRoot,
