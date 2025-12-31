@@ -1,7 +1,7 @@
 /* eslint-env node */
 /* eslint-disable no-undef */
 // Debug test for buildProviderChain method
-import { ProviderManager } from './src/features/model/provider-manager.js';
+import { ProviderManager } from '../src/features/model/provider-manager.js';
 
 const manager = new ProviderManager({ enableHealthChecking: false });
 

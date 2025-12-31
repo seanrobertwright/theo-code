@@ -1,7 +1,7 @@
 /* eslint-env node */
 /* eslint-disable no-undef */
 // Test multiple iterations to see if there's a state issue
-import { ProviderManager } from './src/features/model/provider-manager.js';
+import { ProviderManager } from '../src/features/model/provider-manager.js';
 
 console.log('=== TESTING MULTIPLE ITERATIONS ===');
 

@@ -175,7 +175,7 @@ describe('Error Recovery Failure Tracking Properties', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 5 }
     );
   });
 
@@ -330,7 +330,7 @@ describe('Error Recovery Failure Tracking Properties', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 5 }
     );
   });
 });

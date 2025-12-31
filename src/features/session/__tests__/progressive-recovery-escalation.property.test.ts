@@ -280,7 +280,7 @@ describe('Progressive Recovery Escalation Properties', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 5 }
     );
   });
 

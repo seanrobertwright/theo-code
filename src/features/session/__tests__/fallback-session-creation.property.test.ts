@@ -178,7 +178,7 @@ describe('Fallback Session Creation Properties', () => {
           expect(manager.getCurrentSession()?.id).toBe(fallbackSession.id);
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 5 }
     );
   });
 

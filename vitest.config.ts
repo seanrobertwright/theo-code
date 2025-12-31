@@ -7,6 +7,22 @@ export default defineConfig({
     include: ['src/**/__tests__/**/*.test.ts', 'src/**/__tests__/**/*.test.tsx'],
     exclude: ['node_modules', 'dist'],
     setupFiles: ['./test/setup.ts'],
+    // Reduce concurrency to manage memory usage
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        maxThreads: 2,
+        minThreads: 1,
+        isolate: true,
+      },
+    },
+    // Increase timeouts for property-based tests
+    testTimeout: 30000,
+    hookTimeout: 15000,
+    // Run tests sequentially for property-based tests to reduce memory pressure
+    sequence: {
+      concurrent: false,
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],
@@ -28,8 +44,6 @@ export default defineConfig({
         },
       },
     },
-    testTimeout: 10000,
-    hookTimeout: 10000,
     passWithNoTests: true,
     reporters: ['verbose'],
   },

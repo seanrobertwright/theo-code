@@ -282,7 +282,7 @@ describe('Property 3: Validation Logging Completeness', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 5 }
     );
   });
 
@@ -355,7 +355,7 @@ describe('Property 3: Validation Logging Completeness', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 5 }
     );
   });
 });

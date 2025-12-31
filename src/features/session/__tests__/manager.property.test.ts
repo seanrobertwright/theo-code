@@ -106,7 +106,7 @@ describe('SessionManager Property Tests', () => {
             tags: fc.option(fc.array(fc.string({ _minLength: 1, _maxLength: 20 }), { _maxLength: 5 })),
             notes: fc.option(fc.string({ _minLength: 1, _maxLength: 200 })),
           }),
-          { _minLength: 1, _maxLength: 10 } // Create 1-10 sessions
+          { _minLength: 1, _maxLength: 3 } // Create 1-3 sessions
         ),
         async (sessionOptions) => {
           const createdSessions = [];

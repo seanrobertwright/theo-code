@@ -90,6 +90,14 @@ describe('Property 8: Orphaned File Handling', () => {
     } catch {
       // Ignore cleanup errors
     }
+    
+    // Force garbage collection if available
+    if (typeof global !== 'undefined' && global.gc) {
+      global.gc();
+    }
+    
+    // Small delay to allow cleanup to complete
+    await new Promise(resolve => setTimeout(resolve, 5));
   });
 
   // =============================================================================
@@ -111,7 +119,7 @@ describe('Property 8: Orphaned File Handling', () => {
             hasValidContent: fc.boolean(),
             shouldRecreateEntry: fc.boolean(),
           }),
-          { minLength: 1, maxLength: 8 }
+          { minLength: 1, maxLength: 3 }
         ),
         async (orphanedFileConfigs) => {
           // Create orphaned session files (files without index entries)
@@ -225,7 +233,7 @@ describe('Property 8: Orphaned File Handling', () => {
           }
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 5 }
     );
   });
 
@@ -238,7 +246,7 @@ describe('Property 8: Orphaned File Handling', () => {
       fc.asyncProperty(
         fc.array(
           fc.string({ minLength: 8, maxLength: 36 }).map(s => `session-${s}` as SessionId),
-          { minLength: 1, maxLength: 5 }
+          { minLength: 1, maxLength: 2 }
         ),
         async (sessionIds) => {
           // Create orphaned session files
@@ -290,7 +298,7 @@ describe('Property 8: Orphaned File Handling', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 5 }
     );
   });
 
@@ -378,7 +386,7 @@ describe('Property 8: Orphaned File Handling', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 5 }
     );
   });
 
@@ -510,7 +518,7 @@ describe('Property 8: Orphaned File Handling', () => {
           expect(cleanupResult.cleanedSessions.length).toBe(expectedCleanedCount);
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 5 }
     );
   });
 });

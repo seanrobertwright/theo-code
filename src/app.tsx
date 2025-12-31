@@ -139,8 +139,17 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
     }
   }, [createModelConfig]);
 
-  // Session detection on startup
+  // Session detection on startup - use ref to prevent infinite loops
+  const hasDetectedSessions = useRef(false);
+  
   useEffect(() => {
+    // Prevent multiple detection runs
+    if (hasDetectedSessions.current) {
+      return;
+    }
+    
+    hasDetectedSessions.current = true;
+    
     const detectSessions = async () => {
       try {
         setSessionRestoreState('detecting');
@@ -176,7 +185,24 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
           // No valid sessions found, proceed with graceful fallback to new session
           logger.info('No valid sessions found, creating new session');
           setSessionRestoreState('complete');
-          initializeNewSession();
+          // Inline initialization to avoid dependency cycle
+          setWorkspaceRoot(workspaceRoot);
+          setCurrentModel(initialModel);
+          createNewSession(initialModel);
+
+          // Register filesystem tools
+          const fileSystemTools = createFileSystemTools();
+          for (const tool of fileSystemTools) {
+            toolRegistry.register(tool);
+          }
+
+          // Load AGENTS.md as system prompt if available
+          if (config.agentsInstructions !== undefined) {
+            addMessage({
+              role: 'system',
+              content: config.agentsInstructions,
+            });
+          }
         }
       } catch (error) {
         console.error('Session detection failed:', error);
@@ -187,12 +213,29 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
         
         // Don't show error state, just proceed with new session
         setSessionRestoreState('complete');
-        initializeNewSession();
+        // Inline initialization to avoid dependency cycle
+        setWorkspaceRoot(workspaceRoot);
+        setCurrentModel(initialModel);
+        createNewSession(initialModel);
+
+        // Register filesystem tools
+        const fileSystemTools = createFileSystemTools();
+        for (const tool of fileSystemTools) {
+          toolRegistry.register(tool);
+        }
+
+        // Load AGENTS.md as system prompt if available
+        if (config.agentsInstructions !== undefined) {
+          addMessage({
+            role: 'system',
+            content: config.agentsInstructions,
+          });
+        }
       }
     };
     
     void detectSessions();
-  }, []);
+  }, []); // Empty dependency array to run only once
 
   // Initialize new session
   const initializeNewSession = useCallback(() => {
@@ -327,9 +370,14 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
     setSessionRestoreError(null);
     setSessionRestoreState('detecting');
     
+    // Reset the detection flag to allow retry
+    hasDetectedSessions.current = false;
+    
     // Re-run safe detection
     const detectSessions = async () => {
       try {
+        hasDetectedSessions.current = true;
+        
         const safeDetectionResult = await sessionManagerRef.current.detectAvailableSessionsSafely({
           limit: 10,
           sortBy: 'lastModified',
