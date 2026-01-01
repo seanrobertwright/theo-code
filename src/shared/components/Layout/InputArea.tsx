@@ -43,26 +43,42 @@ export const InputArea: React.FC<InputAreaProps> = ({
   width,
   colorScheme = createDefaultColorScheme(),
 }) => {
-  // Handle keyboard input
-  useInput((input, key) => {
+  // Debug logging for render tracking
+  React.useEffect(() => {
+    console.log('🎨 InputArea: Rendered with value:', value, 'disabled:', disabled);
+  });
+
+  // Handle keyboard input with stable callback to prevent re-registration
+  const handleInput = React.useCallback((input: string, key: any) => {
+    console.log('⌨️  InputArea: Input received:', input, 'key:', key);
     if (disabled) {
+      console.log('⌨️  InputArea: Input ignored (disabled)');
       return;
     }
 
     if (key.return) {
+      console.log('⌨️  InputArea: Submit triggered');
       onSubmit();
       return;
     }
 
     if (key.backspace || key.delete) {
+      console.log('⌨️  InputArea: Backspace/delete');
       onChange(value.slice(0, -1));
       return;
     }
 
     if (!key.ctrl && !key.meta && input.length > 0) {
+      console.log('⌨️  InputArea: Adding character:', input);
       onChange(value + input);
     }
-  });
+  }, [disabled, onSubmit, onChange, value]);
+
+  React.useEffect(() => {
+    console.log('🔄 InputArea: useInput handler updated');
+  }, [handleInput]);
+
+  useInput(handleInput);
 
   return (
     <Box

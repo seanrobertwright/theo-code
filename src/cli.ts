@@ -68,6 +68,9 @@ program
 // =============================================================================
 
 program.action((options: { model?: string; verbose?: boolean; safeMode?: boolean; directory?: string }): void => {
+  console.log('🚀 Starting theo-code application...');
+  console.log('📁 Working directory:', options.directory ?? process.cwd());
+  
   // Configure logging - enable verbose by default for debugging
   logger.setLevel(LogLevel.DEBUG);
   logger.debug('Debug logging enabled');

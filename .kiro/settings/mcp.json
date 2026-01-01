@@ -12,7 +12,8 @@
         "find_projects",
         "manage_project",
         "manage_task"
-      ]
+      ],
+      "disabled": true
     }
   }
 }

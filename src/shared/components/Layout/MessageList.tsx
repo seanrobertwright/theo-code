@@ -138,7 +138,8 @@ const MessageListComponent: React.FC<MessageListProps & {
   }, [onScrollChange]);
   
   // Handle keyboard input for scrolling
-  useInput((_, key) => {
+  // Handle keyboard input for scrolling with stable callback
+  const handleScrollInput = React.useCallback((_: string, key: any) => {
     if (!onScrollChange) {
       return;
     }
@@ -161,8 +162,9 @@ const MessageListComponent: React.FC<MessageListProps & {
       const newPosition = Math.min(maxScroll, scrollPosition + pageStep);
       throttledScrollChange(newPosition);
     }
-  });
-  
+  }, [onScrollChange, height, scrollPosition, totalContentHeight, throttledScrollChange]);
+
+  useInput(handleScrollInput);
   // Render individual message with enhanced color coding (memoized)
   const renderMessage = React.useCallback((message: Message, index: number): React.ReactNode => {
     if (message.id === 'streaming') {

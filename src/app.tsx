@@ -44,6 +44,7 @@ import { ConnectedStatusFooter } from './shared/components/Layout/ConnectedStatu
 import { InputArea } from './shared/components/Layout/InputArea.js';
 import { useUILayoutStore } from './shared/store/ui-layout.js';
 import { useUIUpgradeArchonTasks } from './shared/hooks/useArchonMCP.js';
+import { useDoubleCtrlC } from './shared/hooks/useDoubleCtrlC.js';
 
 // =============================================================================
 // PROPS
@@ -74,6 +75,11 @@ export interface AppProps {
  * @returns React element
  */
 export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactElement => {
+  // Debug logging for render tracking
+  const renderCount = React.useRef(0);
+  renderCount.current += 1;
+  console.log(`🎨 App: Render #${renderCount.current}`);
+
   const { exit } = useApp();
   const { stdout } = useStdout();
 
@@ -239,11 +245,18 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
 
   // Initialize new session
   const initializeNewSession = useCallback(() => {
+    console.log('🔄 initializeNewSession: Starting session initialization');
+    console.log('🔄 initializeNewSession: Setting workspace root:', workspaceRoot);
     setWorkspaceRoot(workspaceRoot);
+    
+    console.log('🔄 initializeNewSession: Setting current model:', initialModel);
     setCurrentModel(initialModel);
+    
+    console.log('🔄 initializeNewSession: Creating new session');
     createNewSession(initialModel);
 
     // Register filesystem tools
+    console.log('🔄 initializeNewSession: Registering filesystem tools');
     const fileSystemTools = createFileSystemTools();
     for (const tool of fileSystemTools) {
       toolRegistry.register(tool);
@@ -251,13 +264,14 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
 
     // Load AGENTS.md as system prompt if available
     if (config.agentsInstructions !== undefined) {
+      console.log('🔄 initializeNewSession: Adding system message');
       addMessage({
         role: 'system',
         content: config.agentsInstructions,
       });
     }
+    console.log('✅ initializeNewSession: Session initialization complete');
   }, [workspaceRoot, initialModel, config, setWorkspaceRoot, setCurrentModel, createNewSession, addMessage]);
-
   // Handle session restoration
   const handleSessionSelected = useCallback(async (sessionId: string) => {
     try {
@@ -361,8 +375,16 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
 
   // Handle new session selection
   const handleNewSession = useCallback(() => {
-    setSessionRestoreState('complete');
-    initializeNewSession();
+    console.log('🔄 handleNewSession: Starting new session flow');
+    
+    // Batch the state updates to prevent multiple renders
+    React.startTransition(() => {
+      console.log('🔄 handleNewSession: Setting session restore state to complete');
+      setSessionRestoreState('complete');
+      
+      console.log('🔄 handleNewSession: Initializing new session');
+      initializeNewSession();
+    });
   }, [initializeNewSession]);
 
   // Handle session detection error retry
@@ -416,12 +438,8 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
     void detectSessions();
   }, [initializeNewSession]);
 
-  // Handle Ctrl+C to exit
-  useInput((input, key) => {
-    if (key.ctrl && input === 'c') {
-      exit();
-    }
-  });
+  // Handle double Ctrl+C to exit
+  useDoubleCtrlC({ onExit: exit });
 
   // Handle slash commands
   const handleCommand = useCallback((command: string): void => {
@@ -725,4 +743,4 @@ Then restart theo-code.`,
       </FullScreenLayout>
     </LayoutErrorBoundary>
   );
-};
+}
