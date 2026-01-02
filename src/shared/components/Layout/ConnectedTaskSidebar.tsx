@@ -48,6 +48,31 @@ export const ConnectedTaskSidebar: React.FC<ConnectedTaskSidebarProps> = ({
     ...archonConfig,
   }), [archonConfig]);
 
+  // Fetch tasks from Archon MCP server
+  const fetchTasks = React.useCallback(async () => {
+    if (!archonClientRef.current || !config.enabled) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const archonTasks = await archonClientRef.current.getTasks();
+      
+      if (archonTasks.length > 0) {
+        setTasks(archonTasks);
+        onTasksUpdated?.(archonTasks);
+      } else {
+        // Use fallback tasks if no Archon tasks found
+        setTasks(fallbackTasks);
+      }
+    } catch (error) {
+      console.error('Failed to fetch tasks from Archon:', error);
+      setTasks(fallbackTasks);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [config.enabled, fallbackTasks, onTasksUpdated]);
+
   // Initialize Archon MCP client
   React.useEffect(() => {
     if (config.enabled) {
@@ -85,32 +110,7 @@ export const ConnectedTaskSidebar: React.FC<ConnectedTaskSidebarProps> = ({
       // No cleanup needed when disabled
       return undefined;
     }
-  }, [config, fallbackTasks, onConnectionStatusChange]);
-
-  // Fetch tasks from Archon MCP server
-  const fetchTasks = React.useCallback(async () => {
-    if (!archonClientRef.current || !config.enabled) {
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const archonTasks = await archonClientRef.current.getTasks();
-      
-      if (archonTasks.length > 0) {
-        setTasks(archonTasks);
-        onTasksUpdated?.(archonTasks);
-      } else {
-        // Use fallback tasks if no Archon tasks found
-        setTasks(fallbackTasks);
-      }
-    } catch (error) {
-      console.error('Failed to fetch tasks from Archon:', error);
-      setTasks(fallbackTasks);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [config.enabled, fallbackTasks, onTasksUpdated]);
+  }, [config, fallbackTasks, onConnectionStatusChange, fetchTasks]);
 
   // Handle task selection with optional status update
   const handleTaskSelect = React.useCallback(async (taskId: string) => {
