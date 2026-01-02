@@ -59,7 +59,10 @@ const ContextAreaComponent: React.FC<ContextAreaProps> = ({
   const [renderError, setRenderError] = React.useState<string | null>(null);
   
   // Calculate content dimensions with error handling (memoized)
-  const { contentWidth, contentAreaHeight } = useDeepMemo(() => {
+  const layoutCalculation = useDeepMemo(() => {
+    let currentError: string | null = null;
+    let currentWarnings: string[] = [];
+    
     const { result, error, warnings } = safeLayoutCalculation(
       () => {
         // Validate input dimensions
@@ -83,16 +86,19 @@ const ContextAreaComponent: React.FC<ContextAreaProps> = ({
     
     if (error) {
       logger.warn('ContextArea dimension calculation failed', { error: error.message, width, height });
-      setRenderError(`Dimension calculation failed: ${error.message}`);
+      currentError = `Dimension calculation failed: ${error.message}`;
     }
     
     if (warnings.length > 0) {
       logger.warn('ContextArea dimension calculation warnings', { warnings, width, height });
+      currentWarnings = warnings;
     }
     
-    return result;
+    return { ...result, error: currentError, warnings: currentWarnings };
   }, [width, height]);
   
+  const { contentWidth, contentAreaHeight } = layoutCalculation;
+
   // State for scroll management with error handling
   const [localScrollPosition, setLocalScrollPosition] = React.useState(() => {
     // Validate initial scroll position
@@ -218,9 +224,11 @@ const ContextAreaComponent: React.FC<ContextAreaProps> = ({
     // Return undefined for the case when there's no render error
     return undefined;
   }, [renderError]);
+
+  const displayedError = renderError || layoutCalculation.error;
   
   // Show error state if there's a critical error
-  if (renderError && layoutContext.errorState.hasError) {
+  if (displayedError && layoutContext.errorState.hasError) {
     return (
       <Box
         width={width}
@@ -232,7 +240,7 @@ const ContextAreaComponent: React.FC<ContextAreaProps> = ({
         alignItems="center"
       >
         <Text color={effectiveColorScheme.colors.errorMessage}>⚠️ Context Area Error</Text>
-        <Text color={effectiveColorScheme.colors.comment}>{renderError}</Text>
+        <Text color={effectiveColorScheme.colors.comment}>{displayedError}</Text>
       </Box>
     );
   }
