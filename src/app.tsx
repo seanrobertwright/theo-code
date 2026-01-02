@@ -37,7 +37,8 @@ import {
   executeBatchStateUpdates,
   createObjectValidator,
   createArrayValidator,
-  type BatchStateUpdate
+  type BatchStateUpdate,
+  type StateSetter // Add StateSetter here
 } from './shared/components/Layout/state-error-handling.js';
 
 // Import new layout components
@@ -93,10 +94,10 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
   const { stdout } = useStdout();
 
   // Local state for input
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState<string>('');
 
   // Create safe state setter for input value with error handling
-  const safeSetInputValue = createSafeStateSetterWithDefaults(
+  const safeSetInputValue: StateSetter<string> = createSafeStateSetterWithDefaults<string>(
     setInputValue,
     'App',
     'inputValue',
@@ -104,9 +105,10 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
   );
 
   // Session restoration state
-  const [sessionRestoreState, setSessionRestoreState] = useState<
-    'detecting' | 'validating' | 'prompting' | 'restoring' | 'error' | 'complete'
-  >('detecting');
+  type SessionRestoreState = 'detecting' | 'validating' | 'prompting' | 'restoring' | 'error' | 'complete';
+  const [sessionRestoreState, setSessionRestoreState] = useState<SessionRestoreState>(
+    'detecting'
+  );
   const [availableSessions, setAvailableSessions] = useState<SessionMetadata[]>([]);
   const [sessionRestoreError, setSessionRestoreError] = useState<string | null>(null);
   const [validationProgress, setValidationProgress] = useState<{
@@ -116,28 +118,32 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
   }>({ current: 0, total: 0 });
 
   // Create safe state setters with error handling
-  const safeSetSessionRestoreState = createSafeStateSetterWithDefaults(
+  const safeSetSessionRestoreState = createSafeStateSetterWithDefaults<SessionRestoreState>(
     setSessionRestoreState,
     'App',
     'sessionRestoreState',
     'error' // fallback to error state if update fails
   );
 
-  const safeSetAvailableSessions = createSafeStateSetterWithDefaults(
+  const safeSetAvailableSessions = createSafeStateSetterWithDefaults<SessionMetadata[]>(
     setAvailableSessions,
     'App',
     'availableSessions',
     [] // fallback to empty array if update fails
   );
 
-  const safeSetSessionRestoreError = createSafeStateSetterWithDefaults(
+  const safeSetSessionRestoreError = createSafeStateSetterWithDefaults<string | null>(
     setSessionRestoreError,
     'App',
     'sessionRestoreError',
     'Unknown error occurred' // fallback error message
   );
 
-  const safeSetValidationProgress = createSafeStateSetterWithDefaults(
+  const safeSetValidationProgress = createSafeStateSetterWithDefaults<{
+    current: number;
+    total: number;
+    currentSession?: string;
+  }>(
     setValidationProgress,
     'App',
     'validationProgress',
