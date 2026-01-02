@@ -346,6 +346,5 @@ export const useInputManagerDebug = () => {
 };
 
 export type {
-  InputHandlerRegistration,
   InputManagerContextValue,
 };
