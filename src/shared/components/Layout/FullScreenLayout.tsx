@@ -75,11 +75,6 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
     height: terminalHeight,
   });
   
-  // State for error handling
-  const [layoutError, setLayoutError] = React.useState<string | null>(null);
-  const [layoutWarnings, setLayoutWarnings] = React.useState<string[]>([]);
-  const [fallbackMode, setFallbackMode] = React.useState(false);
-  
   // Enhanced debounced resize handler with performance optimization and stable reference
   const handleDimensionsChange = React.useCallback((newDimensions: { width: number; height: number }) => {
     measure(() => {
@@ -116,11 +111,10 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
     const { colorScheme: validScheme, warnings } = safeApplyColorScheme(colorScheme);
     
     if (warnings.length > 0) {
-      setLayoutWarnings(prev => [...prev, ...warnings]);
       logger.warn('Color scheme validation warnings', { warnings });
     }
     
-    return validScheme;
+    return { scheme: validScheme, warnings };
   }, [colorScheme]);
   
   // Validate layout configuration with enhanced memoization to prevent unnecessary recalculations
@@ -138,11 +132,6 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
     }
   }, [config]);
   
-  // Update layout error based on config validation
-  React.useEffect(() => {
-    setLayoutError(configValidation.error);
-  }, [configValidation.error]);
-  
   // Validate terminal dimensions and handle errors with enhanced memoization to prevent unnecessary recalculations
   const terminalValidation = React.useMemo(() => {
     return safeValidateTerminalDimensions(
@@ -153,26 +142,32 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
   }, [debouncedDimensions.width, debouncedDimensions.height, config]);
   
   // Calculate section dimensions with enhanced memoization to prevent unnecessary recalculations
-  const sectionDimensions: SectionDimensions = React.useMemo(() => {
+  // Returns dimensions AND error/fallback state to avoid side effects in useMemo
+  const layoutCalculation = React.useMemo(() => {
     return measure(() => {
+      let currentError: string | null = null;
+      let currentWarnings: string[] = [];
+      let isFallback = false;
+      let resultDimensions: SectionDimensions;
+
       // If terminal validation failed, try to recover
       if (!terminalValidation.isValid && terminalValidation.error) {
         const recovery = recoverFromLayoutError(terminalValidation.error);
         
         if (recovery.recovered && recovery.fallbackDimensions) {
-          setFallbackMode(true);
-          setLayoutWarnings(prev => [...prev, ...recovery.warnings]);
+          isFallback = true;
+          currentWarnings.push(...recovery.warnings);
           logger.warn('Using fallback dimensions due to terminal validation failure', {
             error: terminalValidation.error.message,
             warnings: recovery.warnings,
           });
-          return recovery.fallbackDimensions;
+          resultDimensions = recovery.fallbackDimensions;
         } else {
           // Could not recover - use absolute minimum
-          setLayoutError(`Terminal validation failed: ${terminalValidation.error.message}`);
-          setFallbackMode(true);
+          currentError = `Terminal validation failed: ${terminalValidation.error.message}`;
+          isFallback = true;
           
-          return {
+          resultDimensions = {
             terminal: { width: 40, height: 10 },
             header: { width: 40, height: 1 },
             context: { width: 38, height: 6 },
@@ -182,45 +177,52 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
             isCompactMode: true,
           };
         }
+      } else {
+        // Normal calculation with error handling
+        const { result: dimensions, error, warnings } = safeLayoutCalculation(
+          () => {
+            const dims = calculateSectionDimensions(
+              debouncedDimensions.width,
+              debouncedDimensions.height,
+              contextAreaWidth,
+              config
+            );
+            
+            // Validate the calculated dimensions
+            validateSectionDimensions(dims);
+            return dims;
+          },
+          // Fallback dimensions
+          {
+            terminal: { width: debouncedDimensions.width, height: debouncedDimensions.height },
+            header: { width: debouncedDimensions.width, height: 1 },
+            context: { width: Math.max(1, debouncedDimensions.width - 2), height: Math.max(1, debouncedDimensions.height - 4) },
+            sidebar: { width: 0, height: 0 },
+            footer: { width: debouncedDimensions.width, height: 3 },
+            isVerticalLayout: true,
+            isCompactMode: true,
+          },
+          'section dimension calculation'
+        );
+        
+        if (error) {
+          currentError = `Layout calculation failed: ${error.message}`;
+          isFallback = true;
+        }
+        
+        if (warnings.length > 0) {
+          currentWarnings.push(...warnings);
+        }
+        
+        resultDimensions = dimensions;
       }
       
-      // Normal calculation with error handling
-      const { result: dimensions, error, warnings } = safeLayoutCalculation(
-        () => {
-          const dims = calculateSectionDimensions(
-            debouncedDimensions.width,
-            debouncedDimensions.height,
-            contextAreaWidth,
-            config
-          );
-          
-          // Validate the calculated dimensions
-          validateSectionDimensions(dims);
-          return dims;
-        },
-        // Fallback dimensions
-        {
-          terminal: { width: debouncedDimensions.width, height: debouncedDimensions.height },
-          header: { width: debouncedDimensions.width, height: 1 },
-          context: { width: Math.max(1, debouncedDimensions.width - 2), height: Math.max(1, debouncedDimensions.height - 4) },
-          sidebar: { width: 0, height: 0 },
-          footer: { width: debouncedDimensions.width, height: 3 },
-          isVerticalLayout: true,
-          isCompactMode: true,
-        },
-        'section dimension calculation'
-      );
-      
-      if (error) {
-        setLayoutError(`Layout calculation failed: ${error.message}`);
-        setFallbackMode(true);
-      }
-      
-      if (warnings.length > 0) {
-        setLayoutWarnings(prev => [...prev, ...warnings]);
-      }
-      
-      return dimensions;
+      return {
+        dimensions: resultDimensions,
+        error: currentError,
+        warnings: currentWarnings,
+        fallbackMode: isFallback
+      };
     });
   }, [debouncedDimensions.width, debouncedDimensions.height, contextAreaWidth, config, terminalValidation.isValid, terminalValidation.error, measure]);
   
@@ -246,11 +248,7 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
       logger.warn('Responsive layout calculation failed, using fallback', { error: error.message });
     }
     
-    if (warnings.length > 0) {
-      setLayoutWarnings(prev => [...prev, ...warnings]);
-    }
-    
-    return result;
+    return { result, warnings };
   }, [debouncedDimensions.width, debouncedDimensions.height, config.responsiveBreakpoints]);
   
   // Handle minimum size graceful degradation (memoized)
@@ -258,33 +256,28 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
     return debouncedDimensions.width < 40 || debouncedDimensions.height < 10;
   }, [debouncedDimensions.width, debouncedDimensions.height]);
   
-  // Clear warnings after a delay with cleanup
-  React.useEffect(() => {
-    if (layoutWarnings.length > 0) {
-      const timer = setTimeout(() => {
-        setLayoutWarnings([]);
-      }, 10000); // Clear warnings after 10 seconds
-      
-      return () => clearTimeout(timer);
-    }
-    
-    // Return undefined for the case when there are no warnings
-    return undefined;
-  }, [layoutWarnings]);
+  // Combine all warnings
+  const allWarnings = React.useMemo(() => {
+    return [
+      ...validatedColorScheme.warnings,
+      ...layoutCalculation.warnings,
+      ...responsiveLayout.warnings
+    ];
+  }, [validatedColorScheme.warnings, layoutCalculation.warnings, responsiveLayout.warnings]);
   
   // Provide layout context to children through React context with enhanced memoization to prevent unnecessary recalculations
   const layoutContext = React.useMemo(() => ({
-    dimensions: sectionDimensions,
-    responsive: responsiveLayout,
-    colorScheme: validatedColorScheme,
+    dimensions: layoutCalculation.dimensions,
+    responsive: responsiveLayout.result,
+    colorScheme: validatedColorScheme.scheme,
     config,
     errorState: {
-      hasError: Boolean(layoutError),
-      error: layoutError,
-      warnings: layoutWarnings,
-      fallbackMode,
+      hasError: Boolean(configValidation.error || layoutCalculation.error),
+      error: configValidation.error || layoutCalculation.error,
+      warnings: allWarnings,
+      fallbackMode: layoutCalculation.fallbackMode,
     },
-  }), [sectionDimensions, responsiveLayout, validatedColorScheme, config, layoutError, layoutWarnings, fallbackMode]);
+  }), [layoutCalculation, responsiveLayout.result, validatedColorScheme.scheme, config, configValidation.error, allWarnings]);
   
   // If terminal is too small, show a comprehensive error message
   if (isTerminalTooSmall) {
@@ -310,9 +303,9 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
             <Box marginBottom={1}>
               <Text color={errorColorScheme.colors.border}>Current: {debouncedDimensions.width}x{debouncedDimensions.height}</Text>
             </Box>
-            {layoutError && (
+            {layoutCalculation.error && (
               <Box marginTop={1}>
-                <Text color={errorColorScheme.colors.errorMessage}>Error: {layoutError}</Text>
+                <Text color={errorColorScheme.colors.errorMessage}>Error: {layoutCalculation.error}</Text>
               </Box>
             )}
             <Box marginTop={1}>
@@ -325,26 +318,26 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
   }
   
   // Show warnings if in fallback mode
-  const showWarnings = fallbackMode && layoutWarnings.length > 0;
+  const showWarnings = layoutCalculation.fallbackMode && allWarnings.length > 0;
   
   return (
     <LayoutContext.Provider value={layoutContext}>
       <Box
         flexDirection="column"
-        width={sectionDimensions.terminal.width}
-        height={sectionDimensions.terminal.height}
+        width={layoutCalculation.dimensions.terminal.width}
+        height={layoutCalculation.dimensions.terminal.height}
       >
         {/* Show warnings banner if needed */}
         {showWarnings && (
           <Box
-            width={sectionDimensions.terminal.width}
+            width={layoutCalculation.dimensions.terminal.width}
             borderStyle="single"
-            borderColor={validatedColorScheme.colors.errorMessage}
+            borderColor={validatedColorScheme.scheme.colors.errorMessage}
             marginBottom={1}
           >
             <Box padding={1}>
-              <Text color={validatedColorScheme.colors.errorMessage}>
-                ⚠️ Layout warnings: {layoutWarnings.slice(-2).join(', ')}
+              <Text color={validatedColorScheme.scheme.colors.errorMessage}>
+                ⚠️ Layout warnings: {allWarnings.slice(-2).join(', ')}
               </Text>
             </Box>
           </Box>
