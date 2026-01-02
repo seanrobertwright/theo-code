@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Consumption Backup Tracker",
+  "description": "Backup consumption tracker using PowerShell script to access session files",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "powershell -ExecutionPolicy Bypass -File .kiro/hooks/consumption-script.ps1"
+  }
+}

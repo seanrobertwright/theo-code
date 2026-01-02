@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/**/__tests__/**/*.test.ts', 'src/**/__tests__/**/*.test.tsx'],
+    include: ['src/**/__tests__/**/*.test.ts', 'src/**/__tests__/**/*.test.tsx', 'src/test/**/*.test.ts', 'src/test/**/*.test.tsx'],
     exclude: ['node_modules', 'dist'],
     setupFiles: ['./test/setup.ts'],
     // Reduce concurrency to manage memory usage

@@ -11,9 +11,10 @@
         "find_tasks",
         "find_projects",
         "manage_project",
-        "manage_task"
+        "manage_task",
+        "rag_read_full_page"
       ],
-      "disabled": true
+      "disabled": false
     }
   }
 }

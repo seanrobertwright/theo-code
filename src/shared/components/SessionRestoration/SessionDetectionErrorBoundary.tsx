@@ -6,6 +6,7 @@
 import * as React from 'react';
 import { Box, Text, useInput } from 'ink';
 import { logger } from '../../utils/logger.js';
+import { createSafeInputHandlerWithDefaults } from '../Layout/input-error-handling.js';
 
 // =============================================================================
 // ERROR BOUNDARY PROPS
@@ -84,25 +85,31 @@ const DefaultSessionDetectionErrorFallback: React.FC<SessionDetectionErrorFallba
   const totalOptions = options.length;
   
   // Handle keyboard input
-  useInput(
-    React.useCallback(
-      (input, key) => {
-        if (key.upArrow) {
-          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : totalOptions - 1));
-        } else if (key.downArrow) {
-          setSelectedIndex((prev) => (prev < totalOptions - 1 ? prev + 1 : 0));
-        } else if (key.return) {
-          const selectedOption = options[selectedIndex];
-          if (selectedOption) {
-            selectedOption.action();
-          }
-        } else if (input === 'd' || input === 'D') {
-          setShowDetails((prev) => !prev);
+  const handleInput = React.useCallback(
+    (input: string, key: any) => {
+      if (key.upArrow) {
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : totalOptions - 1));
+      } else if (key.downArrow) {
+        setSelectedIndex((prev) => (prev < totalOptions - 1 ? prev + 1 : 0));
+      } else if (key.return) {
+        const selectedOption = options[selectedIndex];
+        if (selectedOption) {
+          selectedOption.action();
         }
-      },
-      [selectedIndex, totalOptions, options]
-    )
+      } else if (input === 'd' || input === 'D') {
+        setShowDetails((prev) => !prev);
+      }
+    },
+    [selectedIndex, totalOptions, options]
   );
+
+  // Wrap the input handler with error boundary protection
+  const safeHandleInput = React.useMemo(
+    () => createSafeInputHandlerWithDefaults(handleInput, 'SessionDetectionErrorFallback'),
+    [handleInput]
+  );
+
+  useInput(safeHandleInput);
   
   return (
     <Box flexDirection="column" padding={1}>

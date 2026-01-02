@@ -4,7 +4,7 @@
  */
 
 import * as React from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
 import type { MessageListProps, ColorScheme } from './types.js';
 import type { Message } from '../../types/index.js';
 import { ColorCodedMessage, createMessageColorScheme, getRoleDisplayInfo } from './MessageColorCoding.js';
@@ -16,6 +16,8 @@ import {
   useThrottle,
   useDeepMemo,
 } from './performance-optimizations.js';
+import { createSafeInputHandlerWithDefaults } from './input-error-handling.js';
+import { useInputHandler } from '../../hooks/useInputManager.js';
 
 /**
  * Individual message component with memoization for performance.
@@ -73,12 +75,13 @@ const StreamingMessage = createMemoComponent<{
  * This component handles:
  * - Message rendering with enhanced color coding
  * - Scroll position management with throttling
- * - Keyboard navigation (arrow keys, page up/down) with debouncing
+ * - Keyboard navigation (arrow keys, page up/down) via centralized input manager
  * - Content height calculation with memoization
  * - Streaming message display
  * - Syntax highlighting for code blocks
  * - Virtual scrolling for large message lists
  * - Performance monitoring and optimization
+ * - Automatic conflict resolution through input manager
  */
 const MessageListComponent: React.FC<MessageListProps & {
   onContentHeightChange?: (height: number) => void;
@@ -164,7 +167,31 @@ const MessageListComponent: React.FC<MessageListProps & {
     }
   }, [onScrollChange, height, scrollPosition, totalContentHeight, throttledScrollChange]);
 
-  useInput(handleScrollInput);
+  // Wrap the input handler with error boundary protection
+  const safeHandleScrollInput = React.useMemo(
+    () => createSafeInputHandlerWithDefaults(handleScrollInput, 'MessageList'),
+    [handleScrollInput]
+  );
+
+  // Use centralized input manager instead of direct useInput
+  const { isActive, activate } = useInputHandler(
+    'message-list-scroll',
+    safeHandleScrollInput,
+    'MessageList',
+    {
+      priority: 5, // Lower priority than input area
+      autoActivate: false, // Don't auto-activate to avoid conflicts
+      dependencies: [safeHandleScrollInput, onScrollChange]
+    }
+  );
+
+  // Activate scroll handler when scrolling is available and input area is not active
+  React.useEffect(() => {
+    if (onScrollChange && hasScrollableContent && !isActive) {
+      // Only activate if we have scrollable content
+      activate();
+    }
+  }, [onScrollChange, hasScrollableContent, isActive, activate]);
   // Render individual message with enhanced color coding (memoized)
   const renderMessage = React.useCallback((message: Message, index: number): React.ReactNode => {
     if (message.id === 'streaming') {

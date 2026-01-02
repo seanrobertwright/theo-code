@@ -1,4 +1,0 @@
-
-> theo-code@0.1.0 build
-> tsc -p tsconfig.app.json
-

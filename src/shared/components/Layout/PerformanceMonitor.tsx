@@ -66,7 +66,7 @@ const PerformanceMonitorComponent: React.FC<PerformanceMonitorProps> = ({
         return prev * (1 - alpha) + renderTime * alpha;
       });
     });
-  });
+  }, [measure]);
   
   // Don't render if disabled
   if (!enabled) {

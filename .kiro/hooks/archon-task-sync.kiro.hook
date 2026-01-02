@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Archon Task Synchronization",
+  "description": "Monitors prompt submissions to ensure that tasks are properly created and updated in Archon as they are completed, maintaining synchronization between the agent's task management and Archon's task tracking system",
+  "version": "1",
+  "when": {
+    "type": "promptSubmit"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Review the current prompt and any tasks being worked on. Ensure that:\n1. Any new tasks mentioned or implied in this prompt are created in Archon if they don't already exist\n2. Any tasks that are being worked on are moved to the 'Doing' column in Archon\n3. Any tasks that have been completed are updated to the 'Completed' column in Archon\n4. Task status in Archon accurately reflects the current state of work\n\nUse the Archon MCP server to manage these task updates alongside your normal response to the user's prompt."
+  }
+}

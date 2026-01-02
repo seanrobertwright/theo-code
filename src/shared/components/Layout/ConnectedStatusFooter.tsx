@@ -114,7 +114,7 @@ export const ConnectedStatusFooter: React.FC<ConnectedStatusFooterProps> = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [forceUpdate]);
 
   return (
     <StatusFooter

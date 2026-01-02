@@ -1,0 +1,10 @@
+# Project configuration for theo-code
+# This enables session auto-save so consumption tracking can access real data
+
+session:
+  autoSaveInterval: 10000  # Save every 10 seconds for better consumption tracking
+  maxSessions: 100
+  
+# Optional: Set default model and provider
+model: "gpt-4o"
+provider: "openai"

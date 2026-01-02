@@ -10,3 +10,12 @@ export {
   useUIUpgradeArchonTasks,
   type UseArchonMCPReturn 
 } from './useArchonMCP.js';
+export { 
+  useInputManager, 
+  useInputHandler, 
+  useInputManagerDebug,
+  InputManagerProvider,
+  type InputHandler,
+  type InputHandlerRegistration,
+  type InputManagerContextValue 
+} from './useInputManager.js';

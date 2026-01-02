@@ -7,6 +7,7 @@ import * as React from 'react';
 import { type ReactElement, useState, useCallback } from 'react';
 import { Box, Text, useInput } from 'ink';
 import type { ProviderConfig } from '../../../config/index.js';
+import { createSafeInputHandlerWithDefaults } from '../Layout/input-error-handling.js';
 
 // =============================================================================
 // TYPES
@@ -154,33 +155,39 @@ export const ProviderSelection = ({
   const displayProviders = providers.slice(0, maxDisplayProviders);
   
   // Handle keyboard input
-  useInput(
-    useCallback(
-      (input, key) => {
-        if (key.upArrow) {
-          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : displayProviders.length - 1));
-        } else if (key.downArrow) {
-          setSelectedIndex((prev) => (prev < displayProviders.length - 1 ? prev + 1 : 0));
-        } else if (key.return) {
-          const selectedProvider = displayProviders[selectedIndex];
+  const handleInput = useCallback(
+    (input: string, key: any) => {
+      if (key.upArrow) {
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : displayProviders.length - 1));
+      } else if (key.downArrow) {
+        setSelectedIndex((prev) => (prev < displayProviders.length - 1 ? prev + 1 : 0));
+      } else if (key.return) {
+        const selectedProvider = displayProviders[selectedIndex];
+        if (selectedProvider) {
+          onProviderSelected(String(selectedProvider.name));
+        }
+      } else if (key.escape || (key.ctrl && input === 'c')) {
+        onCancel();
+      } else if (input >= '1' && input <= '9') {
+        const index = parseInt(input, 10) - 1;
+        if (index >= 0 && index < displayProviders.length) {
+          const selectedProvider = displayProviders[index];
           if (selectedProvider) {
             onProviderSelected(String(selectedProvider.name));
           }
-        } else if (key.escape || (key.ctrl && input === 'c')) {
-          onCancel();
-        } else if (input >= '1' && input <= '9') {
-          const index = parseInt(input, 10) - 1;
-          if (index >= 0 && index < displayProviders.length) {
-            const selectedProvider = displayProviders[index];
-            if (selectedProvider) {
-              onProviderSelected(String(selectedProvider.name));
-            }
-          }
         }
-      },
-      [displayProviders, selectedIndex, onProviderSelected, onCancel]
-    )
+      }
+    },
+    [displayProviders, selectedIndex, onProviderSelected, onCancel]
   );
+
+  // Wrap the input handler with error boundary protection
+  const safeHandleInput = React.useMemo(
+    () => createSafeInputHandlerWithDefaults(handleInput, 'ProviderSelection'),
+    [handleInput]
+  );
+
+  useInput(safeHandleInput);
 
   if (displayProviders.length === 0) {
     return (
@@ -258,16 +265,22 @@ export const ProviderStatus = ({
   showDetails = true,
   onClose,
 }: ProviderStatusProps): ReactElement => {
-  useInput(
-    useCallback(
-      (input, key) => {
-        if (key.escape || key.return || (key.ctrl && input === 'c')) {
-          onClose();
-        }
-      },
-      [onClose]
-    )
+  const handleInput = useCallback(
+    (input: string, key: any) => {
+      if (key.escape || key.return || (key.ctrl && input === 'c')) {
+        onClose();
+      }
+    },
+    [onClose]
   );
+
+  // Wrap the input handler with error boundary protection
+  const safeHandleInput = React.useMemo(
+    () => createSafeInputHandlerWithDefaults(handleInput, 'ProviderStatus'),
+    [handleInput]
+  );
+
+  useInput(safeHandleInput);
 
   const readyProviders = providers.filter(p => p.enabled);
   const disabledProviders = providers.filter(p => !p.enabled);
@@ -362,16 +375,22 @@ export const ProviderConfigWizard = ({
     }
   );
 
-  useInput(
-    useCallback(
-      (input, key) => {
-        if (key.escape || (key.ctrl && input === 'c')) {
-          onCancel();
-        }
-      },
-      [onCancel]
-    )
+  const handleInput = useCallback(
+    (input: string, key: any) => {
+      if (key.escape || (key.ctrl && input === 'c')) {
+        onCancel();
+      }
+    },
+    [onCancel]
   );
+
+  // Wrap the input handler with error boundary protection
+  const safeHandleInput = React.useMemo(
+    () => createSafeInputHandlerWithDefaults(handleInput, 'ProviderConfigWizard'),
+    [handleInput]
+  );
+
+  useInput(safeHandleInput);
 
   const getStepContent = (): ReactElement => {
     return (

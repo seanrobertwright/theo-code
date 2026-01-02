@@ -13,6 +13,7 @@ import { Box, Text, useInput } from 'ink';
 import type { SessionMetadata, SessionId } from '../../types/index.js';
 import { formatSessionForDisplay } from '../../../features/session/startup.js';
 import type { RecoveryOption } from '../../../features/session/error-recovery.js';
+import { createSafeInputHandlerWithDefaults } from '../Layout/input-error-handling.js';
 
 // =============================================================================
 // INTERFACES
@@ -142,30 +143,36 @@ export const SessionRestoration: React.FC<SessionRestorationProps> = ({
   }
   
   // Handle keyboard input
-  useInput(
-    useCallback(
-      (input, key) => {
-        if (key.upArrow) {
-          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : totalOptions - 1));
-        } else if (key.downArrow) {
-          setSelectedIndex((prev) => (prev < totalOptions - 1 ? prev + 1 : 0));
-        } else if (key.return) {
-          handleSelection();
-        } else if (input === 'd' || input === 'D') {
-          if (!isErrorRecovery) {
-            setShowingDetails((prev) => !prev);
-          }
-        } else if (input === 'v' || input === 'V') {
-          if (validationSummary && onShowValidationSummary) {
-            setShowingValidationSummary((prev) => !prev);
-          }
-        } else if (key.escape && onCancel) {
-          onCancel();
+  const handleInput = useCallback(
+    (input: string, key: any) => {
+      if (key.upArrow) {
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : totalOptions - 1));
+      } else if (key.downArrow) {
+        setSelectedIndex((prev) => (prev < totalOptions - 1 ? prev + 1 : 0));
+      } else if (key.return) {
+        handleSelection();
+      } else if (input === 'd' || input === 'D') {
+        if (!isErrorRecovery) {
+          setShowingDetails((prev) => !prev);
         }
-      },
-      [totalOptions, onCancel, isErrorRecovery, validationSummary, onShowValidationSummary]
-    )
+      } else if (input === 'v' || input === 'V') {
+        if (validationSummary && onShowValidationSummary) {
+          setShowingValidationSummary((prev) => !prev);
+        }
+      } else if (key.escape && onCancel) {
+        onCancel();
+      }
+    },
+    [totalOptions, onCancel, isErrorRecovery, validationSummary, onShowValidationSummary]
   );
+
+  // Wrap the input handler with error boundary protection
+  const safeHandleInput = React.useMemo(
+    () => createSafeInputHandlerWithDefaults(handleInput, 'SessionRestoration'),
+    [handleInput]
+  );
+
+  useInput(safeHandleInput);
   
   // Handle selection
   const handleSelection = useCallback(() => {
@@ -497,27 +504,33 @@ export const SessionDetectionError: React.FC<SessionDetectionErrorProps> = ({
   
   const totalOptions = options.length;
   
-  useInput(
-    useCallback(
-      (_input, key) => {
-        if (key.upArrow || key.downArrow) {
-          setSelectedIndex((prev) => {
-            if (key.upArrow) {
-              return prev > 0 ? prev - 1 : totalOptions - 1;
-            } else {
-              return prev < totalOptions - 1 ? prev + 1 : 0;
-            }
-          });
-        } else if (key.return) {
-          const selectedOption = options[selectedIndex];
-          if (selectedOption) {
-            selectedOption.action();
+  const handleInput = useCallback(
+    (_input: string, key: any) => {
+      if (key.upArrow || key.downArrow) {
+        setSelectedIndex((prev) => {
+          if (key.upArrow) {
+            return prev > 0 ? prev - 1 : totalOptions - 1;
+          } else {
+            return prev < totalOptions - 1 ? prev + 1 : 0;
           }
+        });
+      } else if (key.return) {
+        const selectedOption = options[selectedIndex];
+        if (selectedOption) {
+          selectedOption.action();
         }
-      },
-      [selectedIndex, totalOptions, options]
-    )
+      }
+    },
+    [selectedIndex, totalOptions, options]
   );
+
+  // Wrap the input handler with error boundary protection
+  const safeHandleInput = React.useMemo(
+    () => createSafeInputHandlerWithDefaults(handleInput, 'SessionDetectionError'),
+    [handleInput]
+  );
+
+  useInput(safeHandleInput);
   
   return (
     <Box flexDirection="column" padding={1}>

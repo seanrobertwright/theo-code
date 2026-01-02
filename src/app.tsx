@@ -31,6 +31,14 @@ import { createDefaultCommandRegistry } from './features/commands/index.js';
 import type { ModelConfig } from './shared/types/models.js';
 import type { SessionMetadata, SessionId } from './shared/types/index.js';
 import { logger } from './shared/utils/logger.js';
+import { 
+  createSafeStateSetterWithDefaults,
+  createSafeFunctionalStateSetterWithDefaults,
+  executeBatchStateUpdates,
+  createObjectValidator,
+  createArrayValidator,
+  type BatchStateUpdate
+} from './shared/components/Layout/state-error-handling.js';
 
 // Import new layout components
 import { FullScreenLayout } from './shared/components/Layout/FullScreenLayout.js';
@@ -45,6 +53,7 @@ import { InputArea } from './shared/components/Layout/InputArea.js';
 import { useUILayoutStore } from './shared/store/ui-layout.js';
 import { useUIUpgradeArchonTasks } from './shared/hooks/useArchonMCP.js';
 import { useDoubleCtrlC } from './shared/hooks/useDoubleCtrlC.js';
+import { InputManagerProvider } from './shared/hooks/useInputManager.js';
 
 // =============================================================================
 // PROPS
@@ -86,6 +95,14 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
   // Local state for input
   const [inputValue, setInputValue] = useState('');
 
+  // Create safe state setter for input value with error handling
+  const safeSetInputValue = createSafeStateSetterWithDefaults(
+    setInputValue,
+    'App',
+    'inputValue',
+    '' // fallback to empty string if update fails
+  );
+
   // Session restoration state
   const [sessionRestoreState, setSessionRestoreState] = useState<
     'detecting' | 'validating' | 'prompting' | 'restoring' | 'error' | 'complete'
@@ -97,6 +114,35 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
     total: number;
     currentSession?: string;
   }>({ current: 0, total: 0 });
+
+  // Create safe state setters with error handling
+  const safeSetSessionRestoreState = createSafeStateSetterWithDefaults(
+    setSessionRestoreState,
+    'App',
+    'sessionRestoreState',
+    'error' // fallback to error state if update fails
+  );
+
+  const safeSetAvailableSessions = createSafeStateSetterWithDefaults(
+    setAvailableSessions,
+    'App',
+    'availableSessions',
+    [] // fallback to empty array if update fails
+  );
+
+  const safeSetSessionRestoreError = createSafeStateSetterWithDefaults(
+    setSessionRestoreError,
+    'App',
+    'sessionRestoreError',
+    'Unknown error occurred' // fallback error message
+  );
+
+  const safeSetValidationProgress = createSafeStateSetterWithDefaults(
+    setValidationProgress,
+    'App',
+    'validationProgress',
+    { current: 0, total: 0 } // fallback to initial state
+  );
 
   // Agent loop ref
   const agentRef = useRef<AgentLoop | null>(null);
@@ -158,7 +204,7 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
     
     const detectSessions = async () => {
       try {
-        setSessionRestoreState('detecting');
+        safeSetSessionRestoreState('detecting');
         
         // Use safe session detection with validation progress
         const safeDetectionResult = await sessionManagerRef.current.detectAvailableSessionsSafely({
@@ -169,8 +215,8 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
         
         // Show validation progress if there were sessions to validate
         if (safeDetectionResult.validSessions.length > 0 || safeDetectionResult.invalidSessions.length > 0) {
-          setSessionRestoreState('validating');
-          setValidationProgress({
+          safeSetSessionRestoreState('validating');
+          safeSetValidationProgress({
             current: safeDetectionResult.validSessions.length + safeDetectionResult.invalidSessions.length,
             total: safeDetectionResult.validSessions.length + safeDetectionResult.invalidSessions.length,
           });
@@ -185,16 +231,33 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
         }
         
         if (safeDetectionResult.validSessions.length > 0) {
-          setAvailableSessions(safeDetectionResult.validSessions);
-          setSessionRestoreState('prompting');
+          safeSetAvailableSessions(safeDetectionResult.validSessions);
+          safeSetSessionRestoreState('prompting');
         } else {
           // No valid sessions found, proceed with graceful fallback to new session
           logger.info('No valid sessions found, creating new session');
-          setSessionRestoreState('complete');
-          // Inline initialization to avoid dependency cycle
-          setWorkspaceRoot(workspaceRoot);
-          setCurrentModel(initialModel);
-          createNewSession(initialModel);
+          safeSetSessionRestoreState('complete');
+          
+          // Use batch state updates for initialization
+          const initializationUpdates: BatchStateUpdate[] = [
+            () => setWorkspaceRoot(workspaceRoot),
+            () => setCurrentModel(initialModel),
+            () => createNewSession(initialModel)
+          ];
+
+          const batchResult = await executeBatchStateUpdates(initializationUpdates, {
+            componentName: 'App',
+            continueOnError: true,
+            maxRetries: 1
+          });
+
+          if (!batchResult.success && batchResult.error) {
+            logger.error('Failed to initialize new session during detection fallback', {
+              error: batchResult.error.message,
+              warnings: batchResult.warnings
+            });
+            safeSetSessionRestoreError(`Initialization failed: ${batchResult.error.message}`);
+          }
 
           // Register filesystem tools
           const fileSystemTools = createFileSystemTools();
@@ -215,14 +278,30 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
         
         // Graceful fallback: if detection fails completely, create new session
         logger.error(`Session detection failed, falling back to new session: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setSessionRestoreError(`Session detection failed: ${error instanceof Error ? error.message : 'Unknown error'}. Creating new session instead.`);
+        safeSetSessionRestoreError(`Session detection failed: ${error instanceof Error ? error.message : 'Unknown error'}. Creating new session instead.`);
         
         // Don't show error state, just proceed with new session
-        setSessionRestoreState('complete');
-        // Inline initialization to avoid dependency cycle
-        setWorkspaceRoot(workspaceRoot);
-        setCurrentModel(initialModel);
-        createNewSession(initialModel);
+        safeSetSessionRestoreState('complete');
+        
+        // Use batch state updates for fallback initialization
+        const fallbackUpdates: BatchStateUpdate[] = [
+          () => setWorkspaceRoot(workspaceRoot),
+          () => setCurrentModel(initialModel),
+          () => createNewSession(initialModel)
+        ];
+
+        const batchResult = await executeBatchStateUpdates(fallbackUpdates, {
+          componentName: 'App',
+          continueOnError: true,
+          maxRetries: 2
+        });
+
+        if (!batchResult.success && batchResult.error) {
+          logger.error('Failed to initialize new session during error fallback', {
+            error: batchResult.error.message,
+            warnings: batchResult.warnings
+          });
+        }
 
         // Register filesystem tools
         const fileSystemTools = createFileSystemTools();
@@ -243,47 +322,69 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
     void detectSessions();
   }, []); // Empty dependency array to run only once
 
-  // Initialize new session
+  // Initialize new session with batched state updates
   const initializeNewSession = useCallback(() => {
     console.log('🔄 initializeNewSession: Starting session initialization');
-    console.log('🔄 initializeNewSession: Setting workspace root:', workspaceRoot);
-    setWorkspaceRoot(workspaceRoot);
     
-    console.log('🔄 initializeNewSession: Setting current model:', initialModel);
-    setCurrentModel(initialModel);
-    
-    console.log('🔄 initializeNewSession: Creating new session');
-    createNewSession(initialModel);
+    // Batch all state updates into a single React transition to prevent multiple re-renders
+    React.startTransition(() => {
+      console.log('🔄 initializeNewSession: Batching state updates');
+      
+      // Set workspace root
+      console.log('🔄 initializeNewSession: Setting workspace root:', workspaceRoot);
+      setWorkspaceRoot(workspaceRoot);
+      
+      // Set current model
+      console.log('🔄 initializeNewSession: Setting current model:', initialModel);
+      setCurrentModel(initialModel);
+      
+      // Create new session
+      console.log('🔄 initializeNewSession: Creating new session');
+      createNewSession(initialModel);
 
-    // Register filesystem tools
+      // Add system message if available
+      if (config.agentsInstructions !== undefined) {
+        console.log('🔄 initializeNewSession: Adding system message');
+        addMessage({
+          role: 'system',
+          content: config.agentsInstructions,
+        });
+      }
+    });
+
+    // Register filesystem tools (non-state operation, can be outside transition)
     console.log('🔄 initializeNewSession: Registering filesystem tools');
     const fileSystemTools = createFileSystemTools();
     for (const tool of fileSystemTools) {
       toolRegistry.register(tool);
     }
 
-    // Load AGENTS.md as system prompt if available
-    if (config.agentsInstructions !== undefined) {
-      console.log('🔄 initializeNewSession: Adding system message');
-      addMessage({
-        role: 'system',
-        content: config.agentsInstructions,
-      });
-    }
     console.log('✅ initializeNewSession: Session initialization complete');
   }, [workspaceRoot, initialModel, config, setWorkspaceRoot, setCurrentModel, createNewSession, addMessage]);
   // Handle session restoration
   const handleSessionSelected = useCallback(async (sessionId: string) => {
     try {
-      setSessionRestoreState('restoring');
+      safeSetSessionRestoreState('restoring');
       
       // Use safe session restoration with error recovery
       const safeRestorationResult = await sessionManagerRef.current.restoreSessionSafely(sessionId as SessionId);
       
       if (safeRestorationResult.success && safeRestorationResult.session) {
-        // Update store with restored session
-        setWorkspaceRoot(safeRestorationResult.session.workspaceRoot);
-        setCurrentModel(safeRestorationResult.session.model);
+        // Use batch state updates for session restoration
+        const restorationUpdates: BatchStateUpdate[] = [
+          () => setWorkspaceRoot(safeRestorationResult.session!.workspaceRoot),
+          () => setCurrentModel(safeRestorationResult.session!.model)
+        ];
+
+        const batchResult = await executeBatchStateUpdates(restorationUpdates, {
+          componentName: 'App',
+          continueOnError: false, // All updates must succeed for session restoration
+          maxRetries: 2
+        });
+
+        if (!batchResult.success && batchResult.error) {
+          throw new Error(`Session restoration state updates failed: ${batchResult.error.message}`);
+        }
         
         // Use the session manager's restoreSessionWithContext to update the store
         const storeRestoreSession = (useAppStore.getState() as any).restoreSession;
@@ -310,7 +411,7 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
           content: `✓ Session restored successfully!\n\nModel: ${safeRestorationResult.session.model}\nMessages: ${safeRestorationResult.session.messages.length}\nTokens: ${safeRestorationResult.session.tokenCount.total.toLocaleString()}${contextMessage}`,
         });
         
-        setSessionRestoreState('complete');
+        safeSetSessionRestoreState('complete');
       } else {
         // Restoration failed - implement progressive recovery escalation
         const error = safeRestorationResult.error || new Error('Session restoration failed');
@@ -326,13 +427,13 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
           // Progressive escalation: try recommended option, then fallback, then skip
           if (recommendedOption && recommendedOption.type === 'retry') {
             // Don't auto-retry to avoid infinite loops - let user decide
-            setSessionRestoreError(`Session restoration failed: ${error.message}. You can try again or create a new session.`);
-            setSessionRestoreState('error');
+            safeSetSessionRestoreError(`Session restoration failed: ${error.message}. You can try again or create a new session.`);
+            safeSetSessionRestoreState('error');
           } else if (fallbackOption) {
             // Graceful fallback to new session creation
             logger.info('Using fallback recovery option: creating new session');
             await fallbackOption.action();
-            setSessionRestoreState('complete');
+            safeSetSessionRestoreState('complete');
             initializeNewSession();
           } else if (skipOption) {
             // Skip this session and show alternatives
@@ -341,24 +442,24 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
             // Go back to session selection with remaining sessions
             const updatedSessions = availableSessions.filter(s => s.id !== sessionId);
             if (updatedSessions.length > 0) {
-              setAvailableSessions(updatedSessions);
-              setSessionRestoreState('prompting');
+              safeSetAvailableSessions(updatedSessions);
+              safeSetSessionRestoreState('prompting');
             } else {
               // No more sessions available, create new session
-              setSessionRestoreState('complete');
+              safeSetSessionRestoreState('complete');
               initializeNewSession();
             }
           } else {
             // No suitable recovery options, fallback to new session
             logger.warn('No suitable recovery options available, falling back to new session');
-            setSessionRestoreState('complete');
+            safeSetSessionRestoreState('complete');
             initializeNewSession();
           }
         } else {
           // No recovery options available, graceful fallback to new session
           logger.warn('No recovery options available, falling back to new session');
-          setSessionRestoreError(`Session restoration failed: ${error.message}. Creating new session instead.`);
-          setSessionRestoreState('complete');
+          safeSetSessionRestoreError(`Session restoration failed: ${error.message}. Creating new session instead.`);
+          safeSetSessionRestoreState('complete');
           initializeNewSession();
         }
       }
@@ -367,8 +468,8 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
       
       // Ultimate fallback: if everything fails, create new session
       logger.error(`Session restoration completely failed, falling back to new session: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setSessionRestoreError(`Session restoration failed: ${error instanceof Error ? error.message : 'Unknown error'}. Creating new session instead.`);
-      setSessionRestoreState('complete');
+      safeSetSessionRestoreError(`Session restoration failed: ${error instanceof Error ? error.message : 'Unknown error'}. Creating new session instead.`);
+      safeSetSessionRestoreState('complete');
       initializeNewSession();
     }
   }, [setWorkspaceRoot, setCurrentModel, addMessage, availableSessions, initializeNewSession]);
@@ -380,7 +481,7 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
     // Batch the state updates to prevent multiple renders
     React.startTransition(() => {
       console.log('🔄 handleNewSession: Setting session restore state to complete');
-      setSessionRestoreState('complete');
+      safeSetSessionRestoreState('complete');
       
       console.log('🔄 handleNewSession: Initializing new session');
       initializeNewSession();
@@ -389,8 +490,8 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
 
   // Handle session detection error retry
   const handleRetryDetection = useCallback(() => {
-    setSessionRestoreError(null);
-    setSessionRestoreState('detecting');
+    safeSetSessionRestoreError(null);
+    safeSetSessionRestoreState('detecting');
     
     // Reset the detection flag to allow retry
     hasDetectedSessions.current = false;
@@ -408,8 +509,8 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
         
         // Show validation progress if there were sessions to validate
         if (safeDetectionResult.validSessions.length > 0 || safeDetectionResult.invalidSessions.length > 0) {
-          setSessionRestoreState('validating');
-          setValidationProgress({
+          safeSetSessionRestoreState('validating');
+          safeSetValidationProgress({
             current: safeDetectionResult.validSessions.length + safeDetectionResult.invalidSessions.length,
             total: safeDetectionResult.validSessions.length + safeDetectionResult.invalidSessions.length,
           });
@@ -419,10 +520,10 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
         }
         
         if (safeDetectionResult.validSessions.length > 0) {
-          setAvailableSessions(safeDetectionResult.validSessions);
-          setSessionRestoreState('prompting');
+          safeSetAvailableSessions(safeDetectionResult.validSessions);
+          safeSetSessionRestoreState('prompting');
         } else {
-          setSessionRestoreState('complete');
+          safeSetSessionRestoreState('complete');
           initializeNewSession();
         }
       } catch (error) {
@@ -430,7 +531,7 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
         
         // Graceful fallback on retry failure too
         logger.error(`Session detection retry failed, falling back to new session: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setSessionRestoreState('complete');
+        safeSetSessionRestoreState('complete');
         initializeNewSession();
       }
     };
@@ -520,8 +621,8 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
       return;
     }
 
-    // Clear input
-    setInputValue('');
+    // Clear input with safe state update
+    safeSetInputValue('');
 
     // Check for slash commands
     if (trimmedInput.startsWith('/')) {
@@ -713,34 +814,36 @@ Then restart theo-code.`,
   }
 
   return (
-    <LayoutErrorBoundary
-      onError={(error, errorInfo) => {
-        logger.error('Layout system error in App component', {
-          error: error.message,
-          stack: error.stack,
-          componentStack: errorInfo.componentStack,
-        });
-        
-        // Set error in store for potential recovery
-        setError(`Layout error: ${error.message}`);
-      }}
-    >
-      <FullScreenLayout
-        terminalWidth={terminalWidth}
-        terminalHeight={terminalHeight}
+    <InputManagerProvider>
+      <LayoutErrorBoundary
+        onError={(error, errorInfo) => {
+          logger.error('Layout system error in App component', {
+            error: error.message,
+            stack: error.stack,
+            componentStack: errorInfo.componentStack,
+          });
+          
+          // Set error in store for potential recovery
+          setError(`Layout error: ${error.message}`);
+        }}
       >
-        <ResponsiveLayoutContent
-          messages={messages}
-          streamingText={streamingText}
-          isStreaming={isStreaming}
-          inputValue={inputValue}
-          onInputChange={setInputValue}
-          onInputSubmit={handleSubmit}
-          tasks={archonTasks}
+        <FullScreenLayout
           terminalWidth={terminalWidth}
           terminalHeight={terminalHeight}
-        />
-      </FullScreenLayout>
-    </LayoutErrorBoundary>
+        >
+          <ResponsiveLayoutContent
+            messages={messages}
+            streamingText={streamingText}
+            isStreaming={isStreaming}
+            inputValue={inputValue}
+            onInputChange={safeSetInputValue}
+            onInputSubmit={handleSubmit}
+            tasks={archonTasks}
+            terminalWidth={terminalWidth}
+            terminalHeight={terminalHeight}
+          />
+        </FullScreenLayout>
+      </LayoutErrorBoundary>
+    </InputManagerProvider>
   );
 }

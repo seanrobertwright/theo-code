@@ -80,25 +80,28 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
   const [layoutWarnings, setLayoutWarnings] = React.useState<string[]>([]);
   const [fallbackMode, setFallbackMode] = React.useState(false);
   
-  // Enhanced debounced resize handler with performance optimization
+  // Enhanced debounced resize handler with performance optimization and stable reference
   const handleDimensionsChange = React.useCallback((newDimensions: { width: number; height: number }) => {
     measure(() => {
       setDebouncedDimensions(newDimensions);
     });
   }, [measure]);
 
-  const debouncedSetDimensions = useDebounce(
-    useStableCallback((...args: unknown[]) => {
-      const [newDimensions] = args as [{ width: number; height: number }];
-      handleDimensionsChange(newDimensions);
-    }, [handleDimensionsChange]),
-    150, // Increased debounce delay for better performance
-    {
-      leading: false,
-      trailing: true,
-      maxWait: 500, // Maximum wait to ensure responsiveness
-    }
-  );
+  // Memoize the debounced function to prevent recreation on every render
+  const debouncedSetDimensions = React.useMemo(() => {
+    return useDebounce(
+      useStableCallback((...args: unknown[]) => {
+        const [newDimensions] = args as [{ width: number; height: number }];
+        handleDimensionsChange(newDimensions);
+      }, [handleDimensionsChange]),
+      100, // 100ms debounce delay for stable layout during session creation
+      {
+        leading: false,
+        trailing: true,
+        maxWait: 300, // Reduced maximum wait to ensure better responsiveness during session initialization
+      }
+    );
+  }, [handleDimensionsChange]);
   
   // Update dimensions with enhanced debouncing
   React.useEffect(() => {
@@ -108,8 +111,8 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
     });
   }, [terminalWidth, terminalHeight, debouncedSetDimensions]);
   
-  // Validate and apply color scheme with fallback (memoized)
-  const validatedColorScheme = useDeepMemo(() => {
+  // Validate and apply color scheme with enhanced memoization to prevent unnecessary recalculations
+  const validatedColorScheme = React.useMemo(() => {
     const { colorScheme: validScheme, warnings } = safeApplyColorScheme(colorScheme);
     
     if (warnings.length > 0) {
@@ -120,8 +123,8 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
     return validScheme;
   }, [colorScheme]);
   
-  // Validate layout configuration (memoized)
-  const configValidation = useDeepMemo(() => {
+  // Validate layout configuration with enhanced memoization to prevent unnecessary recalculations
+  const configValidation = React.useMemo(() => {
     try {
       validateLayoutConfig(config);
       return { isValid: true, error: null };
@@ -140,8 +143,8 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
     setLayoutError(configValidation.error);
   }, [configValidation.error]);
   
-  // Validate terminal dimensions and handle errors (memoized)
-  const terminalValidation = useDeepMemo(() => {
+  // Validate terminal dimensions and handle errors with enhanced memoization to prevent unnecessary recalculations
+  const terminalValidation = React.useMemo(() => {
     return safeValidateTerminalDimensions(
       debouncedDimensions.width,
       debouncedDimensions.height,
@@ -149,8 +152,8 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
     );
   }, [debouncedDimensions.width, debouncedDimensions.height, config]);
   
-  // Calculate section dimensions with error handling (memoized)
-  const sectionDimensions: SectionDimensions = useDeepMemo(() => {
+  // Calculate section dimensions with enhanced memoization to prevent unnecessary recalculations
+  const sectionDimensions: SectionDimensions = React.useMemo(() => {
     return measure(() => {
       // If terminal validation failed, try to recover
       if (!terminalValidation.isValid && terminalValidation.error) {
@@ -219,10 +222,10 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
       
       return dimensions;
     });
-  }, [debouncedDimensions.width, debouncedDimensions.height, contextAreaWidth, config, terminalValidation, measure]);
+  }, [debouncedDimensions.width, debouncedDimensions.height, contextAreaWidth, config, terminalValidation.isValid, terminalValidation.error, measure]);
   
-  // Get responsive layout information with error handling (memoized)
-  const responsiveLayout = useDeepMemo(() => {
+  // Get responsive layout information with enhanced memoization to prevent unnecessary recalculations
+  const responsiveLayout = React.useMemo(() => {
     const { result, error, warnings } = safeLayoutCalculation(
       () => getResponsiveLayout(
         debouncedDimensions.width,
@@ -269,8 +272,8 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
     return undefined;
   }, [layoutWarnings]);
   
-  // Provide layout context to children through React context (memoized)
-  const layoutContext = useDeepMemo(() => ({
+  // Provide layout context to children through React context with enhanced memoization to prevent unnecessary recalculations
+  const layoutContext = React.useMemo(() => ({
     dimensions: sectionDimensions,
     responsive: responsiveLayout,
     colorScheme: validatedColorScheme,

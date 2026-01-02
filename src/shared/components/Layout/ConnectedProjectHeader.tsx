@@ -95,7 +95,7 @@ export const ConnectedProjectHeader: React.FC<ConnectedProjectHeaderProps> = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [forceUpdate]);
 
   return (
     <ProjectHeader

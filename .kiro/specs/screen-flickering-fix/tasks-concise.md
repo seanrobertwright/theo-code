@@ -6,60 +6,60 @@ Fix screen flickering during "New Session" selection by stabilizing React Ink ho
 ## Critical Tasks (Must Complete)
 
 ### Phase 1: Hook Stabilization
-- [ ] **Fix InputArea useInput Handler** (15 min)
+- [x] **Fix InputArea useInput Handler** (15 min)
   - Add useCallback wrapper with proper dependencies
   - File: `src/shared/components/Layout/InputArea.tsx`
   - Test: Handler reference remains stable across renders
 
-- [ ] **Fix MessageList useInput Handler** (10 min)
+- [x] **Fix MessageList useInput Handler** (10 min)
   - Add useCallback wrapper and cleanup
   - File: `src/shared/components/Layout/MessageList.tsx`
   - Test: No handler conflicts between components
 
-- [ ] **Batch Session State Updates** (20 min)
+- [x] **Batch Session State Updates** (20 min)
   - Combine multiple setState calls in initializeNewSession
   - File: `src/app.tsx`
   - Test: Single render cycle during session creation
 
 ### Phase 2: Layout Optimization
-- [ ] **Memoize Layout Calculations** (15 min)
+- [x] **Memoize Layout Calculations** (15 min)
   - Add useMemo to FullScreenLayout calculations
   - File: `src/shared/components/Layout/FullScreenLayout.tsx`
   - Test: No unnecessary recalculations
 
-- [ ] **Add Dimension Change Debouncing** (15 min)
+- [x] **Add Dimension Change Debouncing** (15 min)
   - Debounce rapid resize events (100ms delay)
   - File: `src/shared/components/Layout/FullScreenLayout.tsx`
   - Test: Stable layout during session creation
 
-- [ ] **Audit useEffect Dependencies** (20 min)
+- [x] **Audit useEffect Dependencies** (20 min)
   - Review and fix dependency arrays in layout components
   - Files: `src/shared/components/Layout/*.tsx`
   - Test: ESLint exhaustive-deps rule passes
 
 ### Phase 3: Error Handling
-- [ ] **Add Input Handler Error Boundaries** (15 min)
+- [x] **Add Input Handler Error Boundaries** (15 min)
   - Wrap handlers with try-catch and fallbacks
   - Files: Components with input handlers
   - Test: Graceful error handling
 
-- [ ] **Add State Update Error Handling** (10 min)
+- [x] **Add State Update Error Handling** (10 min)
   - Safe state updates with error recovery
   - Files: Components with state updates
   - Test: App remains functional after errors
 
 ### Phase 4: Testing & Validation
-- [ ] **Create Handler Stability Test** (15 min)
+- [x] **Create Handler Stability Test** (15 min)
   - Unit test for input handler reference stability
   - File: `src/test/input-handler-stability.test.tsx`
   - Verify: Handler doesn't re-register unnecessarily
 
-- [ ] **Create Session Creation Integration Test** (20 min)
+- [x] **Create Session Creation Integration Test** (20 min)
   - End-to-end test for "New Session" workflow
   - File: `src/test/session-creation.test.tsx`
   - Verify: No flickering, single render cycle
 
-- [ ] **Manual Testing Validation** (10 min)
+- [x] **Manual Testing Validation** (10 min)
   - Test "New Session" in actual terminal
   - Verify: No visual flickering, responsive input
   - Test: Multiple terminal sizes and environments
@@ -67,12 +67,12 @@ Fix screen flickering during "New Session" selection by stabilizing React Ink ho
 ## Enhancement Tasks (Optional)
 
 ### Advanced Input Management
-- [ ] **Create Centralized Input Manager** (45 min)
+- [x] **Create Centralized Input Manager** (45 min)
   - Single source of truth for input handlers
   - File: `src/shared/hooks/useInputManager.ts`
   - Benefit: Prevents handler conflicts
 
-- [ ] **Integrate Input Manager** (30 min)
+- [-] **Integrate Input Manager** (30 min)
   - Update components to use centralized manager
   - Files: InputArea.tsx, MessageList.tsx
   - Benefit: Automatic conflict resolution

@@ -24,6 +24,7 @@ import {
   useDeepMemo,
   useStableCallback,
 } from '../components/Layout/performance-optimizations.js';
+import { logger } from '../utils/logger.js';
 
 // =============================================================================
 // UI LAYOUT STORE INTERFACE
@@ -96,24 +97,74 @@ export const useUILayoutStore = create<UILayoutStore>()(
     // -------------------------------------------------------------------------
 
     setContextAreaWidth: (width: number): void => {
-      const { layoutConfig } = get();
-      const clampedWidth = clamp(
-        width,
-        layoutConfig.minContextWidth,
-        layoutConfig.maxContextWidth
-      );
-      
-      set({ contextAreaWidth: clampedWidth });
+      try {
+        const { layoutConfig } = get();
+        const clampedWidth = clamp(
+          width,
+          layoutConfig.minContextWidth,
+          layoutConfig.maxContextWidth
+        );
+        
+        set({ contextAreaWidth: clampedWidth });
+      } catch (error) {
+        logger.error('Failed to set context area width in UILayoutStore', {
+          error: error instanceof Error ? error.message : String(error),
+          width,
+          context: 'ui-layout-state-update'
+        });
+        
+        // Fallback: use default width
+        try {
+          set({ contextAreaWidth: 70 });
+        } catch (fallbackError) {
+          logger.error('Fallback context area width update also failed', {
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+          });
+        }
+      }
     },
 
     toggleTaskSidebar: (): void => {
-      set((state) => ({
-        taskSidebarCollapsed: !state.taskSidebarCollapsed,
-      }));
+      try {
+        set((state) => ({
+          taskSidebarCollapsed: !state.taskSidebarCollapsed,
+        }));
+      } catch (error) {
+        logger.error('Failed to toggle task sidebar in UILayoutStore', {
+          error: error instanceof Error ? error.message : String(error),
+          context: 'ui-layout-state-update'
+        });
+        
+        // Fallback: try to set to false (expanded)
+        try {
+          set({ taskSidebarCollapsed: false });
+        } catch (fallbackError) {
+          logger.error('Fallback task sidebar toggle also failed', {
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+          });
+        }
+      }
     },
 
     setTaskSidebarCollapsed: (collapsed: boolean): void => {
-      set({ taskSidebarCollapsed: collapsed });
+      try {
+        set({ taskSidebarCollapsed: collapsed });
+      } catch (error) {
+        logger.error('Failed to set task sidebar collapsed state in UILayoutStore', {
+          error: error instanceof Error ? error.message : String(error),
+          collapsed,
+          context: 'ui-layout-state-update'
+        });
+        
+        // Fallback: use default state (expanded)
+        try {
+          set({ taskSidebarCollapsed: false });
+        } catch (fallbackError) {
+          logger.error('Fallback task sidebar collapsed update also failed', {
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+          });
+        }
+      }
     },
 
     // -------------------------------------------------------------------------
@@ -121,21 +172,65 @@ export const useUILayoutStore = create<UILayoutStore>()(
     // -------------------------------------------------------------------------
 
     setContextScrollPosition: (position: number): void => {
-      set((state) => ({
-        scrollPositions: {
-          ...state.scrollPositions,
-          context: Math.max(0, position),
-        },
-      }));
+      try {
+        set((state) => ({
+          scrollPositions: {
+            ...state.scrollPositions,
+            context: Math.max(0, position),
+          },
+        }));
+      } catch (error) {
+        logger.error('Failed to set context scroll position in UILayoutStore', {
+          error: error instanceof Error ? error.message : String(error),
+          position,
+          context: 'ui-layout-state-update'
+        });
+        
+        // Fallback: reset scroll position to 0
+        try {
+          set((state) => ({
+            scrollPositions: {
+              ...state.scrollPositions,
+              context: 0,
+            },
+          }));
+        } catch (fallbackError) {
+          logger.error('Fallback context scroll position update also failed', {
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+          });
+        }
+      }
     },
 
     setTaskScrollPosition: (position: number): void => {
-      set((state) => ({
-        scrollPositions: {
-          ...state.scrollPositions,
-          tasks: Math.max(0, position),
-        },
-      }));
+      try {
+        set((state) => ({
+          scrollPositions: {
+            ...state.scrollPositions,
+            tasks: Math.max(0, position),
+          },
+        }));
+      } catch (error) {
+        logger.error('Failed to set task scroll position in UILayoutStore', {
+          error: error instanceof Error ? error.message : String(error),
+          position,
+          context: 'ui-layout-state-update'
+        });
+        
+        // Fallback: reset scroll position to 0
+        try {
+          set((state) => ({
+            scrollPositions: {
+              ...state.scrollPositions,
+              tasks: 0,
+            },
+          }));
+        } catch (fallbackError) {
+          logger.error('Fallback task scroll position update also failed', {
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+          });
+        }
+      }
     },
 
     // -------------------------------------------------------------------------
@@ -143,30 +238,78 @@ export const useUILayoutStore = create<UILayoutStore>()(
     // -------------------------------------------------------------------------
 
     setColorScheme: (colorScheme: ColorScheme): void => {
-      if (validateColorScheme(colorScheme)) {
-        set({ colorScheme });
-      } else {
-        console.warn('Invalid color scheme provided, keeping current scheme');
+      try {
+        if (validateColorScheme(colorScheme)) {
+          set({ colorScheme });
+        } else {
+          logger.warn('Invalid color scheme provided, keeping current scheme', {
+            colorScheme: colorScheme.name,
+            context: 'ui-layout-validation'
+          });
+          
+          // Fallback: use default color scheme
+          const defaultScheme = createDefaultColorScheme();
+          set({ colorScheme: defaultScheme });
+        }
+      } catch (error) {
+        logger.error('Failed to set color scheme in UILayoutStore', {
+          error: error instanceof Error ? error.message : String(error),
+          colorScheme: colorScheme.name,
+          context: 'ui-layout-state-update'
+        });
+        
+        // Fallback: use default color scheme
+        try {
+          const defaultScheme = createDefaultColorScheme();
+          set({ colorScheme: defaultScheme });
+        } catch (fallbackError) {
+          logger.error('Fallback color scheme update also failed', {
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+          });
+        }
       }
     },
 
     setLayoutConfig: (config: LayoutConfig): void => {
-      if (validateLayoutConfig(config)) {
-        set({ layoutConfig: config });
-        
-        // Ensure current context width is within new bounds
-        const { contextAreaWidth } = get();
-        const clampedWidth = clamp(
-          contextAreaWidth,
-          config.minContextWidth,
-          config.maxContextWidth
-        );
-        
-        if (clampedWidth !== contextAreaWidth) {
-          set({ contextAreaWidth: clampedWidth });
+      try {
+        if (validateLayoutConfig(config)) {
+          set({ layoutConfig: config });
+          
+          // Ensure current context width is within new bounds
+          const { contextAreaWidth } = get();
+          const clampedWidth = clamp(
+            contextAreaWidth,
+            config.minContextWidth,
+            config.maxContextWidth
+          );
+          
+          if (clampedWidth !== contextAreaWidth) {
+            set({ contextAreaWidth: clampedWidth });
+          }
+        } else {
+          logger.warn('Invalid layout config provided, keeping current config', {
+            context: 'ui-layout-validation'
+          });
+          
+          // Fallback: use default layout config
+          const defaultConfig = createDefaultLayoutConfig();
+          set({ layoutConfig: defaultConfig });
         }
-      } else {
-        console.warn('Invalid layout config provided, keeping current config');
+      } catch (error) {
+        logger.error('Failed to set layout config in UILayoutStore', {
+          error: error instanceof Error ? error.message : String(error),
+          context: 'ui-layout-state-update'
+        });
+        
+        // Fallback: use default layout config
+        try {
+          const defaultConfig = createDefaultLayoutConfig();
+          set({ layoutConfig: defaultConfig });
+        } catch (fallbackError) {
+          logger.error('Fallback layout config update also failed', {
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+          });
+        }
       }
     },
 
@@ -175,16 +318,42 @@ export const useUILayoutStore = create<UILayoutStore>()(
     // -------------------------------------------------------------------------
 
     resetToDefaults: (): void => {
-      set({
-        ...initialState,
-        colorScheme: createDefaultColorScheme(),
-        layoutConfig: createDefaultLayoutConfig(),
-      });
+      try {
+        set({
+          ...initialState,
+          colorScheme: createDefaultColorScheme(),
+          layoutConfig: createDefaultLayoutConfig(),
+        });
+      } catch (error) {
+        logger.error('Failed to reset UI layout to defaults', {
+          error: error instanceof Error ? error.message : String(error),
+          context: 'ui-layout-state-update'
+        });
+        
+        // Fallback: try to set individual properties
+        try {
+          set({ contextAreaWidth: 70 });
+          set({ taskSidebarCollapsed: false });
+          set({ scrollPositions: { context: 0, tasks: 0 } });
+        } catch (fallbackError) {
+          logger.error('Fallback reset to defaults also failed', {
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+          });
+        }
+      }
     },
 
     validateConfiguration: (): boolean => {
-      const { colorScheme, layoutConfig } = get();
-      return validateColorScheme(colorScheme) && validateLayoutConfig(layoutConfig);
+      try {
+        const { colorScheme, layoutConfig } = get();
+        return validateColorScheme(colorScheme) && validateLayoutConfig(layoutConfig);
+      } catch (error) {
+        logger.error('Failed to validate UI layout configuration', {
+          error: error instanceof Error ? error.message : String(error),
+          context: 'ui-layout-validation'
+        });
+        return false;
+      }
     },
   }))
 );

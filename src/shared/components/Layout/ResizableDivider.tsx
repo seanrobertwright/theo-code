@@ -14,6 +14,7 @@ import {
   useThrottle,
   useDeepMemo,
 } from './performance-optimizations.js';
+import { createSafeInputHandlerWithDefaults } from './input-error-handling.js';
 
 /**
  * Interactive divider component for adjusting context/task area widths with performance optimizations.
@@ -166,7 +167,13 @@ const ResizableDividerComponent: React.FC<ResizableDividerProps> = ({
     }
   }, [isActive, resizeError, minContextWidth, maxContextWidth, currentContextWidth, throttledResize]);
 
-  useInput(handleInput);
+  // Wrap the input handler with error boundary protection
+  const safeHandleInput = React.useMemo(
+    () => createSafeInputHandlerWithDefaults(handleInput, 'ResizableDivider'),
+    [handleInput]
+  );
+
+  useInput(safeHandleInput);
   
   // Visual feedback based on state with error handling (memoized)
   const getDividerChar = React.useCallback((index: number): string => {
