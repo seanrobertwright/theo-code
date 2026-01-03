@@ -449,7 +449,10 @@ export async function executeBatchStateUpdates(
       // Execute all updates
       for (let i = 0; i < updates.length; i++) {
         try {
-          updates[i]();
+          const update = updates[i];
+          if (update) {
+            update();
+          }
         } catch (error) {
           const updateError = error instanceof Error ? error : new Error(String(error));
           errors.push(updateError);
@@ -627,14 +630,19 @@ export function createSafeStateSetterWithDefaults<T>(
   stateName: string,
   fallbackState?: T
 ): StateSetter<T> {
-  return createSafeStateSetter(setter, {
+  const optionsObj: StateUpdateOptions<T> = {
     componentName,
     stateName,
-    fallbackState,
     validator: createNullValidator<T>(),
     maxRetries: 1,
     retryDelay: 50
-  });
+  };
+
+  if (fallbackState !== undefined) {
+    optionsObj.fallbackState = fallbackState;
+  }
+
+  return createSafeStateSetter(setter, optionsObj);
 }
 
 /**
@@ -646,12 +654,17 @@ export function createSafeFunctionalStateSetterWithDefaults<T>(
   stateName: string,
   fallbackState?: T
 ): FunctionalStateSetter<T> {
-  return createSafeFunctionalStateSetter(setter, {
+  const optionsObj: StateUpdateOptions<T> = {
     componentName,
     stateName,
-    fallbackState,
     validator: createNullValidator<T>(),
     maxRetries: 1,
     retryDelay: 50
-  });
+  };
+
+  if (fallbackState !== undefined) {
+    optionsObj.fallbackState = fallbackState;
+  }
+
+  return createSafeFunctionalStateSetter(setter, optionsObj);
 }

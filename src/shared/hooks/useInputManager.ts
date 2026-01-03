@@ -30,8 +30,6 @@ export interface InputHandlerRegistration {
 interface InputManagerState {
   handlers: Map<string, InputHandlerRegistration>;
   activeHandlerId: string | null;
-  isProcessing: boolean;
-  lastInputTime: number;
 }
 
 /**
@@ -59,9 +57,11 @@ export const InputManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [state, setState] = React.useState<InputManagerState>({
     handlers: new Map(),
     activeHandlerId: null,
-    isProcessing: false,
-    lastInputTime: 0,
   });
+
+  // Use refs for high-frequency internal state to avoid re-renders
+  const isProcessingRef = React.useRef(false);
+  const lastInputTimeRef = React.useRef(0);
 
   /**
    * Register a new input handler
@@ -194,27 +194,31 @@ export const InputManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
    * Master input handler that delegates to the active handler
    */
   const masterInputHandler = React.useCallback((input: string, key: any) => {
-    if (state.isProcessing) {
+    if (isProcessingRef.current) {
       return; // Prevent concurrent input processing
     }
 
+    // Use ref-based access to state if needed, but getActiveHandler relies on state.
+    // Since getActiveHandler changes when state changes, masterInputHandler will change too.
+    // However, simply typing shouldn't change state anymore.
     const activeHandler = getActiveHandler();
     if (!activeHandler) {
-      logger.debug('No active input handler available', {
-        input: input.slice(0, 10), // Log first 10 chars for debugging
-        totalHandlers: state.handlers.size,
-      });
+      // logger.debug('No active input handler available', {
+      //   input: input.slice(0, 10), // Log first 10 chars for debugging
+      //   totalHandlers: state.handlers.size,
+      // });
       return;
     }
 
-    setState(prevState => ({ ...prevState, isProcessing: true, lastInputTime: Date.now() }));
+    isProcessingRef.current = true;
+    lastInputTimeRef.current = Date.now();
 
     try {
-      logger.debug('Delegating input to active handler', {
-        handlerId: activeHandler.id,
-        component: activeHandler.component,
-        input: input.slice(0, 10),
-      });
+      // logger.debug('Delegating input to active handler', {
+      //   handlerId: activeHandler.id,
+      //   component: activeHandler.component,
+      //   input: input.slice(0, 10),
+      // });
 
       activeHandler.handler(input, key);
     } catch (error) {
@@ -224,9 +228,9 @@ export const InputManagerProvider: React.FC<{ children: React.ReactNode }> = ({ 
         error: error instanceof Error ? error.message : String(error),
       });
     } finally {
-      setState(prevState => ({ ...prevState, isProcessing: false }));
+      isProcessingRef.current = false;
     }
-  }, [state.isProcessing, state.handlers.size, getActiveHandler]);
+  }, [state.handlers.size, getActiveHandler]);
 
   // Register the master input handler with Ink
   useInput(masterInputHandler);
@@ -282,36 +286,49 @@ export const useInputHandler = (
     dependencies?: React.DependencyList;
   } = {}
 ) => {
-  const { priority = 0, autoActivate = false, dependencies = [] } = options;
-  const inputManager = useInputManager();
+  const { priority = 0, autoActivate = false } = options;
+  const { registerHandler, unregisterHandler, setActiveHandler, isHandlerActive, getAllHandlers } = useInputManager();
 
-  // Memoize the handler to prevent unnecessary re-registrations
-  const stableHandler = React.useCallback(handler, dependencies);
+  // Use a ref to store the latest handler
+  // This allows the handler to change without forcing a re-registration
+  const handlerRef = React.useRef(handler);
+  
+  // Update the ref whenever the handler changes
+  React.useEffect(() => {
+    handlerRef.current = handler;
+  }, [handler]);
 
   React.useEffect(() => {
-    // Register the handler
-    inputManager.registerHandler(id, stableHandler, component, priority);
+    // Create a stable proxy that calls the current handler
+    const proxyHandler: InputHandler = (input, key) => {
+      if (handlerRef.current) {
+        handlerRef.current(input, key);
+      }
+    };
+
+    // Register the proxy handler
+    registerHandler(id, proxyHandler, component, priority);
 
     // Auto-activate if requested
     if (autoActivate) {
-      inputManager.setActiveHandler(id);
+      setActiveHandler(id);
     }
 
-    // Cleanup on unmount or dependency change
+    // Cleanup on unmount or if basic registration params change
     return () => {
-      inputManager.unregisterHandler(id);
+      unregisterHandler(id);
     };
-  }, [id, stableHandler, component, priority, autoActivate, inputManager]);
+  }, [id, component, priority, autoActivate, registerHandler, unregisterHandler, setActiveHandler]);
 
   return {
-    isActive: inputManager.isHandlerActive(id),
-    activate: () => inputManager.setActiveHandler(id),
+    isActive: isHandlerActive(id),
+    activate: () => setActiveHandler(id),
     deactivate: () => {
       // Find next highest priority handler to activate
-      const allHandlers = inputManager.getAllHandlers();
+      const allHandlers = getAllHandlers();
       const nextHandler = allHandlers.find(h => h.id !== id);
       if (nextHandler) {
-        inputManager.setActiveHandler(nextHandler.id);
+        setActiveHandler(nextHandler.id);
       }
     },
   };
@@ -326,14 +343,11 @@ export const useInputManagerDebug = () => {
   return {
     totalHandlers: inputManager.state.handlers.size,
     activeHandlerId: inputManager.state.activeHandlerId,
-    isProcessing: inputManager.state.isProcessing,
-    lastInputTime: inputManager.state.lastInputTime,
     handlers: inputManager.getAllHandlers(),
     logState: () => {
       console.log('Input Manager State:', {
         totalHandlers: inputManager.state.handlers.size,
         activeHandlerId: inputManager.state.activeHandlerId,
-        isProcessing: inputManager.state.isProcessing,
         handlers: inputManager.getAllHandlers().map(h => ({
           id: h.id,
           component: h.component,

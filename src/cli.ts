@@ -17,6 +17,19 @@ import { logger, LogLevel } from './shared/utils/logger.js';
 // Load .env file from current directory
 loadEnv();
 
+function isAltScreenEnabled(): boolean {
+  if (process.stdout.isTTY !== true) {
+    return false;
+  }
+
+  const envValue = process.env['THEO_UI_ALT_SCREEN']?.trim();
+  if (envValue === undefined || envValue === '') {
+    return true;
+  }
+
+  return envValue !== '0' && envValue.toLowerCase() !== 'false';
+}
+
 // =============================================================================
 // VERSION
 // =============================================================================
@@ -68,12 +81,33 @@ program
 // =============================================================================
 
 program.action((options: { model?: string; verbose?: boolean; safeMode?: boolean; directory?: string }): void => {
-  console.log('🚀 Starting theo-code application...');
-  console.log('📁 Working directory:', options.directory ?? process.cwd());
-  
+  const useAltScreen = isAltScreenEnabled();
+  let didRestoreTerminal = false;
+
+  const restoreTerminal = (): void => {
+    if (didRestoreTerminal) {
+      return;
+    }
+
+    didRestoreTerminal = true;
+    if (useAltScreen) {
+      process.stdout.write('\x1b[?1049l');
+    }
+  };
+
+  if (useAltScreen) {
+    process.stdout.write('\x1b[?1049h');
+    process.stdout.write('\x1b[H\x1b[2J');
+  }
+
+  process.once('exit', restoreTerminal);
+
   // Configure logging - enable verbose by default for debugging
-  logger.setLevel(LogLevel.DEBUG);
-  logger.debug('Debug logging enabled');
+  // WARN: Debug logging causes flickering in Ink apps due to high frequency updates
+  logger.setLevel(options.verbose ? LogLevel.DEBUG : LogLevel.INFO);
+  if (options.verbose) {
+    logger.debug('Debug logging enabled');
+  }
 
   // Set safe mode via environment
   if (options.safeMode === true) {
@@ -88,32 +122,40 @@ program.action((options: { model?: string; verbose?: boolean; safeMode?: boolean
   // Determine workspace root
   const workspaceRoot = options.directory ?? process.cwd();
 
-  // Ensure config exists
-  ensureConfigDir();
+  try {
+    // Ensure config exists
+    ensureConfigDir();
 
-  // Load configuration
-  const config = loadConfig(workspaceRoot);
-  logger.debug('Configuration loaded', { model: config.global.defaultModel });
+    // Load configuration
+    const config = loadConfig(workspaceRoot);
+    logger.debug('Configuration loaded', { model: config.global.defaultModel });
 
-  // Launch the TUI
-  const { waitUntilExit } = render(
-    React.createElement(App, {
-      workspaceRoot,
-      config,
-      initialModel: options.model ?? config.global.defaultModel,
-    })
-  );
+    // Launch the TUI
+    const { waitUntilExit } = render(
+      React.createElement(App, {
+        workspaceRoot,
+        config,
+        initialModel: options.model ?? config.global.defaultModel,
+      })
+    );
 
-  // Handle exit
-  waitUntilExit()
-    .then(() => {
-      logger.debug('Application exited cleanly');
-      process.exit(0);
-    })
-    .catch((error: unknown) => {
-      logger.error('Application error', error);
-      process.exit(1);
-    });
+    // Handle exit
+    waitUntilExit()
+      .then(() => {
+        logger.debug('Application exited cleanly');
+        restoreTerminal();
+        process.exit(0);
+      })
+      .catch((error: unknown) => {
+        logger.error('Application error', error);
+        restoreTerminal();
+        process.exit(1);
+      });
+  } catch (error) {
+    restoreTerminal();
+    console.error('Fatal startup error:', error);
+    process.exit(1);
+  }
 });
 
 // =============================================================================

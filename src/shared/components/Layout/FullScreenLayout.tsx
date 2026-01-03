@@ -34,6 +34,39 @@ import {
   useDeepMemo,
 } from './performance-optimizations.js';
 
+function parseNonNegativeInt(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
+export function getTerminalSafetyRows(): number {
+  const override = parseNonNegativeInt(process.env['THEO_UI_SAFETY_ROWS']);
+  if (override !== undefined) {
+    return override;
+  }
+
+  if (process.env['VITEST'] || process.env['NODE_ENV'] === 'test') {
+    return 0;
+  }
+
+  const isWindowsTerminal =
+    process.platform === 'win32' &&
+    (process.env['WT_SESSION'] !== undefined || process.env['TERM_PROGRAM'] === 'Windows_Terminal');
+  if (isWindowsTerminal) {
+    return 2;
+  }
+
+  return 1;
+}
+
 /**
  * Root layout component that manages terminal dimensions and section positioning.
  * 
@@ -59,7 +92,7 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
   colorScheme = createDefaultColorScheme(),
 }) => {
   const { stdout } = useStdout();
-  const { measure } = usePerformanceMonitor('FullScreenLayout', process.env['NODE_ENV'] === 'development');
+  const { measure } = usePerformanceMonitor('FullScreenLayout', false); // Disabled logging to prevent flickering
   
   // Get layout state from store with stable selectors
   const contextAreaWidth = useUILayoutStore((state) => state.contextAreaWidth);
@@ -68,6 +101,7 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
   // Use provided dimensions or fall back to stdout dimensions
   const terminalWidth = propTerminalWidth || stdout?.columns || 80;
   const terminalHeight = propTerminalHeight || stdout?.rows || 24;
+  const terminalSafetyRows = React.useMemo(() => getTerminalSafetyRows(), []);
   
   // State for debounced dimensions with enhanced debouncing
   const [debouncedDimensions, setDebouncedDimensions] = React.useState({
@@ -82,21 +116,18 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
     });
   }, [measure]);
 
-  // Memoize the debounced function to prevent recreation on every render
-  const debouncedSetDimensions = React.useMemo(() => {
-    return useDebounce(
-      useStableCallback((...args: unknown[]) => {
-        const [newDimensions] = args as [{ width: number; height: number }];
-        handleDimensionsChange(newDimensions);
-      }, [handleDimensionsChange]),
-      100, // 100ms debounce delay for stable layout during session creation
-      {
-        leading: false,
-        trailing: true,
-        maxWait: 300, // Reduced maximum wait to ensure better responsiveness during session initialization
-      }
-    );
+  // Debounce resize updates to avoid rapid redraws during initialization / resize.
+  // Note: `useDebounce` and `useStableCallback` are hooks and must be called at the top level.
+  const stableSetDimensions = useStableCallback((...args: unknown[]) => {
+    const [newDimensions] = args as [{ width: number; height: number }];
+    handleDimensionsChange(newDimensions);
   }, [handleDimensionsChange]);
+
+  const debouncedSetDimensions = useDebounce(stableSetDimensions, 100, {
+    leading: false,
+    trailing: true,
+    maxWait: 300, // Reduced maximum wait to ensure better responsiveness during session initialization
+  });
   
   // Update dimensions with enhanced debouncing
   React.useEffect(() => {
@@ -140,6 +171,10 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
       config
     );
   }, [debouncedDimensions.width, debouncedDimensions.height, config]);
+
+  const safeTerminalHeight = React.useMemo(() => {
+    return Math.max(1, debouncedDimensions.height - terminalSafetyRows);
+  }, [debouncedDimensions.height, terminalSafetyRows]);
   
   // Calculate section dimensions with enhanced memoization to prevent unnecessary recalculations
   // Returns dimensions AND error/fallback state to avoid side effects in useMemo
@@ -178,32 +213,32 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
           };
         }
       } else {
-        // Normal calculation with error handling
-        const { result: dimensions, error, warnings } = safeLayoutCalculation(
-          () => {
-            const dims = calculateSectionDimensions(
-              debouncedDimensions.width,
-              debouncedDimensions.height,
-              contextAreaWidth,
-              config
-            );
-            
-            // Validate the calculated dimensions
-            validateSectionDimensions(dims);
+         // Normal calculation with error handling
+         const { result: dimensions, error, warnings } = safeLayoutCalculation(
+           () => {
+             const dims = calculateSectionDimensions(
+               debouncedDimensions.width,
+               safeTerminalHeight,
+               contextAreaWidth,
+               config
+             );
+             
+             // Validate the calculated dimensions
+             validateSectionDimensions(dims);
             return dims;
-          },
-          // Fallback dimensions
-          {
-            terminal: { width: debouncedDimensions.width, height: debouncedDimensions.height },
-            header: { width: debouncedDimensions.width, height: 1 },
-            context: { width: Math.max(1, debouncedDimensions.width - 2), height: Math.max(1, debouncedDimensions.height - 4) },
-            sidebar: { width: 0, height: 0 },
-            footer: { width: debouncedDimensions.width, height: 3 },
-            isVerticalLayout: true,
-            isCompactMode: true,
-          },
-          'section dimension calculation'
-        );
+           },
+           // Fallback dimensions
+           {
+             terminal: { width: debouncedDimensions.width, height: safeTerminalHeight },
+             header: { width: debouncedDimensions.width, height: 1 },
+             context: { width: Math.max(1, debouncedDimensions.width - 2), height: Math.max(1, safeTerminalHeight - 4) },
+             sidebar: { width: 0, height: 0 },
+             footer: { width: debouncedDimensions.width, height: 3 },
+             isVerticalLayout: true,
+             isCompactMode: true,
+           },
+           'section dimension calculation'
+         );
         
         if (error) {
           currentError = `Layout calculation failed: ${error.message}`;
@@ -224,14 +259,14 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
         fallbackMode: isFallback
       };
     });
-  }, [debouncedDimensions.width, debouncedDimensions.height, contextAreaWidth, config, terminalValidation.isValid, terminalValidation.error, measure]);
+  }, [debouncedDimensions.width, safeTerminalHeight, contextAreaWidth, config, terminalValidation.isValid, terminalValidation.error, measure]);
   
   // Get responsive layout information with enhanced memoization to prevent unnecessary recalculations
   const responsiveLayout = React.useMemo(() => {
     const { result, error, warnings } = safeLayoutCalculation(
       () => getResponsiveLayout(
         debouncedDimensions.width,
-        debouncedDimensions.height,
+        safeTerminalHeight,
         config.responsiveBreakpoints
       ),
       // Fallback responsive layout
@@ -249,12 +284,12 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
     }
     
     return { result, warnings };
-  }, [debouncedDimensions.width, debouncedDimensions.height, config.responsiveBreakpoints]);
+  }, [debouncedDimensions.width, safeTerminalHeight, config.responsiveBreakpoints]);
   
   // Handle minimum size graceful degradation (memoized)
   const isTerminalTooSmall = React.useMemo(() => {
-    return debouncedDimensions.width < 40 || debouncedDimensions.height < 10;
-  }, [debouncedDimensions.width, debouncedDimensions.height]);
+    return debouncedDimensions.width < 40 || safeTerminalHeight < 10;
+  }, [debouncedDimensions.width, safeTerminalHeight]);
   
   // Combine all warnings
   const allWarnings = React.useMemo(() => {
@@ -288,7 +323,7 @@ const FullScreenLayoutComponent: React.FC<FullScreenLayoutProps> = ({
       <Box
         flexDirection="column"
         width={debouncedDimensions.width}
-        height={debouncedDimensions.height}
+        height={safeTerminalHeight}
         justifyContent="center"
         alignItems="center"
       >

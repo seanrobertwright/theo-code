@@ -72,29 +72,29 @@ Fix screen flickering during "New Session" selection by stabilizing React Ink ho
   - File: `src/shared/hooks/useInputManager.ts`
   - Benefit: Prevents handler conflicts
 
-- [-] **Integrate Input Manager** (30 min)
+- [x] **Integrate Input Manager** (30 min)
   - Update components to use centralized manager
   - Files: InputArea.tsx, MessageList.tsx
   - Benefit: Automatic conflict resolution
 
 ### Performance Monitoring
-- [ ] **Add Render Cycle Counter** (20 min)
+- [x] **Add Render Cycle Counter** (20 min)
   - Track render cycles during operations
   - File: `src/shared/utils/performanceMonitor.ts`
   - Benefit: Performance regression detection
 
-- [ ] **Add Memory Usage Monitor** (15 min)
+- [x] **Add Memory Usage Monitor** (15 min)
   - Monitor for memory leaks
   - File: `src/shared/utils/performanceMonitor.ts`
   - Benefit: Long-term stability validation
 
 ### Property-Based Testing
-- [ ] **Create Handler Stability Property Test** (25 min)
+- [x] **Create Handler Stability Property Test** (25 min)
   - Test handler stability across random inputs
   - File: `src/test/screen-flickering.property.test.ts`
   - Benefit: Robust validation across scenarios
 
-- [ ] **Create Layout Stability Property Test** (25 min)
+- [x] **Create Layout Stability Property Test** (25 min)
   - Test layout with random dimensions
   - File: `src/test/screen-flickering.property.test.ts`
   - Benefit: Comprehensive layout validation

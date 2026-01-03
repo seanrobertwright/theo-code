@@ -24,10 +24,9 @@ function formatSessionDuration(createdTimestamp: number): string {
     const remainingMinutes = minutes % 60;
     return `${hours}h ${remainingMinutes}m`;
   } else if (minutes > 0) {
-    const remainingSeconds = seconds % 60;
-    return `${minutes}m ${remainingSeconds}s`;
+    return `${minutes}m`;
   } else {
-    return `${seconds}s`;
+    return '<1m';
   }
 }
 
@@ -92,7 +91,7 @@ export const ConnectedProjectHeader: React.FC<ConnectedProjectHeaderProps> = ({
   React.useEffect(() => {
     const interval = setInterval(() => {
       forceUpdate();
-    }, 1000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [forceUpdate]);

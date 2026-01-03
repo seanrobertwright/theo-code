@@ -9,6 +9,9 @@ import { ArchonMCPClient, defaultArchonMCPConfig, type ArchonMCPConfig, type Arc
 import type { TaskSidebarProps, TaskItem } from './types.js';
 import { createDefaultColorScheme } from './utils.js';
 
+const EMPTY_TASKS: TaskItem[] = [];
+const EMPTY_ARCHON_CONFIG: Partial<ArchonMCPConfig> = {};
+
 /**
  * Props for ConnectedTaskSidebar component
  */
@@ -30,8 +33,8 @@ export interface ConnectedTaskSidebarProps extends Omit<TaskSidebarProps, 'tasks
  * falls back to local tasks when offline, and provides real-time synchronization.
  */
 export const ConnectedTaskSidebar: React.FC<ConnectedTaskSidebarProps> = ({
-  fallbackTasks = [],
-  archonConfig = {},
+  fallbackTasks = EMPTY_TASKS,
+  archonConfig = EMPTY_ARCHON_CONFIG,
   onConnectionStatusChange,
   onTasksUpdated,
   onTaskSelect,
@@ -77,6 +80,9 @@ export const ConnectedTaskSidebar: React.FC<ConnectedTaskSidebarProps> = ({
   React.useEffect(() => {
     if (config.enabled) {
       archonClientRef.current = new ArchonMCPClient(config);
+
+      // Emit initial status for callers/tests
+      onConnectionStatusChange?.('disconnected');
       
       // Add connection status listener
       const handleConnectionStatusChange = (status: ArchonConnectionStatus) => {

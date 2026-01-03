@@ -77,7 +77,7 @@ describe('ConnectedTaskSidebar', () => {
     expect(lastFrame()).toContain('Archon: disconnected');
   });
 
-  it('should handle connection status changes', () => {
+  it('should handle connection status changes', async () => {
     const mockOnConnectionStatusChange = vi.fn();
     
     render(
@@ -86,6 +86,9 @@ describe('ConnectedTaskSidebar', () => {
         onConnectionStatusChange={mockOnConnectionStatusChange}
       />
     );
+
+    // Allow Ink/React to flush useEffect
+    await new Promise((resolve) => setImmediate(resolve));
 
     // The component should initialize with disconnected status
     // In a real test, we would simulate connection status changes
@@ -139,5 +142,35 @@ describe('ConnectedTaskSidebar', () => {
 
     expect(lastFrame()).toContain('Tasks');
     expect(lastFrame()).toContain('Archon: disconnected');
+  });
+
+  it('should not rerun initialization on rerender when archonConfig is omitted', async () => {
+    const mockOnConnectionStatusChange = vi.fn();
+
+    const { rerender } = render(
+      <ConnectedTaskSidebar
+        {...defaultProps}
+        onConnectionStatusChange={mockOnConnectionStatusChange}
+      />
+    );
+
+    // Allow effects to run
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const initialCallCount = mockOnConnectionStatusChange.mock.calls.length;
+    expect(initialCallCount).toBeGreaterThan(0);
+    expect(mockOnConnectionStatusChange).toHaveBeenCalledWith('disconnected');
+
+    rerender(
+      <ConnectedTaskSidebar
+        {...defaultProps}
+        onConnectionStatusChange={mockOnConnectionStatusChange}
+      />
+    );
+
+    // Allow effects to run again if they were incorrectly retriggered
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(mockOnConnectionStatusChange).toHaveBeenCalledTimes(initialCallCount);
   });
 });

@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Development Log Updater",
+  "description": "Automatically updates the DEVLOG.md file with a summary of the development process, issues encountered, and solutions implemented whenever an agent session ends",
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Please update the ./DEVLOG.md file (create it if it does not exist) with a comprehensive summary of this development session. Include:\n\n1. **Session Overview**: Brief description of what was worked on\n2. **Issues Encountered**: Any problems, bugs, or challenges that arose during development\n3. **Solutions Implemented**: How each issue was resolved or addressed\n4. **Key Decisions Made**: Important technical or architectural decisions\n5. **Next Steps**: Any remaining tasks or follow-up items identified\n\nFormat the entry with a timestamp and session identifier. Maintain the existing structure of the DEVLOG.md file and append the new entry appropriately."
+  }
+}

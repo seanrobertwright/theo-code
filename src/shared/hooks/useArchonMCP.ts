@@ -129,7 +129,7 @@ export function useArchonMCP(
         setTasks(fallbackTasks);
       }
     } catch (error) {
-      console.error('Failed to refresh tasks from Archon:', error);
+      // console.error('Failed to refresh tasks from Archon:', error);
       setTasks(fallbackTasks);
     } finally {
       setIsLoading(false);
@@ -154,7 +154,7 @@ export function useArchonMCP(
         setProjects([]);
       }
     } catch (error) {
-      console.error('Failed to refresh projects from Archon:', error);
+      // console.error('Failed to refresh projects from Archon:', error);
       setProjects([]);
     } finally {
       setIsLoading(false);
@@ -203,7 +203,7 @@ export function useArchonMCP(
       
       return false;
     } catch (error) {
-      console.error('Failed to update task status:', error);
+      // console.error('Failed to update task status:', error);
       return false;
     }
   }, [config.enabled, refreshTasks]);
@@ -226,7 +226,7 @@ export function useArchonMCP(
         return false;
       }
     } catch (error) {
-      console.error('Connection test failed:', error);
+      // console.error('Connection test failed:', error);
       setConnectionStatus('error');
       return false;
     }
@@ -267,11 +267,13 @@ export function useUIUpgradeArchonTasks(fallbackTasks: TaskItem[] = []): UseArch
   // UI Upgrade project ID from Archon
   const uiUpgradeProjectId = '75bb8c80-f1c0-4752-a535-480e6a956fd1';
   
-  return useArchonMCP({
+  const config = React.useMemo(() => ({
     enabled: true,
     projectId: uiUpgradeProjectId,
     autoSync: true,
     syncInterval: 30000, // 30 seconds
-    conflictResolution: 'remote',
-  }, fallbackTasks);
+    conflictResolution: 'remote' as const,
+  }), []);
+
+  return useArchonMCP(config, fallbackTasks);
 }

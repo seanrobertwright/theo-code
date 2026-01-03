@@ -329,7 +329,7 @@ export function createDefaultLayoutConfig(): LayoutConfig {
     defaultContextWidth: 70,
     minContextWidth: 50,
     maxContextWidth: 90,
-    headerHeight: 1,
+    headerHeight: 2, // ProjectHeader renders as 2 terminal rows with border
     footerHeight: 5, // 3 content lines + 2 border lines
     minTerminalWidth: 80,
     minTerminalHeight: 20,

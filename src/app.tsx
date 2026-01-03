@@ -42,7 +42,7 @@ import {
 } from './shared/components/Layout/state-error-handling.js';
 
 // Import new layout components
-import { FullScreenLayout } from './shared/components/Layout/FullScreenLayout.js';
+import { FullScreenLayout, getTerminalSafetyRows } from './shared/components/Layout/FullScreenLayout.js';
 import { LayoutErrorBoundary } from './shared/components/Layout/ErrorBoundary.js';
 import { ResponsiveLayoutContent } from './shared/components/Layout/ResponsiveLayoutContent.js';
 import { ConnectedProjectHeader } from './shared/components/Layout/ConnectedProjectHeader.js';
@@ -85,11 +85,6 @@ export interface AppProps {
  * @returns React element
  */
 export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactElement => {
-  // Debug logging for render tracking
-  const renderCount = React.useRef(0);
-  renderCount.current += 1;
-  console.log(`🎨 App: Render #${renderCount.current}`);
-
   const { exit } = useApp();
   const { stdout } = useStdout();
 
@@ -330,27 +325,27 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
 
   // Initialize new session with batched state updates
   const initializeNewSession = useCallback(() => {
-    console.log('🔄 initializeNewSession: Starting session initialization');
+    logger.debug('initializeNewSession: starting session initialization');
     
     // Batch all state updates into a single React transition to prevent multiple re-renders
     React.startTransition(() => {
-      console.log('🔄 initializeNewSession: Batching state updates');
+      logger.debug('initializeNewSession: batching state updates');
       
       // Set workspace root
-      console.log('🔄 initializeNewSession: Setting workspace root:', workspaceRoot);
+      logger.debug('initializeNewSession: setting workspace root', { workspaceRoot });
       setWorkspaceRoot(workspaceRoot);
       
       // Set current model
-      console.log('🔄 initializeNewSession: Setting current model:', initialModel);
+      logger.debug('initializeNewSession: setting current model', { initialModel });
       setCurrentModel(initialModel);
       
       // Create new session
-      console.log('🔄 initializeNewSession: Creating new session');
+      logger.debug('initializeNewSession: creating new session');
       createNewSession(initialModel);
 
       // Add system message if available
       if (config.agentsInstructions !== undefined) {
-        console.log('🔄 initializeNewSession: Adding system message');
+        logger.debug('initializeNewSession: adding system message');
         addMessage({
           role: 'system',
           content: config.agentsInstructions,
@@ -359,13 +354,13 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
     });
 
     // Register filesystem tools (non-state operation, can be outside transition)
-    console.log('🔄 initializeNewSession: Registering filesystem tools');
+    logger.debug('initializeNewSession: registering filesystem tools');
     const fileSystemTools = createFileSystemTools();
     for (const tool of fileSystemTools) {
       toolRegistry.register(tool);
     }
 
-    console.log('✅ initializeNewSession: Session initialization complete');
+    logger.debug('initializeNewSession: session initialization complete');
   }, [workspaceRoot, initialModel, config, setWorkspaceRoot, setCurrentModel, createNewSession, addMessage]);
   // Handle session restoration
   const handleSessionSelected = useCallback(async (sessionId: string) => {
@@ -482,14 +477,14 @@ export const App = ({ workspaceRoot, config, initialModel }: AppProps): ReactEle
 
   // Handle new session selection
   const handleNewSession = useCallback(() => {
-    console.log('🔄 handleNewSession: Starting new session flow');
+    logger.debug('handleNewSession: starting new session flow');
     
     // Batch the state updates to prevent multiple renders
     React.startTransition(() => {
-      console.log('🔄 handleNewSession: Setting session restore state to complete');
+      logger.debug('handleNewSession: setting session restore state to complete');
       safeSetSessionRestoreState('complete');
       
-      console.log('🔄 handleNewSession: Initializing new session');
+      logger.debug('handleNewSession: initializing new session');
       initializeNewSession();
     });
   }, [initializeNewSession]);
@@ -677,9 +672,10 @@ Then restart theo-code.`,
   // Calculate terminal dimensions
   const terminalWidth = stdout?.columns ?? 80;
   const terminalHeight = stdout?.rows ?? 24;
+  const safeTerminalHeight = Math.max(1, terminalHeight - getTerminalSafetyRows());
 
   // Create fallback task data for offline scenarios
-  const fallbackTasks: import('./shared/components/Layout/types.js').TaskItem[] = [
+  const fallbackTasks: import('./shared/components/Layout/types.js').TaskItem[] = React.useMemo(() => [
     {
       id: '1',
       title: 'Set up UI layout foundation',
@@ -704,15 +700,15 @@ Then restart theo-code.`,
       status: 'not-started',
       description: 'Implement vertical stacking for narrow terminals',
     },
-  ];
+  ], []);
 
   // Use Archon MCP integration for task management
-  const { tasks: archonTasks, connectionStatus } = useUIUpgradeArchonTasks(fallbackTasks);
+  const { tasks: archonTasks } = useUIUpgradeArchonTasks(fallbackTasks);
 
   // Show session restoration UI if not complete
   if (sessionRestoreState !== 'complete') {
     return (
-      <Box flexDirection="column" height={terminalHeight} justifyContent="center">
+      <Box flexDirection="column" height={safeTerminalHeight} justifyContent="center">
         {sessionRestoreState === 'detecting' && (
           <SessionDetectionErrorBoundary
             onFallbackToNewSession={handleNewSession}

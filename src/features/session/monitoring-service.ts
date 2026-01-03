@@ -576,7 +576,6 @@ export class SessionMonitoringService {
     this.storageTrackingInterval = setInterval(() => {
       // This would typically get current sessions and record usage
       // For now, it's a placeholder that would be called by the session manager
-      console.warn('Storage tracking interval - would record usage here');
     }, this.config.storageTrackingInterval);
   }
   

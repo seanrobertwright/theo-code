@@ -31,3 +31,23 @@ export {
   checkContextFit,
   formatTokenCount,
 } from './tokenizer.js';
+
+// Performance monitoring utilities
+export {
+  performanceMonitor,
+  PerformanceMonitor,
+  startRenderTracking,
+  recordRenderCycle,
+  startOperation,
+  measure,
+  measureAsync,
+  getRenderCycleData,
+  getOperationData,
+  getSummary,
+  logSummary,
+  clearPerformanceData,
+  setPerformanceMonitorEnabled,
+  isPerformanceMonitorEnabled,
+  type RenderCycleData,
+  type OperationData,
+} from './performanceMonitor.js';

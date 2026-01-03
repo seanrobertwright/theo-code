@@ -61,6 +61,8 @@ export const ResponsiveLayoutContent: React.FC<ResponsiveLayoutContentProps> = (
   terminalWidth: _terminalWidth,
   terminalHeight: _terminalHeight,
 }) => {
+  const INPUT_AREA_HEIGHT = 3; // 1 content line + 2 border lines (InputArea renders a bordered box)
+
   const layoutContext = useLayoutContext();
   const { dimensions, responsive } = layoutContext;
   
@@ -107,6 +109,7 @@ export const ResponsiveLayoutContent: React.FC<ResponsiveLayoutContentProps> = (
       : Math.floor(contentAreaHeight * 0.6); // Normal split
     
     const sidebarHeight = contentAreaHeight - contextHeight;
+    const contextAreaHeight = Math.max(1, contextHeight - INPUT_AREA_HEIGHT);
     
     return (
       <Box flexDirection="column" height={contentAreaHeight}>
@@ -117,7 +120,7 @@ export const ResponsiveLayoutContent: React.FC<ResponsiveLayoutContentProps> = (
             streamingText={streamingText}
             isStreaming={isStreaming}
             width={dimensions.terminal.width}
-            height={contextHeight - 2} // Reserve space for input
+            height={contextAreaHeight}
             scrollPosition={contextScrollPosition}
             onScrollChange={setContextScrollPosition}
           />
@@ -150,6 +153,7 @@ export const ResponsiveLayoutContent: React.FC<ResponsiveLayoutContentProps> = (
   const renderHorizontalLayout = () => {
     const contextWidth = Math.floor((dimensions.terminal.width * contextAreaWidth) / 100);
     const sidebarWidth = dimensions.terminal.width - contextWidth - 1; // -1 for divider
+    const contextAreaHeight = Math.max(1, contentAreaHeight - INPUT_AREA_HEIGHT);
     
     return (
       <Box flexDirection="row" height={contentAreaHeight}>
@@ -160,7 +164,7 @@ export const ResponsiveLayoutContent: React.FC<ResponsiveLayoutContentProps> = (
             streamingText={streamingText}
             isStreaming={isStreaming}
             width={contextWidth}
-            height={contentAreaHeight - 2} // Reserve space for input
+            height={contextAreaHeight}
             scrollPosition={contextScrollPosition}
             onScrollChange={setContextScrollPosition}
           />

@@ -134,14 +134,25 @@ export const InputArea: React.FC<InputAreaProps> = ({
   return (
     <Box
       width={width}
+      height={3}
       borderStyle="single"
       borderColor={colorScheme.colors.border}
       paddingX={1}
+      overflow="hidden"
+      alignItems="center"
     >
       <Text color={colorScheme.colors.userMessage}>&gt; </Text>
-      <Text>{value}</Text>
+      <Box flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden">
+        <Text wrap="truncate-start">{value}</Text>
+      </Box>
       {!disabled && <Text color={colorScheme.colors.focus}>▊</Text>}
-      {disabled && <Text color={colorScheme.colors.comment}> (streaming...)</Text>}
+      {disabled && (
+        <Box flexShrink={1} minWidth={0} overflow="hidden">
+          <Text color={colorScheme.colors.comment} wrap="truncate-end">
+            {' '}(streaming...)
+          </Text>
+        </Box>
+      )}
     </Box>
   );
 };
